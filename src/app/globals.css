@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f7f4;
+  --foreground: #1b1f23;
+  --card: #ffffff;
+  --muted: #eeeeea;
+  --muted-foreground: #667069;
+  --border: #e3e3dd;
+  --accent: #1f6f5c;
+  --accent-hover: #185a4a;
+  --accent-soft: #e6f1ed;
+  --success: #1f7a4d;
+  --success-soft: #e4f3ea;
+  --warning: #a86a0a;
+  --warning-soft: #fbf0d9;
+  --danger: #b3382c;
+  --danger-soft: #fbe6e3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+dialog::backdrop {
+  background: rgb(27 31 35 / 0.4);
+}
+
+@keyframes ff-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ff-fade-in {
+  animation: ff-fade-in 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-fade-in {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
