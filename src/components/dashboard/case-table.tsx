@@ -1,34 +1,24 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
-import { buildingLabel, STATUS_LABELS } from "@/lib/cases/fields";
-import type { CaseRecord, CaseStatus } from "@/lib/data/types";
-import { cn, formatDate } from "@/lib/utils";
+import { buildingLabel } from "@/lib/cases/fields";
+import type { CaseRecord } from "@/lib/data/types";
+import type { CaseMeta } from "@/lib/intake/meta";
+import { formatDate, timeAgo } from "@/lib/utils";
+import { Completeness, ReadinessBadge, StatusBadge } from "./badges";
 
-const statusTone: Record<CaseStatus, "accent" | "warning" | "success" | "neutral"> = {
-  NEW: "accent",
-  NEEDS_INFO: "warning",
-  COMPLETE: "success",
-  CONTACTED: "neutral",
-  APPOINTMENT: "accent",
-  CLOSED: "neutral",
+const SOURCE_LABELS: Record<CaseRecord["source"], string> = {
+  widget: "Website",
+  email: "E-Mail",
+  whatsapp: "WhatsApp",
+  phone: "Telefon",
+  manual: "Manuell",
+  demo: "Demo",
 };
 
-export const StatusBadge = ({ status }: { status: CaseStatus }) => <Badge tone={statusTone[status]}>{STATUS_LABELS[status]}</Badge>;
-
-export function Completeness({ value }: { value: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-        <div className={cn("h-full rounded-full", value >= 100 ? "bg-success" : "bg-accent")} style={{ width: `${value}%` }} />
-      </div>
-      <span className="text-sm tabular-nums">{value} %</span>
-    </div>
-  );
-}
+const missingText = (m?: CaseMeta) => (!m || m.missing.length === 0 ? "–" : m.missing.length <= 2 ? m.missing.join(", ") : `${m.missing.slice(0, 2).join(", ")} +${m.missing.length - 2}`);
 
 /** Desktop: Tabelle, Mobile: Karten. */
-export function CaseTable({ cases, emptyDescription }: { cases: CaseRecord[]; emptyDescription?: string }) {
+export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseRecord[]; meta?: Record<string, CaseMeta>; emptyDescription?: string }) {
   if (cases.length === 0) {
     return <EmptyState title="Noch keine Beratungsfälle." description={emptyDescription ?? "Sobald eine neue Anfrage eingeht, erscheint sie hier."} />;
   }
@@ -38,7 +28,7 @@ export function CaseTable({ cases, emptyDescription }: { cases: CaseRecord[]; em
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-background text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              {["Kunde", "Anliegen", "Gebäude", "Vollständigkeit", "Status", "Datum"].map((h) => (
+              {["Kunde", "Anliegen", "Vollständigkeit", "Fehlt noch", "Status", "Quelle", "Aktivität"].map((h) => (
                 <th key={h} scope="col" className="px-4 py-3 font-medium">
                   {h}
                 </th>
@@ -48,20 +38,27 @@ export function CaseTable({ cases, emptyDescription }: { cases: CaseRecord[]; em
           <tbody className="divide-y divide-border">
             {cases.map((c) => (
               <tr key={c.id} className="hover:bg-background/70">
-                <td className="px-4 py-3 font-medium">
-                  <Link href={`/dashboard/cases/${c.id}`} className="hover:text-accent hover:underline">
+                <td className="px-4 py-3">
+                  <Link href={`/dashboard/cases/${c.id}`} className="font-medium hover:text-accent hover:underline">
                     {c.customerName}
                   </Link>
+                  <p className="text-xs text-muted-foreground">{buildingLabel(c.fields)}</p>
                 </td>
                 <td className="px-4 py-3">{c.service || "–"}</td>
-                <td className="px-4 py-3 text-muted-foreground">{buildingLabel(c.fields)}</td>
                 <td className="px-4 py-3">
-                  <Completeness value={c.completeness} />
+                  <Completeness value={meta[c.id]?.percent ?? c.completeness} />
+                  {meta[c.id] && (
+                    <div className="mt-1">
+                      <ReadinessBadge readiness={meta[c.id].readiness} />
+                    </div>
+                  )}
                 </td>
+                <td className="max-w-48 px-4 py-3 text-muted-foreground">{missingText(meta[c.id])}</td>
                 <td className="px-4 py-3">
                   <StatusBadge status={c.status} />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{formatDate(c.createdAt)}</td>
+                <td className="px-4 py-3 text-muted-foreground">{SOURCE_LABELS[c.source]}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{timeAgo(c.updatedAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -79,8 +76,9 @@ export function CaseTable({ cases, emptyDescription }: { cases: CaseRecord[]; em
               <p className="mt-1 text-sm text-muted-foreground">
                 {c.service || "–"} · {buildingLabel(c.fields)}
               </p>
+              {meta[c.id] && meta[c.id].missing.length > 0 && <p className="mt-1 text-xs text-muted-foreground">Fehlt: {missingText(meta[c.id])}</p>}
               <div className="mt-3 flex items-center justify-between">
-                <Completeness value={c.completeness} />
+                <Completeness value={meta[c.id]?.percent ?? c.completeness} />
                 <span className="text-xs text-muted-foreground">{formatDate(c.createdAt)}</span>
               </div>
             </Link>

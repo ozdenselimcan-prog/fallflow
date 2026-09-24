@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarDays, FolderOpen, Globe, Inbox, LayoutDashboard, LogOut, Menu, Settings, Sparkles, Users, X } from "lucide-react";
+import { Bell, CalendarDays, FolderOpen, Globe, Inbox, LayoutDashboard, LogOut, Menu, Settings, Sparkles, Users, Workflow, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -8,13 +8,25 @@ import { signOutAction } from "@/app/(auth)/actions";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 
-const nav = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof Inbox;
+  exact?: boolean;
+  prefix?: string;
+}
+
+/** Kern: von der Anfrage zum fertigen Fall. Alles Weitere ist Konfiguration und bewusst zweitrangig. */
+const core: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/intake", label: "AI Intake", icon: Workflow },
+  { href: "/dashboard/inbox", label: "Posteingang", icon: Inbox },
   { href: "/dashboard/cases", label: "Beratungsfälle", icon: FolderOpen },
-  { href: "/dashboard/requests", label: "Anfragen", icon: Inbox },
+  { href: "/dashboard/calendar", label: "Termine", icon: CalendarDays },
+];
+const config: NavItem[] = [
   { href: "/dashboard/assistant", label: "KI-Assistent", icon: Sparkles },
   { href: "/dashboard/channels", label: "Kanäle", icon: Globe },
-  { href: "/dashboard/calendar", label: "Termine", icon: CalendarDays },
   { href: "/dashboard/team", label: "Team", icon: Users },
   { href: "/dashboard/settings/profile", label: "Einstellungen", icon: Settings, prefix: "/dashboard/settings" },
 ];
@@ -33,7 +45,7 @@ export function DashboardShell({ companyName, userName, userEmail, openRequests,
   const [open, setOpen] = useState(false);
 
 
-  const isActive = (item: (typeof nav)[number]) => (item.exact ? pathname === item.href : pathname.startsWith(item.prefix ?? item.href));
+  const isActive = (item: NavItem) => (item.exact ? pathname === item.href : pathname.startsWith(item.prefix ?? item.href));
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -44,21 +56,26 @@ export function DashboardShell({ companyName, userName, userEmail, openRequests,
         </button>
       </div>
       <nav aria-label="Dashboard" className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-        {nav.map((item) => {
-          const active = isActive(item);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              onClick={() => setOpen(false)}
-              className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-accent-soft text-accent" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
-            >
-              <item.icon className="size-4.5" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {[core, config].map((group, i) => (
+          <div key={i} className={cn("space-y-1", i === 1 && "mt-5 border-t border-border pt-4")}>
+            {i === 1 && <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">Konfiguration</p>}
+            {group.map((item) => {
+              const active = isActive(item);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => setOpen(false)}
+                  className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-accent-soft text-accent" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
+                >
+                  <item.icon className="size-4.5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
       <div className="border-t border-border p-4 text-xs text-muted-foreground">{demo ? "Demo-Modus · Daten nur im Arbeitsspeicher" : companyName}</div>
     </div>
@@ -81,7 +98,7 @@ export function DashboardShell({ companyName, userName, userEmail, openRequests,
             <Menu className="size-5" />
           </button>
           <p className="min-w-0 flex-1 truncate text-sm font-medium">{companyName}</p>
-          <Link href="/dashboard/requests" aria-label={`Benachrichtigungen: ${openRequests} offene Anfragen`} className="relative rounded-xl p-2 hover:bg-muted">
+          <Link href="/dashboard/intake?status=NEW" aria-label={`Benachrichtigungen: ${openRequests} neue Anfragen`} className="relative rounded-xl p-2 hover:bg-muted">
             <Bell className="size-5" />
             {openRequests > 0 && <span className="absolute right-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-white">{openRequests}</span>}
           </Link>

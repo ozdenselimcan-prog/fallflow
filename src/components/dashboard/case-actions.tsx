@@ -1,13 +1,13 @@
 "use client";
 
-import { Archive, CalendarPlus, Mail, UserCheck } from "lucide-react";
+import { CalendarPlus, Mail, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
-import { apiFetch, useMutation } from "@/lib/use-api";
 import type { CaseStatus } from "@/lib/data/types";
+import { apiFetch, useMutation } from "@/lib/use-api";
 
 interface Props {
   caseId: string;
@@ -34,15 +34,16 @@ export function CaseActions({ caseId, customerName, email, status, canWrite }: P
 
   const patch = (body: object) => run(() => apiFetch("PATCH", `/api/cases/${caseId}`, body));
   const mailto = email ? `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Ihre Anfrage zur Energieberatung")}` : undefined;
+  const ready = status === "READY_FOR_REVIEW" || status === "COMPLETE";
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => patch({ assign: true })} loading={pending} disabled={!canWrite || status === "CONTACTED"}>
-          <UserCheck className="size-4" /> Übernehmen
+        <Button onClick={() => patch({ assign: true })} loading={pending} disabled={!canWrite || status === "CONVERTED"} variant={ready ? "primary" : "secondary"}>
+          <UserCheck className="size-4" /> {status === "CONVERTED" ? "Fall übernommen" : "Fall übernehmen"}
         </Button>
         <Button variant="secondary" onClick={() => setOpen(true)} disabled={!canWrite}>
-          <CalendarPlus className="size-4" /> Termin anbieten
+          <CalendarPlus className="size-4" /> Termin vorschlagen
         </Button>
         {mailto ? (
           <a href={mailto} className={buttonStyles({ variant: "secondary" })}>
@@ -53,13 +54,10 @@ export function CaseActions({ caseId, customerName, email, status, canWrite }: P
             <Mail className="size-4" /> E-Mail
           </Button>
         )}
-        <Button variant="ghost" onClick={() => patch({ status: "CLOSED" })} disabled={!canWrite || status === "CLOSED" || pending}>
-          <Archive className="size-4" /> Archivieren
-        </Button>
       </div>
       {error && <Notice tone="error">{error}</Notice>}
 
-      <Dialog open={open} onClose={() => setOpen(false)} title="Termin anbieten">
+      <Dialog open={open} onClose={() => setOpen(false)} title="Termin vorschlagen">
         <form
           className="space-y-4"
           onSubmit={async (e) => {
@@ -77,6 +75,7 @@ export function CaseActions({ caseId, customerName, email, status, canWrite }: P
           <Field label="Notiz (optional)">
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
           </Field>
+          <p className="text-xs text-muted-foreground">Der Termin wird als „vorgeschlagen“ angelegt, bis der Kunde bestätigt hat. Die Terminübermittlung an den Kunden erfolgt über Ihren gewohnten Weg.</p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Abbrechen

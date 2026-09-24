@@ -1,10 +1,14 @@
 # FallFlow
 
-FallFlow verwandelt unvollständige Kundenanfragen in strukturierte, möglichst vollständige Beratungsfälle – für Energieberatungsbüros in Deutschland. Ein Website-Chat fragt fehlende Angaben (Gebäudeart, Baujahr, Wohnfläche, PLZ, Heizung, Anliegen …) automatisch ab; das Büro erhält den fertigen Fall im Dashboard.
+**AI Intake & Operations für Energieberater.** Von der ersten Kundenanfrage zum vollständig vorbereiteten Beratungsfall – automatisch.
+
+FallFlow ist kein CRM und kein allgemeiner Chatbot. Es übernimmt genau den Teil zwischen Anfrage und Beratung:
+
+Kundenanfrage → KI erkennt Angaben → fragt nur Fehlendes → sammelt Dokumente → prüft Vollständigkeit → fasst nach → legt die Fallakte an → Berater übernimmt.
 
 ## Tech Stack
 
-Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript strict, Tailwind CSS 4, Lucide, Supabase (Auth + Postgres + RLS), Zod, React Hook Form. KI über eine OpenAI-kompatible API, ausschließlich serverseitig.
+Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript strict, Tailwind CSS 4, Supabase (Auth + Postgres + RLS + Storage), Zod. KI über eine OpenAI-kompatible API, ausschließlich serverseitig.
 
 ## Schnellstart (Demo-Modus, ohne externe Dienste)
 
@@ -13,58 +17,61 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-Ohne Supabase-Variablen läuft die App im **Demo-Modus**: Login/Signup führen direkt ins Dashboard, Daten (Seed: „BA Engineering & Consulting“, 5 Fälle) liegen im Arbeitsspeicher und werden beim Neustart zurückgesetzt. Ohne `AI_API_KEY` extrahiert ein regelbasierter Mock Angaben aus Freitext. Nützliche URLs: `/demo`, `/dashboard`, `/widget-test.html` (simulierte Kunden-Website mit eingebettetem Widget).
+Ohne Supabase-Variablen läuft die App im **Demo-Modus** (Daten im Arbeitsspeicher, Seed „BA Engineering & Consulting“ mit 7 Fällen). Ohne `AI_API_KEY` extrahiert ein regelbasierter Mock Angaben aus Freitext. Nützliche URLs: `/demo` (komplette Demo, läuft im Browser), `/dashboard`, `/dashboard/intake`, `/dashboard/inbox`, `/widget/demo` (echter Website-Chat gegen die API), `/upload/demo-upload-weber` (Kunden-Upload).
+
+## Produktmodell
+
+| Konzept | Umsetzung |
+|---|---|
+| **Intake-Status** | `NEW → QUALIFYING → WAITING_FOR_CUSTOMER → COMPLETE → READY_FOR_REVIEW → CONVERTED` ([types.ts](src/lib/data/types.ts), Logik in [checklist.ts](src/lib/intake/checklist.ts)) |
+| **Completeness Score** | Anteil erfüllter Pflichtpunkte in % = Pflichtangaben (Fragen-Builder) + Pflichtdokumente. Dynamisch aus den Falldaten berechnet, nie manuell gesetzt. |
+| **Dokumentenbedarf** | Grundriss immer; Energieausweis bei Beratungsleistungen (nicht beim Energieausweis selbst); Fotos optional (`documentRequirements`). |
+| **Lead-Readiness** | Reiner Prozessstatus: Unvollständig / Fast vollständig (≤ 2 fehlen) / Vollständig (100 %) / Bereit zur Bearbeitung. Keine Kaufwahrscheinlichkeit. |
+| **Statusregeln** | `COMPLETE` = alle Pflichtangaben da, Dokumente noch nicht angefordert. `READY_FOR_REVIEW` = Angaben da und Dokumente erhalten **oder angefordert** (Fall kann übernommen werden, Upload kann folgen). Ein laufendes Gespräch ohne Aktivität > 30 Min. wird als `WAITING_FOR_CUSTOMER` angezeigt (abgeleitet, nicht gespeichert). |
+| **Dynamischer Frage-Flow** | [conversation.ts](src/lib/ai/conversation.ts): jede Nachricht wird ausgewertet (KI oder Regeln), bekannte Angaben übernommen, nur relevante fehlende erfragt (`isRelevant`). Keine Beratung, nichts erfunden. |
+| **Automatik** | [case-ops.ts](src/lib/intake/case-ops.ts) `refreshCase`: Score, Status, Zusammenfassung, automatische Dokumentenanforderung, Follow-up-Planung nach jeder Änderung. |
 
 ## Environment Variables
 
-Siehe [.env.example](.env.example); kopieren nach `.env.local`.
+Siehe [.env.example](.env.example).
 
 | Variable | Zweck |
 |---|---|
-| `NEXT_PUBLIC_APP_URL` | Öffentliche URL (OAuth-Redirects, Widget-Snippet) |
+| `NEXT_PUBLIC_APP_URL` | Öffentliche URL (Upload-Links, OAuth-Redirects, Widget-Snippet) – in Produktion **nicht** `localhost` |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase; wenn gesetzt → Produktivmodus |
-| `SUPABASE_SERVICE_ROLE_KEY` | Nur serverseitig; nötig für Widget/Webhooks (umgeht RLS, daher immer auf eine Company begrenzt) |
-| `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | OpenAI-kompatibles Modell (optional) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Nur serverseitig: Widget, Kunden-Upload, Datei-Speicher, Cron |
+| `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | OpenAI-kompatibles Modell (optional; Extraktion und Zusammenfassung) |
+| `CRON_SECRET` | Schützt `/api/cron/follow-ups` (Vercel-Cron, siehe [vercel.json](vercel.json)) |
 | `GOOGLE_*`, `MICROSOFT_*` | E-Mail-OAuth (vorbereitet) |
-| `WHATSAPP_*` | WhatsApp Business (vorbereitet) |
+| `WHATSAPP_*` | WhatsApp Business; Empfang zusätzlich nur mit `WHATSAPP_APP_SECRET` (Signaturprüfung) und `WHATSAPP_COMPANY_ID` |
 | `STRIPE_*` | Abrechnung (vorbereitet) |
 
 ## Supabase Setup
 
-1. Projekt auf supabase.com anlegen.
-2. Migration ausführen: [supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql) im SQL-Editor ausführen (oder `supabase db push`). Sie legt Tabellen, RLS-Policies und den Signup-Trigger an, der pro neuem Konto Büro, Owner-Mitgliedschaft, Standardfragen, Assistent und Kanäle erzeugt bzw. eine offene Team-Einladung annimmt.
+1. Projekt anlegen.
+2. Migrationen der Reihe nach ausführen: [0001_init.sql](supabase/migrations/0001_init.sql), dann [0002_intake.sql](supabase/migrations/0002_intake.sql) (neue Status, `case_documents`, `follow_ups`, Kanal-Metadaten, privater Bucket `case-documents`, neue Standardfragen; migriert bestehende Daten).
 3. Auth → URL Configuration: Site URL = `NEXT_PUBLIC_APP_URL`, Redirect URL `…/auth/callback`.
-4. Keys in `.env.local` eintragen.
-5. Optional Demo-Daten: in der App registrieren, dann [supabase/seed.sql](supabase/seed.sql) mit Ihrer E-Mail ausführen.
+4. Keys eintragen; optional Demo-Daten mit [seed.sql](supabase/seed.sql).
 
-**Mandantentrennung:** Alle Tabellen haben RLS über `is_member(company_id)` / `has_role(...)`; Kindtabellen sind per zusammengesetztem Fremdschlüssel `(case_id, company_id)` an denselben Mandanten gebunden. Konfiguration (Assistent, Fragen, Kanäle, Team, Firma) dürfen nur OWNER/ADMIN schreiben; `subscriptions` nur die Service Role.
+**Sicherheit:** RLS auf allen Tabellen (`is_member`/`has_role`). Kundendateien liegen in einem **privaten** Bucket ohne Policies für `anon`/`authenticated` – Zugriff nur per Service Role: Upload über `/api/upload/[token]`, Download nur angemeldet über `/api/documents/[id]` (Company-gefiltert, `Content-Disposition: attachment`, `nosniff`).
 
 ## Architektur
 
-- `src/lib/data/` – `Store`-Interface mit `memory.ts` (Demo) und `supabase.ts` (RLS). Dashboard und API nutzen nur `getStore(session)`.
-- `src/lib/ai/` – `conversation.ts` (deterministische Gesprächslogik: sammelt nur Angaben, keine Beratung), `provider.ts`, `case-extractor.ts` (Zod-validierte Extraktion, Fallback auf `heuristic.ts` bei ungültiger Antwort, Fehler-Log ohne Nutzertext), `prompts.ts`, `schema.ts`.
-- `src/lib/widget/service.ts` – Chat → Fall, Nachrichten, Ereignisse, Vollständigkeit.
-- `src/lib/api.ts` – `withSession` (Auth, Origin-/CSRF-Check, Rechte, Rate-Limit) und `publicRoute`.
-- `src/lib/integrations/` – `EmailProvider` (Gmail/Microsoft) und `WhatsAppProvider` als Adapter.
-- `public/widget.js` – Embed-Script (Button + iframe auf `/widget/[companyId]`).
+- `src/lib/data/` – `Store`-Interface mit `memory.ts` (Demo) und `supabase.ts` (RLS).
+- `src/lib/intake/` – `checklist.ts` (rein, auch im Browser), `engine.ts` (Kundennachricht → Fall), `case-ops.ts` (Refresh, Dokumentenanforderung, Follow-ups), `router.ts` + `identity.ts` (eingehende Nachrichten Kunde/Fall zuordnen), `follow-ups.ts`, `notes.ts`, `attention.ts`, `messages.ts`.
+- `src/lib/ai/` – Gesprächslogik, Zod-validierte Extraktion und Zusammenfassung mit regelbasiertem Fallback.
+- `src/lib/integrations/` – E-Mail-/WhatsApp-Adapter; `outbound.ts` liefert nur `delivered: true`, wenn wirklich versendet wurde.
+- `src/lib/documents/storage.ts` – Upload-Validierung (Magic Bytes, 10 MB, PDF/JPG/PNG/WebP) und Speicher.
 
-```html
-<script src="https://APP-DOMAIN/widget.js" data-company-id="COMPANY_ID"></script>
-```
+## Ehrlicher Integrationsstatus („keine Fake-Erfolge“)
 
-## AI Setup
+- **Website-Chat:** produktiv.
+- **E-Mail / WhatsApp:** Adapter vorhanden, Versand und Postfach-Abruf **nicht implementiert**. Ausgehende Nachrichten werden als „nicht versendet“ gespeichert und im Dashboard so gezeigt; fällige Follow-ups erscheinen mit fertigem Text zum manuellen Versand. Der Posteingang zeigt Kanäle als „nicht verbunden · Demo-Modus“.
+- **Eingang simulieren** (Posteingang): spielt eine WhatsApp-/E-Mail-Nachricht durch die echte Verarbeitung (Kunde erkennen → Fall zuordnen → KI reagiert); alles ist als **Simulation** markiert.
+- **WhatsApp-Webhook:** verarbeitet Nachrichten nur mit Signaturprüfung und `WHATSAPP_COMPANY_ID`.
+- **Follow-ups:** Cron (täglich, Vercel Hobby) versendet nur über verbundene Kanäle, sonst → „manuell senden“.
 
-`AI_API_KEY` und optional `AI_MODEL` (Standard `gpt-4o-mini`) setzen; für andere OpenAI-kompatible Anbieter `AI_BASE_URL`. Die KI wertet nur die erste Freitext-Anfrage aus; jede Antwort wird gegen ein Zod-Schema und Plausibilitätsgrenzen geprüft. Vor dem Produktivbetrieb Auftragsverarbeitung mit dem KI-Anbieter klären.
-
-## OAuth Setup (Gmail / Microsoft 365)
-
-Ohne Credentials zeigt das Dashboard „nicht verbunden“ und nennt die fehlenden Variablen. Mit Credentials wird die echte Autorisierungs-URL erzeugt (Redirect-URI: `NEXT_PUBLIC_APP_URL/api/integrations/gmail` bzw. `/microsoft`). **Offen (TODO, braucht echte Credentials):** Token-Austausch, verschlüsselte Token-Ablage (`channels.token_ref`), Postfach-Abruf und Versand in `gmail.ts`/`microsoft.ts`.
-
-## WhatsApp Setup
-
-Webhook `/api/webhooks/whatsapp` (Verify-Handshake und Parser vorhanden; ohne Credentials Mock-Antwort). **Offen (TODO):** Signaturprüfung (`X-Hub-Signature-256`), Zuordnung Phone-Number-ID → Company, Versand.
-
-## Development / Production Build
+## Entwicklung
 
 ```bash
 npm run lint
@@ -72,14 +79,10 @@ npm run typecheck
 npm run build && npm start
 ```
 
-## Deployment
-
-Beliebiger Next.js-Host (z. B. Vercel): Environment Variables setzen, Migration ausführen. `next.config.ts` setzt Security-Header; nur `/widget/*` darf geframed werden. Das In-Memory-Rate-Limit (`src/lib/rate-limit.ts`) gilt pro Instanz – bei mehreren Instanzen durch einen geteilten Store ersetzen.
-
 ## Bekannte Grenzen
 
-- Team-Einladungen werden gespeichert, aber nicht per E-Mail versendet.
-- Stripe nur vorbereitet (Upgrade-Button deaktiviert ohne Keys).
-- Kalender-Sync (Google/Microsoft) nicht enthalten.
-- Datenschutz/Impressum sind Platzhalter (`[FIRMENNAME]` …) und ersetzen keine Rechtsprüfung.
-- Die SQL-Migration wurde nicht gegen eine echte Supabase-Instanz ausgeführt; der Supabase-Store ist getypt und gebaut, aber ungetestet.
+- Die SQL-Migrationen wurden nicht gegen eine echte Supabase-Instanz ausgeführt; der Supabase-Store ist getypt und gebaut, aber ungetestet.
+- Kein Virenscan für Uploads (nur Typ-/Größenprüfung).
+- In-Memory-Rate-Limit gilt pro Instanz.
+- Team-Einladungen werden nicht per E-Mail versendet; Stripe und Kalender-Sync nicht enthalten.
+- Datenschutz/Impressum sind Platzhalter und ersetzen keine Rechtsprüfung.

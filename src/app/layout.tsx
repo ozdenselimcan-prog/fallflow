@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: `${siteConfig.name} – Aus jeder Anfrage einen Beratungsfall`, template: `%s · ${siteConfig.name}` },
+  title: { default: `${siteConfig.name} – Aus jeder Kundenanfrage einen fertigen Beratungsfall`, template: `%s · ${siteConfig.name}` },
   description: siteConfig.description,
 };
 

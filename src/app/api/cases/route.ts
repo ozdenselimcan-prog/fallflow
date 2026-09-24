@@ -1,5 +1,5 @@
 import { apiError, json, parseBody, parseQuery, withSession } from "@/lib/api";
-import { buildSummary, computeCompleteness } from "@/lib/cases/completeness";
+import { refreshCase } from "@/lib/intake/case-ops";
 import { caseCreateSchema, caseQuerySchema } from "@/lib/validation";
 
 export const GET = withSession(async (req, { store }) => {
@@ -8,24 +8,22 @@ export const GET = withSession(async (req, { store }) => {
   return json({ cases: await store.listCases(q.data) });
 });
 
+/** Fall manuell anlegen (z. B. nach einem Anruf). Vollständigkeit, Status und Zusammenfassung werden automatisch berechnet. */
 export const POST = withSession(
   async (req, { store }) => {
     const body = await parseBody(req, caseCreateSchema);
     if (!body.ok) return body.res;
     const { fields, source } = body.data;
-    const questions = await store.listQuestions();
-    const completeness = computeCompleteness(questions, fields);
     const created = await store.createCase({
       fields,
       source,
-      status: completeness === 100 ? "COMPLETE" : "NEEDS_INFO",
-      completeness,
+      status: "NEW",
       customerName: fields.name || "Unbekannt",
       service: fields.service ?? "",
-      summary: buildSummary(fields),
     });
-    await store.addEvent(created.id, "received", "Fall manuell angelegt");
-    return json({ case: created }, 201);
+    await store.addEvent(created.id, "received", source === "phone" ? "Fall nach Telefonat angelegt" : "Fall manuell angelegt");
+    const { caseRecord } = await refreshCase(store, created.id, { hint: "edit" });
+    return json({ case: caseRecord }, 201);
   },
   { permission: "cases:write" },
 );

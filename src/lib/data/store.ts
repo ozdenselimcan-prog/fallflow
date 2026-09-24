@@ -1,6 +1,8 @@
+import { effectiveStatus } from "@/lib/intake/checklist";
 import type {
   Appointment,
   AssistantSettings,
+  CaseDocument,
   CaseEvent,
   CaseEventType,
   CaseFilters,
@@ -12,12 +14,31 @@ import type {
   ChannelKind,
   Company,
   DashboardStats,
+  FollowUp,
   Member,
+  MessageMeta,
   Profile,
   Question,
   Role,
   Subscription,
 } from "./types";
+
+export interface CasePatch {
+  status?: CaseStatus;
+  fields?: Record<string, string>;
+  assignedTo?: string | null;
+  summary?: string;
+  completeness?: number;
+  customerName?: string;
+  service?: string;
+  uploadToken?: string | null;
+  uploadTokenExpiresAt?: string | null;
+  /** true = updatedAt nicht anfassen (z. B. Hintergrund-Aktualisierungen ohne Kundenaktivität) */
+  keepTimestamp?: boolean;
+}
+
+export type DocumentInput = Omit<CaseDocument, "id" | "companyId"> & { id?: string };
+export type FollowUpInput = Omit<FollowUp, "id" | "companyId" | "createdAt"> & { id?: string };
 
 /**
  * Datenzugriff pro Mandant (Company). Es gibt zwei Implementierungen:
@@ -31,13 +52,24 @@ export interface Store {
   listCases(filters?: CaseFilters): Promise<CaseRecord[]>;
   getCase(id: string): Promise<CaseRecord | null>;
   createCase(input: Partial<CaseInput> & { fields?: Record<string, string> }): Promise<CaseRecord>;
-  updateCase(id: string, patch: { status?: CaseStatus; fields?: Record<string, string>; assignedTo?: string | null; summary?: string; completeness?: number; customerName?: string; service?: string }): Promise<CaseRecord | null>;
+  updateCase(id: string, patch: CasePatch): Promise<CaseRecord | null>;
   deleteCase(id: string): Promise<void>;
 
   listEvents(caseId: string): Promise<CaseEvent[]>;
+  listRecentEvents(limit?: number): Promise<CaseEvent[]>;
   addEvent(caseId: string, type: CaseEventType, text: string): Promise<void>;
   listMessages(caseId: string): Promise<CaseMessage[]>;
-  addMessage(caseId: string, role: "user" | "assistant", content: string): Promise<CaseMessage>;
+  listRecentMessages(limit?: number): Promise<CaseMessage[]>;
+  addMessage(caseId: string, role: CaseMessage["role"], content: string, meta?: MessageMeta): Promise<CaseMessage>;
+
+  /** Ohne caseId: alle Dokumente des Büros. */
+  listDocuments(caseId?: string): Promise<CaseDocument[]>;
+  getDocument(id: string): Promise<CaseDocument | null>;
+  saveDocument(doc: DocumentInput): Promise<CaseDocument>;
+
+  /** Ohne caseId: alle Follow-ups des Büros. */
+  listFollowUps(caseId?: string): Promise<FollowUp[]>;
+  saveFollowUp(f: FollowUpInput): Promise<FollowUp>;
 
   listQuestions(): Promise<Question[]>;
   saveQuestion(q: Omit<Question, "companyId" | "id" | "position"> & { id?: string; position?: number }): Promise<Question>;
@@ -49,7 +81,7 @@ export interface Store {
   saveAssistant(s: AssistantSettings): Promise<AssistantSettings>;
 
   listAppointments(): Promise<Appointment[]>;
-  saveAppointment(a: Omit<Appointment, "companyId" | "id"> & { id?: string }): Promise<Appointment>;
+  saveAppointment(a: Omit<Appointment, "companyId" | "id" | "status"> & { id?: string; status?: Appointment["status"] }): Promise<Appointment>;
   deleteAppointment(id: string): Promise<void>;
 
   listMembers(): Promise<Member[]>;
@@ -69,6 +101,12 @@ export interface ProfileStore {
 
 export const CHANNEL_ORDER: ChannelKind[] = ["website", "gmail", "microsoft", "whatsapp"];
 
+/** Ein laufendes Gespräch ohne Aktivität gilt als „wartet auf Kunde“ – wird beim Lesen abgeleitet, nicht gespeichert. */
+export const withEffectiveStatus = (c: CaseRecord): CaseRecord => {
+  const status = effectiveStatus(c);
+  return status === c.status ? c : { ...c, status };
+};
+
 /** Filter/Sortierung, die beide Store-Implementierungen teilen. */
 export function applyCaseFilters(list: CaseRecord[], f: CaseFilters = {}): CaseRecord[] {
   const q = f.q?.trim().toLowerCase();
@@ -78,7 +116,7 @@ export function applyCaseFilters(list: CaseRecord[], f: CaseFilters = {}): CaseR
     if (f.minCompleteness != null && c.completeness < f.minCompleteness) return false;
     if (f.from && c.createdAt < f.from) return false;
     if (q) {
-      const hay = [c.customerName, c.service, c.fields.email, c.fields.postalCode, c.fields.description].join(" ").toLowerCase();
+      const hay = [c.customerName, c.service, c.fields.email, c.fields.postalCode, c.fields.phone, c.fields.description].join(" ").toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -93,12 +131,16 @@ export function applyCaseFilters(list: CaseRecord[], f: CaseFilters = {}): CaseR
   return out;
 }
 
+const berlinDay = (d: Date | string) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+const AUTO_SOURCES: CaseRecord["source"][] = ["widget", "email", "whatsapp"];
+
 export function computeStats(cases: CaseRecord[], appointments: Appointment[]): DashboardStats {
-  const now = new Date().toISOString();
+  const today = berlinDay(new Date());
   return {
-    newRequests: cases.filter((c) => c.status === "NEW" || c.status === "NEEDS_INFO").length,
-    completeCases: cases.filter((c) => c.status === "COMPLETE").length,
-    openQuestions: cases.filter((c) => c.status === "NEEDS_INFO").length,
-    appointments: appointments.filter((a) => a.startsAt >= now).length,
+    newRequests: cases.filter((c) => c.status === "NEW").length,
+    completeCases: cases.filter((c) => c.status === "READY_FOR_REVIEW" || c.status === "COMPLETE").length,
+    waitingForCustomer: cases.filter((c) => c.status === "WAITING_FOR_CUSTOMER").length,
+    appointmentsToday: appointments.filter((a) => berlinDay(a.startsAt) === today).length,
+    autoQualified: cases.filter((c) => AUTO_SOURCES.includes(c.source) && ["COMPLETE", "READY_FOR_REVIEW", "CONVERTED"].includes(c.status)).length,
   };
 }

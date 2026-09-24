@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { Field, Input, Textarea } from "@/components/ui/form";
+import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import type { Appointment } from "@/lib/data/types";
 import { apiFetch, useMutation } from "@/lib/use-api";
@@ -35,6 +35,7 @@ interface Draft {
   startsAt: string;
   durationMin: number;
   notes: string;
+  status?: Appointment["status"];
 }
 
 export function Calendar({ appointments, canWrite }: { appointments: Appointment[]; canWrite: boolean }) {
@@ -82,7 +83,7 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
   };
   const openEdit = (a: Appointment) => {
     setError(null);
-    setDraft({ id: a.id, caseId: a.caseId, title: a.title, startsAt: toLocalInput(new Date(a.startsAt)), durationMin: a.durationMin, notes: a.notes });
+    setDraft({ id: a.id, caseId: a.caseId, title: a.title, startsAt: toLocalInput(new Date(a.startsAt)), durationMin: a.durationMin, notes: a.notes, status: a.status });
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -103,8 +104,18 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
 
   const chips = (day: Date) =>
     (byDay.get(dayKey(day)) ?? []).map((a) => (
-      <button key={a.id} type="button" onClick={() => openEdit(a)} className="block w-full truncate rounded-md bg-accent-soft px-1.5 py-0.5 text-left text-xs text-accent hover:bg-accent hover:text-white">
+      <button
+        key={a.id}
+        type="button"
+        onClick={() => openEdit(a)}
+        title={a.status === "proposed" ? "Vorgeschlagen – wartet auf Bestätigung" : undefined}
+        className={cn(
+          "block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs hover:bg-accent hover:text-white",
+          a.status === "proposed" ? "border border-dashed border-warning bg-warning-soft text-warning" : "bg-accent-soft text-accent",
+        )}
+      >
         {time(a.startsAt)} {a.title}
+        {a.status === "proposed" ? " (vorgeschlagen)" : ""}
       </button>
     ));
 
@@ -193,6 +204,14 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
                   <Input type="number" min={5} max={1440} step={5} value={draft.durationMin} onChange={(e) => setDraft({ ...draft, durationMin: Number(e.target.value) })} required />
                 </Field>
               </div>
+              {draft.id && (
+                <Field label="Status">
+                  <Select value={draft.status ?? "confirmed"} onChange={(e) => setDraft({ ...draft, status: e.target.value as Appointment["status"] })}>
+                    <option value="proposed">Vorgeschlagen – wartet auf Kundenbestätigung</option>
+                    <option value="confirmed">Bestätigt</option>
+                  </Select>
+                </Field>
+              )}
               <Field label="Notiz">
                 <Textarea value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} maxLength={1000} />
               </Field>

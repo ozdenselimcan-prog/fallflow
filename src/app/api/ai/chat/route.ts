@@ -1,6 +1,6 @@
 import { json, parseBody, withSession } from "@/lib/api";
-import { extractFields } from "@/lib/ai/case-extractor";
 import { applyTurn } from "@/lib/ai/conversation";
+import { extractForText } from "@/lib/intake/engine";
 import { aiChatSchema } from "@/lib/validation";
 
 /**
@@ -12,7 +12,7 @@ export const POST = withSession(
     const body = await parseBody(req, aiChatSchema);
     if (!body.ok) return body.res;
     const [questions, settings] = await Promise.all([store.listQuestions(), store.getAssistant()]);
-    const extracted = body.data.first ? (await extractFields(body.data.text)).fields : undefined;
+    const extracted = await extractForText(body.data.text);
     return json(applyTurn({ questions, settings, fields: body.data.fields, text: body.data.text, first: body.data.first, extracted }));
   },
   { limit: 30 },

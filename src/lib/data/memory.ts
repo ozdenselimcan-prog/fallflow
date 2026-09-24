@@ -6,19 +6,23 @@ import {
   seedAssistant,
   seedCaseRecords,
   seedCompany,
+  seedDocuments,
   seedEvents,
+  seedFollowUps,
   seedMembers,
   seedMessages,
   seedQuestions,
 } from "./seed";
-import { applyCaseFilters, computeStats, CHANNEL_ORDER, type Store } from "./store";
-import type { Appointment, AssistantSettings, CaseEvent, CaseMessage, CaseRecord, Company, Member, Question } from "./types";
+import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
+import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Company, FollowUp, Member, Question } from "./types";
 
 interface MemoryDb {
   company: Company;
   cases: CaseRecord[];
   events: CaseEvent[];
   messages: CaseMessage[];
+  documents: CaseDocument[];
+  followUps: FollowUp[];
   questions: Question[];
   assistant: AssistantSettings;
   appointments: Appointment[];
@@ -33,6 +37,8 @@ function db(): MemoryDb {
     cases: seedCaseRecords(),
     events: seedEvents(),
     messages: seedMessages(),
+    documents: seedDocuments(),
+    followUps: seedFollowUps(),
     questions: seedQuestions(),
     assistant: seedAssistant(),
     appointments: seedAppointments(),
@@ -43,6 +49,11 @@ function db(): MemoryDb {
 
 const uid = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
+
+/** Fall zu einem Upload-Token finden (öffentlicher Upload-Link im Demo-Modus). */
+export function findMemoryCaseByToken(token: string): CaseRecord | null {
+  return db().cases.find((c) => c.uploadToken === token) ?? null;
+}
 
 /** Demo-Store: In-Memory, wird beim Neustart des Servers zurückgesetzt. */
 export function createMemoryStore(): Store {
@@ -56,10 +67,11 @@ export function createMemoryStore(): Store {
     },
 
     async listCases(filters) {
-      return applyCaseFilters(db().cases, filters);
+      return applyCaseFilters(db().cases.map(withEffectiveStatus), filters);
     },
     async getCase(id) {
-      return db().cases.find((c) => c.id === id) ?? null;
+      const c = db().cases.find((x) => x.id === id);
+      return c ? withEffectiveStatus(c) : null;
     },
     async createCase(input) {
       const fields = input.fields ?? {};
@@ -76,6 +88,8 @@ export function createMemoryStore(): Store {
         createdAt: now(),
         updatedAt: now(),
         fields,
+        uploadToken: input.uploadToken ?? null,
+        uploadTokenExpiresAt: input.uploadTokenExpiresAt ?? null,
       };
       db().cases.unshift(c);
       return c;
@@ -90,18 +104,25 @@ export function createMemoryStore(): Store {
       if (patch.completeness !== undefined) c.completeness = patch.completeness;
       if (patch.customerName !== undefined) c.customerName = patch.customerName;
       if (patch.service !== undefined) c.service = patch.service;
-      c.updatedAt = now();
-      return c;
+      if (patch.uploadToken !== undefined) c.uploadToken = patch.uploadToken;
+      if (patch.uploadTokenExpiresAt !== undefined) c.uploadTokenExpiresAt = patch.uploadTokenExpiresAt;
+      if (!patch.keepTimestamp) c.updatedAt = now();
+      return withEffectiveStatus(c);
     },
     async deleteCase(id) {
       const d = db();
       d.cases = d.cases.filter((c) => c.id !== id);
       d.events = d.events.filter((e) => e.caseId !== id);
       d.messages = d.messages.filter((m) => m.caseId !== id);
+      d.documents = d.documents.filter((x) => x.caseId !== id);
+      d.followUps = d.followUps.filter((x) => x.caseId !== id);
     },
 
     async listEvents(caseId) {
       return db().events.filter((e) => e.caseId === caseId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    },
+    async listRecentEvents(limit = 20) {
+      return [...db().events].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
     },
     async addEvent(caseId, type, text) {
       db().events.push({ id: uid(), caseId, type, text, createdAt: now() });
@@ -109,10 +130,57 @@ export function createMemoryStore(): Store {
     async listMessages(caseId) {
       return db().messages.filter((m) => m.caseId === caseId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     },
-    async addMessage(caseId, role, content) {
-      const m: CaseMessage = { id: uid(), caseId, role, content, createdAt: now() };
+    async listRecentMessages(limit = 300) {
+      return [...db().messages].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
+    },
+    async addMessage(caseId, role, content, meta) {
+      const m: CaseMessage = {
+        id: uid(),
+        caseId,
+        role,
+        content,
+        createdAt: now(),
+        channel: meta?.channel ?? "website",
+        delivery: meta?.delivery ?? (role === "staff" ? "internal" : "delivered"),
+        simulated: meta?.simulated ?? false,
+      };
       db().messages.push(m);
       return m;
+    },
+
+    async listDocuments(caseId) {
+      return db().documents.filter((d) => !caseId || d.caseId === caseId);
+    },
+    async getDocument(id) {
+      return db().documents.find((d) => d.id === id) ?? null;
+    },
+    async saveDocument(doc) {
+      const d = db();
+      const existing = doc.id ? d.documents.find((x) => x.id === doc.id) : undefined;
+      if (existing) {
+        Object.assign(existing, doc);
+        return existing;
+      }
+      const created: CaseDocument = { ...doc, id: uid(), companyId: DEMO_COMPANY_ID };
+      d.documents.push(created);
+      return created;
+    },
+
+    async listFollowUps(caseId) {
+      return db()
+        .followUps.filter((f) => !caseId || f.caseId === caseId)
+        .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+    },
+    async saveFollowUp(f) {
+      const d = db();
+      const existing = f.id ? d.followUps.find((x) => x.id === f.id) : undefined;
+      if (existing) {
+        Object.assign(existing, f);
+        return existing;
+      }
+      const created: FollowUp = { ...f, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
+      d.followUps.push(created);
+      return created;
     },
 
     async listQuestions() {
@@ -162,7 +230,7 @@ export function createMemoryStore(): Store {
         Object.assign(existing, a);
         return existing;
       }
-      const created: Appointment = { ...a, id: uid(), companyId: DEMO_COMPANY_ID };
+      const created: Appointment = { ...a, id: uid(), companyId: DEMO_COMPANY_ID, status: a.status ?? "confirmed" };
       d.appointments.push(created);
       return created;
     },
@@ -197,7 +265,7 @@ export function createMemoryStore(): Store {
       return { plan: "pro", status: "trialing", currentPeriodEnd: null };
     },
     async getStats() {
-      return computeStats(db().cases, db().appointments);
+      return computeStats(db().cases.map(withEffectiveStatus), db().appointments);
     },
   };
 }

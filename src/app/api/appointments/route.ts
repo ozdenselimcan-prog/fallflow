@@ -4,6 +4,7 @@ import { appointmentSchema } from "@/lib/validation";
 
 export const GET = withSession(async (_req, { store }) => json({ appointments: await store.listAppointments() }));
 
+/** Neuer Termin. Termine zu einem Fall gelten zunächst als „vorgeschlagen“, bis der Kunde bestätigt hat. */
 export const POST = withSession(
   async (req, { store }) => {
     const body = await parseBody(req, appointmentSchema);
@@ -13,20 +14,22 @@ export const POST = withSession(
     if (data.caseId) {
       const c = await store.getCase(data.caseId);
       if (!c) return apiError("Fall nicht gefunden", 404);
-      await store.updateCase(c.id, { status: "APPOINTMENT" });
-      await store.addEvent(c.id, "appointment", "Termin angeboten");
+      await store.addEvent(c.id, "appointment", "Termin vorgeschlagen");
+      return json({ appointment: await store.saveAppointment({ ...data, status: data.status ?? "proposed" }) }, 201);
     }
     return json({ appointment: await store.saveAppointment(data) }, 201);
   },
   { permission: "appointments:write" },
 );
 
-/** Termin ändern bzw. verschieben. */
+/** Termin ändern, verschieben oder bestätigen. */
 export const PUT = withSession(
   async (req, { store }) => {
     const body = await parseBody(req, appointmentSchema.required({ id: true }));
     if (!body.ok) return body.res;
-    if (!(await store.listAppointments()).some((a) => a.id === body.data.id)) return apiError("Termin nicht gefunden", 404);
+    const existing = (await store.listAppointments()).find((a) => a.id === body.data.id);
+    if (!existing) return apiError("Termin nicht gefunden", 404);
+    if (body.data.status === "confirmed" && existing.status !== "confirmed" && existing.caseId) await store.addEvent(existing.caseId, "appointment", "Termin bestätigt");
     return json({ appointment: await store.saveAppointment(body.data) });
   },
   { permission: "appointments:write" },

@@ -6,14 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Input, Select, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
-import { BUILDING_TYPES, FIELD_GROUPS, HEATING_TYPES, SERVICES } from "@/lib/cases/fields";
+import { BUILDING_TYPES, FIELD_GROUPS, HEATING_TYPES, OWNER_STATUSES, PRIORITIES, SERVICES } from "@/lib/cases/fields";
 import { SKIPPED } from "@/lib/cases/completeness";
 import { apiFetch, useMutation } from "@/lib/use-api";
 
-const OPTIONS: Record<string, readonly string[]> = { buildingType: BUILDING_TYPES, heating: HEATING_TYPES, service: SERVICES };
+const OPTIONS: Record<string, readonly string[]> = { buildingType: BUILDING_TYPES, heating: HEATING_TYPES, service: SERVICES, ownerStatus: OWNER_STATUSES, priority: PRIORITIES };
 
 /** Anzeige der Falldaten in Gruppen mit Bearbeitungsmodus. Speichern berechnet die Vollständigkeit serverseitig neu. */
-export function CaseEditor({ caseId, fields, canWrite, extra = [] }: { caseId: string; fields: Record<string, string>; canWrite: boolean; extra?: { key: string; label: string }[] }) {
+export function CaseEditor({
+  caseId,
+  fields,
+  canWrite,
+  extra = [],
+  requiredKeys = [],
+}: {
+  caseId: string;
+  fields: Record<string, string>;
+  canWrite: boolean;
+  extra?: { key: string; label: string }[];
+  /** Schlüssel der Pflichtangaben – nur diese werden als „Fehlt noch“ hervorgehoben */
+  requiredKeys?: string[];
+}) {
   const groups = extra.length ? [...FIELD_GROUPS, { title: "Weitere Angaben", fields: extra }] : FIELD_GROUPS;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(fields);
@@ -34,7 +47,7 @@ export function CaseEditor({ caseId, fields, canWrite, extra = [] }: { caseId: s
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Falldaten</h2>
+        <h2 className="text-lg font-semibold">Fallakte</h2>
         {canWrite &&
           (editing ? (
             <div className="flex gap-2">
@@ -79,7 +92,7 @@ export function CaseEditor({ caseId, fields, canWrite, extra = [] }: { caseId: s
                           <Input value={draft[f.key] === SKIPPED ? "" : (draft[f.key] ?? "")} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} maxLength={200} />
                         )
                       ) : missing ? (
-                        <span className="font-normal text-warning">Fehlt noch</span>
+                        requiredKeys.includes(f.key) ? <span className="font-normal text-danger">Fehlt noch</span> : <span className="font-normal text-muted-foreground">–</span>
                       ) : (
                         <span className="whitespace-pre-line">{value}</span>
                       )}

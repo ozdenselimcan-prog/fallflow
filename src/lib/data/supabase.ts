@@ -1,14 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildSummary, computeCompleteness } from "@/lib/cases/completeness";
-import { applyCaseFilters, computeStats, CHANNEL_ORDER, type Store } from "./store";
+import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
 import type {
   Appointment,
   AssistantSettings,
+  CaseDocument,
   CaseEvent,
   CaseMessage,
   CaseRecord,
   Channel,
   Company,
+  FollowUp,
   Member,
   Question,
 } from "./types";
@@ -47,6 +49,46 @@ const mapCase = (r: Row): CaseRecord => ({
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   fields: Object.fromEntries((r.case_fields ?? []).map((f: Row) => [f.key, f.value])),
+  uploadToken: r.upload_token ?? null,
+  uploadTokenExpiresAt: r.upload_token_expires_at ?? null,
+});
+
+const mapMessage = (r: Row): CaseMessage => ({
+  id: r.id,
+  caseId: r.case_id,
+  role: r.role,
+  content: r.content,
+  createdAt: r.created_at,
+  channel: r.channel ?? "website",
+  delivery: r.delivery ?? "delivered",
+  simulated: r.simulated ?? false,
+});
+
+const mapDocument = (r: Row): CaseDocument => ({
+  id: r.id,
+  caseId: r.case_id,
+  companyId: r.company_id,
+  kind: r.kind,
+  status: r.status,
+  fileName: r.file_name,
+  mimeType: r.mime_type,
+  size: r.size,
+  storagePath: r.storage_path,
+  requestedAt: r.requested_at,
+  receivedAt: r.received_at,
+});
+
+const mapFollowUp = (r: Row): FollowUp => ({
+  id: r.id,
+  caseId: r.case_id,
+  companyId: r.company_id,
+  kind: r.kind,
+  message: r.message,
+  scheduledFor: r.scheduled_for,
+  status: r.status,
+  sentAt: r.sent_at,
+  note: r.note,
+  createdAt: r.created_at,
 });
 
 const mapQuestion = (r: Row): Question => ({
@@ -70,6 +112,7 @@ const mapAppointment = (r: Row): Appointment => ({
   startsAt: r.starts_at,
   durationMin: r.duration_min,
   notes: r.notes,
+  status: r.status ?? "confirmed",
 });
 
 const mapMember = (r: Row): Member => ({
@@ -111,12 +154,12 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
     async listCases(filters) {
       const { data, error } = await db.from("cases").select(CASE_SELECT).eq("company_id", companyId).order("created_at", { ascending: false }).limit(1000);
       fail(error, "cases");
-      return applyCaseFilters((data ?? []).map(mapCase), filters);
+      return applyCaseFilters((data ?? []).map(mapCase).map(withEffectiveStatus), filters);
     },
     async getCase(id) {
       const { data, error } = await db.from("cases").select(CASE_SELECT).eq("company_id", companyId).eq("id", id).maybeSingle();
       fail(error, "case");
-      return data ? mapCase(data) : null;
+      return data ? withEffectiveStatus(mapCase(data)) : null;
     },
     async createCase(input) {
       const fields = input.fields ?? {};
@@ -132,6 +175,8 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
           source: input.source ?? "manual",
           summary: input.summary ?? buildSummary(fields),
           assigned_to: input.assignedTo ?? null,
+          upload_token: input.uploadToken ?? null,
+          upload_token_expires_at: input.uploadTokenExpiresAt ?? null,
         })
         .select("*")
         .single();
@@ -145,14 +190,20 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       return mapCase({ ...created, case_fields: Object.entries(fields).map(([key, value]) => ({ key, value })) });
     },
     async updateCase(id, patch) {
-      const row: Row = { updated_at: new Date().toISOString() };
+      const row: Row = {};
+      if (!patch.keepTimestamp) row.updated_at = new Date().toISOString();
       if (patch.status) row.status = patch.status;
+      if (patch.uploadToken !== undefined) row.upload_token = patch.uploadToken;
+      if (patch.uploadTokenExpiresAt !== undefined) row.upload_token_expires_at = patch.uploadTokenExpiresAt;
       if (patch.assignedTo !== undefined) row.assigned_to = patch.assignedTo;
       if (patch.summary !== undefined) row.summary = patch.summary;
       if (patch.completeness !== undefined) row.completeness = patch.completeness;
       if (patch.customerName !== undefined) row.customer_name = patch.customerName;
       if (patch.service !== undefined) row.service = patch.service;
-      const { data, error } = await db.from("cases").update(row).eq("company_id", companyId).eq("id", id).select("id").maybeSingle();
+      // Ohne Änderung an der Fallzeile (nur Felder) wird nur geprüft, ob der Fall existiert.
+      const { data, error } = Object.keys(row).length
+        ? await db.from("cases").update(row).eq("company_id", companyId).eq("id", id).select("id").maybeSingle()
+        : await db.from("cases").select("id").eq("company_id", companyId).eq("id", id).maybeSingle();
       fail(error, "case update");
       if (!data) return null;
       if (patch.fields && Object.keys(patch.fields).length) {
@@ -172,6 +223,11 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       fail(error, "events");
       return (data ?? []).map((r) => ({ id: r.id, caseId: r.case_id, type: r.type, text: r.text, createdAt: r.created_at }));
     },
+    async listRecentEvents(limit = 20): Promise<CaseEvent[]> {
+      const { data, error } = await db.from("case_events").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(limit);
+      fail(error, "recent events");
+      return (data ?? []).map((r) => ({ id: r.id, caseId: r.case_id, type: r.type, text: r.text, createdAt: r.created_at }));
+    },
     async addEvent(caseId, type, text) {
       const { error } = await db.from("case_events").insert({ case_id: caseId, company_id: companyId, type, text });
       fail(error, "event insert");
@@ -179,12 +235,84 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
     async listMessages(caseId): Promise<CaseMessage[]> {
       const { data, error } = await db.from("case_messages").select("*").eq("company_id", companyId).eq("case_id", caseId).order("created_at");
       fail(error, "messages");
-      return (data ?? []).map((r) => ({ id: r.id, caseId: r.case_id, role: r.role, content: r.content, createdAt: r.created_at }));
+      return (data ?? []).map(mapMessage);
     },
-    async addMessage(caseId, role, content) {
-      const { data, error } = await db.from("case_messages").insert({ case_id: caseId, company_id: companyId, role, content }).select("*").single();
+    async listRecentMessages(limit = 300): Promise<CaseMessage[]> {
+      const { data, error } = await db.from("case_messages").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(limit);
+      fail(error, "recent messages");
+      return (data ?? []).map(mapMessage);
+    },
+    async addMessage(caseId, role, content, meta) {
+      const { data, error } = await db
+        .from("case_messages")
+        .insert({
+          case_id: caseId,
+          company_id: companyId,
+          role,
+          content,
+          channel: meta?.channel ?? "website",
+          delivery: meta?.delivery ?? (role === "staff" ? "internal" : "delivered"),
+          simulated: meta?.simulated ?? false,
+        })
+        .select("*")
+        .single();
       fail(error, "message insert");
-      return { id: data!.id, caseId, role, content, createdAt: data!.created_at };
+      return mapMessage(data!);
+    },
+
+    async listDocuments(caseId): Promise<CaseDocument[]> {
+      let q = db.from("case_documents").select("*").eq("company_id", companyId).order("requested_at");
+      if (caseId) q = q.eq("case_id", caseId);
+      const { data, error } = await q;
+      fail(error, "documents");
+      return (data ?? []).map(mapDocument);
+    },
+    async getDocument(id) {
+      const { data, error } = await db.from("case_documents").select("*").eq("company_id", companyId).eq("id", id).maybeSingle();
+      fail(error, "document");
+      return data ? mapDocument(data) : null;
+    },
+    async saveDocument(doc) {
+      const row = {
+        company_id: companyId,
+        case_id: doc.caseId,
+        kind: doc.kind,
+        status: doc.status,
+        file_name: doc.fileName,
+        mime_type: doc.mimeType,
+        size: doc.size,
+        storage_path: doc.storagePath,
+        requested_at: doc.requestedAt,
+        received_at: doc.receivedAt,
+      };
+      const q = doc.id ? db.from("case_documents").update(row).eq("company_id", companyId).eq("id", doc.id) : db.from("case_documents").insert(row);
+      const { data, error } = await q.select("*").single();
+      fail(error, "document save");
+      return mapDocument(data!);
+    },
+
+    async listFollowUps(caseId): Promise<FollowUp[]> {
+      let q = db.from("follow_ups").select("*").eq("company_id", companyId).order("scheduled_for");
+      if (caseId) q = q.eq("case_id", caseId);
+      const { data, error } = await q;
+      fail(error, "follow-ups");
+      return (data ?? []).map(mapFollowUp);
+    },
+    async saveFollowUp(f) {
+      const row = {
+        company_id: companyId,
+        case_id: f.caseId,
+        kind: f.kind,
+        message: f.message,
+        scheduled_for: f.scheduledFor,
+        status: f.status,
+        sent_at: f.sentAt,
+        note: f.note,
+      };
+      const q = f.id ? db.from("follow_ups").update(row).eq("company_id", companyId).eq("id", f.id) : db.from("follow_ups").insert(row);
+      const { data, error } = await q.select("*").single();
+      fail(error, "follow-up save");
+      return mapFollowUp(data!);
     },
 
     async listQuestions() {
@@ -276,7 +404,8 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       return (data ?? []).map(mapAppointment);
     },
     async saveAppointment(a) {
-      const row = { company_id: companyId, case_id: a.caseId, title: a.title, starts_at: a.startsAt, duration_min: a.durationMin, notes: a.notes };
+      const row: Row = { company_id: companyId, case_id: a.caseId, title: a.title, starts_at: a.startsAt, duration_min: a.durationMin, notes: a.notes };
+      if (a.status) row.status = a.status;
       const q = a.id
         ? db.from("appointments").update(row).eq("company_id", companyId).eq("id", a.id)
         : db.from("appointments").insert(row);

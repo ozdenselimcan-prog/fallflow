@@ -2,7 +2,14 @@
 
 import { Loader2, SendHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { UploadPanel, type UploadItem } from "@/components/upload/upload-panel";
 import { cn } from "@/lib/utils";
+
+/** Dokument-Upload, den die KI nach abgeschlossener Datenerfassung anbietet. */
+export interface ChatUpload {
+  url: string;
+  items: { kind: string; label: string; done: boolean; required?: boolean }[];
+}
 
 export interface ChatTurn {
   replies: string[];
@@ -12,6 +19,7 @@ export interface ChatTurn {
   fields?: Record<string, string>;
   sessionId?: string | null;
   pendingKey?: string | null;
+  upload?: ChatUpload | null;
 }
 
 export interface ChatSendContext {
@@ -34,13 +42,15 @@ interface Props {
   onUpdate?: (state: { fields: Record<string, string>; completeness: number; done: boolean; started: boolean }) => void;
   /** Beispielantworten (Demo): Schlüssel = pendingKey bzw. "__first" für die erste Nachricht. */
   suggestions?: Record<string, string>;
+  /** Eigene Darstellung des Upload-Angebots (Demo). Standard: echter, sicherer Upload über den Token-Link. */
+  renderUpload?: (upload: ChatUpload) => React.ReactNode;
   className?: string;
 }
 
 const ERROR_TEXT = "Der Assistent konnte die Anfrage gerade nicht verarbeiten. Bitte versuchen Sie es erneut.";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function ChatClient({ assistantName, greeting, send, onUpdate, suggestions, className }: Props) {
+export function ChatClient({ assistantName, greeting, send, onUpdate, suggestions, renderUpload, className }: Props) {
   const [messages, setMessages] = useState<Message[]>([{ id: 0, role: "assistant", text: greeting }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -48,12 +58,13 @@ export function ChatClient({ assistantName, greeting, send, onUpdate, suggestion
   const [quick, setQuick] = useState<string[]>([]);
   const [pendingKey, setPendingKey] = useState<string | null>("__first");
   const [done, setDone] = useState(false);
+  const [upload, setUpload] = useState<ChatUpload | null>(null);
   const stateRef = useRef<{ fields: Record<string, string>; sessionId: string | null; started: boolean; nextId: number }>({ fields: {}, sessionId: null, started: false, nextId: 1 });
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
-  }, [messages, busy, quick]);
+  }, [messages, busy, quick, upload]);
 
   const submit = useCallback(
     async (raw: string) => {
@@ -74,6 +85,7 @@ export function ChatClient({ assistantName, greeting, send, onUpdate, suggestion
         setQuick(turn.quickReplies);
         setPendingKey(turn.pendingKey ?? null);
         setDone(turn.done);
+        if (turn.upload) setUpload(turn.upload);
         onUpdate?.({ fields: st.fields, completeness: turn.completeness, done: turn.done, started: true });
       } catch {
         setError({ text });
@@ -103,6 +115,24 @@ export function ChatClient({ assistantName, greeting, send, onUpdate, suggestion
             </div>
           </div>
         ))}
+        {upload && (
+          <div className="ff-fade-in rounded-2xl border border-border bg-background p-3">
+            <p className="mb-2 text-sm font-medium">Unterlagen hochladen</p>
+            {renderUpload ? (
+              renderUpload(upload)
+            ) : (
+              <>
+                <UploadPanel
+                  token={upload.url.split("/upload/")[1] ?? ""}
+                  items={upload.items.map((i): UploadItem => ({ kind: i.kind, label: i.label, required: i.required ?? true, done: i.done }))}
+                />
+                <a href={upload.url} target="_blank" rel="noreferrer" className="mt-2 block text-xs text-muted-foreground underline">
+                  Später hochladen: persönlichen Link öffnen
+                </a>
+              </>
+            )}
+          </div>
+        )}
         {busy && (
           <div className="flex justify-start" aria-label={`${assistantName} schreibt`}>
             <div className="flex gap-1 rounded-2xl rounded-bl-md bg-muted px-3.5 py-3">

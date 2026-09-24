@@ -39,11 +39,13 @@ export async function extractFields(text: string): Promise<ExtractionResult> {
 export function fieldsToExtraction(fields: Record<string, string>, requiredKeys: string[]): Extraction {
   const missing = requiredKeys.filter((k) => !fields[k]);
   return extractionSchema.parse({
-    customer: { name: fields.name ?? "", email: fields.email ?? "", phone: fields.phone ?? "" },
+    customer: { name: fields.name ?? "", email: fields.email ?? "", phone: fields.phone ?? "", ownerStatus: fields.ownerStatus ?? "" },
     property: {
       type: fields.buildingType ?? "",
       yearBuilt: fields.yearBuilt ? Number(fields.yearBuilt) : null,
       livingArea: fields.livingArea ? Number(fields.livingArea) : null,
+      floors: fields.floors ? Number(fields.floors) : null,
+      street: fields.street ?? "",
       postalCode: fields.postalCode ?? "",
     },
     heating: { type: fields.heating ?? "" },

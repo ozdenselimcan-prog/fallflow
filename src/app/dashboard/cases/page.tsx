@@ -8,6 +8,7 @@ import { Input, Select } from "@/components/ui/form";
 import { SERVICES, STATUS_LABELS } from "@/lib/cases/fields";
 import { requireSession } from "@/lib/auth/session";
 import { getStore } from "@/lib/data";
+import { buildCaseMeta } from "@/lib/intake/meta";
 import { daysAgoIso } from "@/lib/utils";
 import { caseQuerySchema } from "@/lib/validation";
 import { CASE_STATUSES } from "@/lib/data/types";
@@ -31,7 +32,8 @@ export default async function CasesPage({ searchParams }: PageProps<"/dashboard/
 
   const session = await requireSession();
   const store = await getStore(session);
-  const cases = await store.listCases(filters);
+  const [cases, documents, questions] = await Promise.all([store.listCases(filters), store.listDocuments(), store.listQuestions()]);
+  const meta = buildCaseMeta(cases, questions, documents);
 
   return (
     <>
@@ -85,7 +87,7 @@ export default async function CasesPage({ searchParams }: PageProps<"/dashboard/
         </div>
       </form>
 
-      <CaseTable cases={cases} emptyDescription={hasFilters ? "Keine Fälle passen zu den Filtern." : undefined} />
+      <CaseTable cases={cases} meta={meta} emptyDescription={hasFilters ? "Keine Fälle passen zu den Filtern." : undefined} />
     </>
   );
 }

@@ -26,7 +26,7 @@ export function Navbar() {
             Login
           </Link>
           <Link href="/signup" className={buttonStyles()}>
-            Kostenlos testen
+            Kostenlos starten
           </Link>
         </div>
         <button type="button" className="rounded-lg p-2 hover:bg-muted lg:hidden" aria-label={open ? "Menü schließen" : "Menü öffnen"} aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -47,7 +47,7 @@ export function Navbar() {
               Login
             </Link>
             <Link href="/signup" className={buttonStyles()}>
-              Kostenlos testen
+              Kostenlos starten
             </Link>
           </div>
         </div>

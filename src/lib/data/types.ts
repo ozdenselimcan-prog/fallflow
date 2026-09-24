@@ -1,4 +1,10 @@
-export const CASE_STATUSES = ["NEW", "NEEDS_INFO", "COMPLETE", "CONTACTED", "APPOINTMENT", "CLOSED"] as const;
+/**
+ * Prozessstatus eines Intake-Vorgangs:
+ * NEW → QUALIFYING (KI im Gespräch) → WAITING_FOR_CUSTOMER (Kunde muss liefern)
+ * → COMPLETE (Pflichtangaben da, Dokumentenlage offen) → READY_FOR_REVIEW (Angaben da, Dokumente erhalten oder angefordert)
+ * → CONVERTED (vom Berater übernommen).
+ */
+export const CASE_STATUSES = ["NEW", "QUALIFYING", "WAITING_FOR_CUSTOMER", "COMPLETE", "READY_FOR_REVIEW", "CONVERTED"] as const;
 export type CaseStatus = (typeof CASE_STATUSES)[number];
 
 export const ROLES = ["OWNER", "ADMIN", "MEMBER"] as const;
@@ -10,7 +16,7 @@ export type QuestionType = (typeof QUESTION_TYPES)[number];
 export const TONES = ["professional", "friendly", "short"] as const;
 export type Tone = (typeof TONES)[number];
 
-export const CASE_SOURCES = ["widget", "email", "whatsapp", "manual", "demo"] as const;
+export const CASE_SOURCES = ["widget", "email", "whatsapp", "phone", "manual", "demo"] as const;
 export type CaseSource = (typeof CASE_SOURCES)[number];
 
 export interface Company {
@@ -44,9 +50,23 @@ export interface CaseRecord {
   updatedAt: string;
   /** Alle erfassten Angaben, Schlüssel = Feldschlüssel der Fragen (z. B. yearBuilt). */
   fields: Record<string, string>;
+  /** Geheimer Link-Token für den Kunden-Upload (nur Dashboard-Nutzer sehen ihn, nie öffentliche Antworten). */
+  uploadToken: string | null;
+  uploadTokenExpiresAt: string | null;
 }
 
-export type CaseEventType = "received" | "question" | "answer" | "complete" | "status" | "appointment" | "handoff" | "note";
+export type CaseEventType =
+  | "received"
+  | "question"
+  | "answer"
+  | "complete"
+  | "status"
+  | "appointment"
+  | "handoff"
+  | "note"
+  | "document"
+  | "followup"
+  | "prepared";
 
 export interface CaseEvent {
   id: string;
@@ -56,11 +76,61 @@ export interface CaseEvent {
   createdAt: string;
 }
 
+export const MESSAGE_CHANNELS = ["website", "email", "whatsapp", "phone"] as const;
+export type MessageChannel = (typeof MESSAGE_CHANNELS)[number];
+
+/** delivered = beim Kunden angekommen (z. B. Website-Chat), not_sent = Kanal nicht verbunden, internal = interne Notiz. */
+export type MessageDelivery = "delivered" | "not_sent" | "internal";
+
 export interface CaseMessage {
   id: string;
   caseId: string;
-  role: "user" | "assistant";
+  /** user = Kunde, assistant = KI, staff = Mitarbeiter/Telefonnotiz */
+  role: "user" | "assistant" | "staff";
   content: string;
+  createdAt: string;
+  channel: MessageChannel;
+  delivery: MessageDelivery;
+  /** true = im Simulator erzeugt, keine echte Nachricht des Kanals */
+  simulated: boolean;
+}
+
+export interface MessageMeta {
+  channel?: MessageChannel;
+  delivery?: MessageDelivery;
+  simulated?: boolean;
+}
+
+export const DOCUMENT_KINDS = ["floorplan", "energy_certificate", "photos", "other"] as const;
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+
+/** Ein angefordertes (requested) oder hochgeladenes (received) Dokument eines Falls. */
+export interface CaseDocument {
+  id: string;
+  caseId: string;
+  companyId: string;
+  kind: DocumentKind;
+  status: "requested" | "received";
+  fileName: string;
+  mimeType: string;
+  size: number;
+  /** Pfad im privaten Speicher, nie an Clients ausliefern */
+  storagePath: string;
+  requestedAt: string;
+  receivedAt: string | null;
+}
+
+export interface FollowUp {
+  id: string;
+  caseId: string;
+  companyId: string;
+  kind: "document" | "info";
+  message: string;
+  scheduledFor: string;
+  /** planned = geplant, sent = versendet, manual = fällig, aber Versand nur manuell möglich, cancelled = abgebrochen */
+  status: "planned" | "sent" | "manual" | "cancelled";
+  sentAt: string | null;
+  note: string;
   createdAt: string;
 }
 
@@ -95,6 +165,8 @@ export interface Appointment {
   startsAt: string;
   durationMin: number;
   notes: string;
+  /** proposed = dem Kunden vorgeschlagen, confirmed = bestätigt */
+  status: "proposed" | "confirmed";
 }
 
 export interface Member {
@@ -130,10 +202,19 @@ export interface CaseFilters {
 }
 
 export interface DashboardStats {
+  /** Neue Anfragen (Status NEW) */
   newRequests: number;
+  /** Fälle mit Status READY_FOR_REVIEW oder COMPLETE */
   completeCases: number;
-  openQuestions: number;
-  appointments: number;
+  /** Fälle, die auf Kundendaten warten (WAITING_FOR_CUSTOMER) */
+  waitingForCustomer: number;
+  /** Heute anstehende Termine */
+  appointmentsToday: number;
+  /** Ohne Zutun des Büros durch KI-Intake bis zur Bearbeitungsreife qualifiziert */
+  autoQualified: number;
 }
 
-export type CaseInput = Omit<CaseRecord, "id" | "createdAt" | "updatedAt" | "companyId">;
+export type CaseInput = Omit<CaseRecord, "id" | "createdAt" | "updatedAt" | "companyId" | "uploadToken" | "uploadTokenExpiresAt"> & {
+  uploadToken?: string | null;
+  uploadTokenExpiresAt?: string | null;
+};

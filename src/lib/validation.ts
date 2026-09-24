@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CASE_STATUSES, QUESTION_TYPES, ROLES, TONES } from "@/lib/data/types";
+import { CASE_STATUSES, DOCUMENT_KINDS, QUESTION_TYPES, ROLES, TONES } from "@/lib/data/types";
 
 const str = (max: number) => z.string().trim().max(max);
 
@@ -20,11 +20,14 @@ export const signupSchema = z.object({
 
 export const forgotSchema = z.object({ email: z.string().trim().email("Bitte gültige E-Mail eingeben") });
 
+/** Fall-ID: UUID oder Demo-Seed-ID (c-N) */
+export const caseIdSchema = z.string().uuid().or(z.string().regex(/^c-\d+$/));
+
 export const caseFieldsSchema = z.record(z.string().min(1).max(60), z.string().max(1000));
 
 export const caseCreateSchema = z.object({
   fields: caseFieldsSchema,
-  source: z.enum(["manual", "email", "whatsapp", "widget"]).default("manual"),
+  source: z.enum(["manual", "email", "whatsapp", "widget", "phone"]).default("manual"),
 });
 
 export const casePatchSchema = z.object({
@@ -50,6 +53,7 @@ export const appointmentSchema = z.object({
   startsAt: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Ungültiges Datum").transform((v) => new Date(v).toISOString()),
   durationMin: z.coerce.number().int().min(5).max(1440).default(60),
   notes: str(1000).default(""),
+  status: z.enum(["proposed", "confirmed"]).optional(),
 });
 
 export const questionSchema = z.object({
@@ -92,7 +96,24 @@ export const profileSchema = z.object({ firstName: str(60).min(1, "Vorname erfor
 export const inviteSchema = z.object({ email: z.string().trim().email("Bitte gültige E-Mail eingeben"), role: z.enum(ROLES).exclude(["OWNER"]) });
 export const roleSchema = z.object({ id: z.string(), role: z.enum(ROLES).exclude(["OWNER"]) });
 
-export const messageSchema = z.object({ caseId: z.string().min(1).max(64), content: str(2000).min(1) });
+/** phone_note = interne Telefonnotiz; email/whatsapp = Nachricht an den Kunden über den jeweiligen Kanal */
+export const messageSchema = z.object({
+  caseId: z.string().min(1).max(64),
+  content: str(2000).min(1),
+  kind: z.enum(["phone_note", "email", "whatsapp"]).default("phone_note"),
+});
+
+export const documentRequestSchema = z.object({ kinds: z.array(z.enum(DOCUMENT_KINDS)).max(4).optional() });
+
+export const followUpActionSchema = z.object({ action: z.enum(["cancel", "mark_sent", "plan"]) });
+
+export const simulateInboundSchema = z.object({
+  channel: z.enum(["whatsapp", "email"]),
+  /** Telefonnummer (WhatsApp) bzw. E-Mail-Adresse (E-Mail) des simulierten Absenders */
+  sender: str(120).min(3, "Absender erforderlich"),
+  name: str(100).optional(),
+  text: str(1500).min(1, "Nachricht erforderlich"),
+});
 
 export const widgetSessionSchema = z.object({ companyId: z.string().uuid().or(z.literal("demo")) });
 export const widgetMessageSchema = z.object({

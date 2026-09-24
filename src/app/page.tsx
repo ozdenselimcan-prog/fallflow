@@ -7,6 +7,7 @@ import {
   FaqSection,
   FeaturesSection,
   FinalCta,
+  FlowSection,
   NoCrmSection,
   PricingSection,
   ProblemSection,
@@ -19,6 +20,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <FlowSection />
         <ProblemSection />
         <SolutionSection />
         <DemoSection />
