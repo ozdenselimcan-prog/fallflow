@@ -56,7 +56,7 @@ export function heuristicExtract(text: string): Record<string, string> {
   set("heating", detectHeating(text));
   set("ownerStatus", detectOwnerStatus(text));
 
-  const year = text.match(/(?:baujahr|gebaut|aus dem jahr|von|aus)\D{0,12}(1[6-9]\d{2}|20[0-4]\d)/i)?.[1];
+  const year = text.match(/(?:baujahr|gebaut|aus dem jahr|von|aus)\D{0,22}(1[6-9]\d{2}|20[0-4]\d)/i)?.[1];
   if (year && Number(year) <= currentYear) out.yearBuilt = year;
 
   const area = text.match(/(\d{2,5})(?:[.,]\d+)?\s*(?:m²|m2|qm|quadratmeter)/i)?.[1];

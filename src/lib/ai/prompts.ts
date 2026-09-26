@@ -13,7 +13,8 @@ Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau dieser Form:
 }
 Regeln:
 - Trage nur Angaben ein, die im Text ausdrücklich stehen. Nichts erfinden, nichts schätzen. Unbekannt = "" bzw. null.
-- property.type nur aus: ${BUILDING_TYPES.join(", ")}.
+- property.type nur aus: ${BUILDING_TYPES.join(", ")}. Reihenhaus, Doppelhaushälfte und freistehendes Haus sind Einfamilienhaus.
+- Jahres- und Flächenangaben in Worten (z. B. "neunzehnhundertachtundachtzig") nur übernehmen, wenn du sie sicher in Ziffern umrechnen kannst; im Zweifel null. Ziffernangaben exakt übernehmen.
 - heating.type nur aus: ${HEATING_TYPES.join(", ")}.
 - request.service nur aus: ${SERVICES.join(", ")}.
 - customer.ownerStatus nur aus: ${OWNER_STATUSES.join(", ")} – und nur, wenn der Kunde es ausdrücklich sagt.

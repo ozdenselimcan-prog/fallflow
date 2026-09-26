@@ -48,6 +48,7 @@ interface Phrases {
   intro: string;
   recognized: string;
   noted: string;
+  corrected: string;
   retry: string;
   question: string;
   done: string;
@@ -60,6 +61,7 @@ const PHRASES: Record<Tone, Phrases> = {
     intro: "Vielen Dank für Ihre Anfrage.",
     recognized: "Aus Ihrer Nachricht habe ich bereits entnommen:",
     noted: "Notiert:",
+    corrected: "Korrigiert:",
     retry: "Diese Angabe konnten wir nicht zuordnen.",
     question: "Fachliche Fragen beantwortet Ihnen gerne unser Team persönlich. Zunächst erfassen wir die Angaben für Ihren Fall.",
     done: "Vielen Dank. Ihre Angaben sind vollständig und wurden an unser Team übergeben.",
@@ -70,6 +72,7 @@ const PHRASES: Record<Tone, Phrases> = {
     intro: "Gerne!",
     recognized: "Das habe ich schon verstanden:",
     noted: "Notiert:",
+    corrected: "Korrigiert:",
     retry: "Das habe ich leider nicht ganz verstanden.",
     question: "Dazu meldet sich gerne unser Team persönlich bei Ihnen. Ich sammle zunächst die Angaben für Ihren Fall.",
     done: "Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.",
@@ -80,6 +83,7 @@ const PHRASES: Record<Tone, Phrases> = {
     intro: "Gerne.",
     recognized: "Erkannt:",
     noted: "Notiert:",
+    corrected: "Korrigiert:",
     retry: "Bitte erneut eingeben.",
     question: "Das klärt unser Team persönlich. Erst die Angaben:",
     done: "Danke. Angaben vollständig.",
@@ -89,6 +93,8 @@ const PHRASES: Record<Tone, Phrases> = {
 };
 
 const NUMBER_FILLER = /baujahr|gebaut|jahr|ca\.?|circa|etwa|ungefähr|rund|m²|m2|qm|quadratmeter|wohnfläche|etagen?|stockwerke?|geschosse?|vollgeschosse?|von|aus|im|es|sind|ist|hat|haben|wir|und|mit|das|haus/gi;
+/** Ausdrücke, mit denen Kunden eine zuvor erkannte Angabe berichtigen. */
+const CORRECTION = /korrigier|berichtig|stimmt nicht|nicht richtig|falsch|eigentlich|vielmehr|richtig ist|nein,|nicht \d/i;
 const HANDOFF = /mitarbeiter|mensch|berater sprechen|jemanden sprechen|rückruf|anrufen/i;
 const SKIP = /^(überspringen|weiß ich nicht|weiss ich nicht|keine ahnung|k\. ?a\.?|-|—)$/i;
 export const SKIP_LABEL_REQUIRED = "Weiß ich nicht";
@@ -121,7 +127,7 @@ export function parseAnswer(q: Question, raw: string): Parsed {
         q.key === "buildingType" ? detectBuildingType(text) : q.key === "heating" ? detectHeating(text) : q.key === "service" ? detectService(text) : q.key === "ownerStatus" ? detectOwnerStatus(text) : "";
       const hit = direct || (opts.includes(viaKeyword) ? viaKeyword : "");
       if (hit) return { ok: true, value: hit };
-      return opts.includes("Sonstiges") && text.length <= 80 && !text.includes("?") ? { ok: true, value: "Sonstiges" } : fail;
+      return opts.includes("Sonstiges") && text.length <= 80 && !text.includes("?") && !CORRECTION.test(text) ?{ ok: true, value: "Sonstiges" } : fail;
     }
     case "number": {
       // Zahlen nur akzeptieren, wenn der Text im Wesentlichen eine Angabe ist („1987“, „Baujahr 1987“, „ca. 160 qm“) – nicht z. B. „Gartenweg 12“.
@@ -208,6 +214,23 @@ export function applyTurn(input: TurnInput): TurnResult {
     return result(input, fields, { replies: [p.handoff], handoff: true, done: true });
   }
 
+  // Korrektur einer bereits erfassten Angabe („Baujahr ist eigentlich 1988“): nur bei ausdrücklichem Korrekturwunsch überschreiben.
+  if (!input.first && CORRECTION.test(text)) {
+    const changed: string[] = [];
+    for (const [k, v] of Object.entries(input.extracted ?? {})) {
+      if (!v || FREE_TEXT_KEYS.has(k) || !isAnswered(fields, k) || fields[k] === SKIPPED || fields[k] === v) continue;
+      fields[k] = v;
+      changed.push(k);
+    }
+    if (changed.length) {
+      if (changed.includes("heating")) delete fields.energySource;
+      Object.assign(fields, deriveFields(fields));
+      const next = nextPending(questions, fields);
+      const said = `${p.corrected} ${describeRecognized(changed, fields, questions)}.`;
+      return result(input, fields, next ? { replies: [said, next.prompt], quickReplies: quickRepliesFor(next), recognizedKeys: changed } : { replies: [said], done: true, recognizedKeys: changed });
+    }
+  }
+
   const pendingBefore = nextPending(questions, fields);
 
   if (input.first) {
@@ -219,7 +242,7 @@ export function applyTurn(input: TurnInput): TurnResult {
     }
     replies.push(p.intro);
     const known = describeRecognized(recognized, fields, questions);
-    if (known) replies.push(`${p.recognized} ${known}.`);
+    if (known) replies.push(`${p.recognized} ${known}. Falls etwas nicht stimmt, schreiben Sie mir einfach die Korrektur.`);
     if (!nextPending(questions, fields)) replies.push("Ich habe alle nötigen Angaben aus Ihrer Nachricht entnehmen können.");
     else replies.push("Für Ihren Fall fehlen mir noch ein paar Angaben.");
   } else if (!pendingBefore) {
