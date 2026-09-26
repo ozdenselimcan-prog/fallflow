@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleDashed } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,7 +23,6 @@ interface Props {
 const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Erfassungsfelder", "Website verbinden"];
 
 export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived }: Props) {
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
   const [services, setServices] = useState<string[]>(initial.services);
@@ -38,7 +36,8 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
       () => apiFetch("POST", "/api/onboarding", { ...company, services, activeFieldKeys: active }),
       { refresh: false },
     );
-    if (ok) router.push("/dashboard");
+    // Volles Neuladen statt Client-Navigation: sonst kann eine zwischengespeicherte Weiterleitung zurück ins Onboarding führen.
+    if (ok) window.location.href = "/dashboard";
   };
 
   return (

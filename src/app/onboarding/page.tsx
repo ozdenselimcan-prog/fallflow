@@ -8,7 +8,7 @@ import { getStore } from "@/lib/data";
 export const metadata: Metadata = { title: "Onboarding" };
 
 /** Erfassbare Standardfelder (Schritt 4). Weitere, eigene Fragen pflegt man im Frage-Flow. */
-const STANDARD_KEYS = ["name", "email", "phone", "postalCode", "buildingType", "yearBuilt", "livingArea", "heating", "service"];
+const STANDARD_KEYS = ["service", "buildingType", "yearBuilt", "livingArea", "heating", "ownerStatus", "street", "postalCode", "floors", "name", "email", "phone"];
 
 export default async function OnboardingPage() {
   const session = await requireSession();
