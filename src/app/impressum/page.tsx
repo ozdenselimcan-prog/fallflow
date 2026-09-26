@@ -17,7 +17,7 @@ export default function ImpressumPage() {
             <p>
               Selimcan Özden
               <br />
-              Kalrsteinstraße 2
+              Karlsteinstraße 2
               <br />
               80937 München
             </p>

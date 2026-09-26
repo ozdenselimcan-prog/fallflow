@@ -40,7 +40,7 @@ export default function DatenschutzPage() {
             <p>
               Selimcan Özden
               <br />
-              Kalrsteinstraße 2
+              Karlsteinstraße 2
               <br />
               80937 München
               <br />
