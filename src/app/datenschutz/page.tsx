@@ -38,11 +38,11 @@ export default function DatenschutzPage() {
         <div className="prose-sm mt-8 space-y-8 leading-relaxed [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-medium">
           <Section title="1. Verantwortlicher">
             <p>
-              [FIRMENNAME / NAME]
+              Selimcan Özden
               <br />
-              [STRASSE UND HAUSNUMMER]
+              Kalrsteinstraße 2
               <br />
-              [PLZ ORT]
+              80937 München
               <br />
               E-Mail: [E-MAIL] · Telefon: [TELEFON]
             </p>
