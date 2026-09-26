@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { listAllStores } from "@/lib/data";
 import { dispatchDueFollowUps } from "@/lib/intake/follow-ups";
+import { purgeStaleCases } from "@/lib/intake/retention";
 
 /**
  * Cron-Endpunkt (siehe vercel.json): verarbeitet fällige Follow-ups aller Büros. Geschützt durch CRON_SECRET
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   const expected = Buffer.from(`Bearer ${secret}`);
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
 
-  const totals = { companies: 0, due: 0, sent: 0, manual: 0, cancelled: 0 };
+  const totals = { companies: 0, due: 0, sent: 0, manual: 0, cancelled: 0, purged: 0 };
   for (const store of await listAllStores()) {
     const r = await dispatchDueFollowUps(store);
     totals.companies++;
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
     totals.sent += r.sent;
     totals.manual += r.manual;
     totals.cancelled += r.cancelled;
+    totals.purged += await purgeStaleCases(store);
   }
   return NextResponse.json(totals);
 }

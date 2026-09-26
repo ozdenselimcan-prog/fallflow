@@ -81,7 +81,7 @@ export default function DatenschutzPage() {
             <p>Wir setzen folgende Dienstleister als Auftragsverarbeiter ein. Mit ihnen bestehen bzw. schließen wir Verträge zur Auftragsverarbeitung.</p>
             <List
               items={[
-                "Supabase (Datenbank, Authentifizierung, Dateispeicher). Speicherort/Region des Projekts: [REGION, z. B. Frankfurt (EU)].",
+                "Supabase (Datenbank, Authentifizierung, Dateispeicher). Speicherort des Projekts: Region eu-west-1 (Irland, EU).",
                 "Vercel Inc. (Hosting und Auslieferung der Anwendung, Server-Logs).",
                 "OpenAI (nur wenn die KI-Auswertung aktiviert ist): Chat-Texte werden zur Erkennung von Angaben (z. B. Baujahr, Heizung) und zur Erstellung einer Kurzzusammenfassung an die OpenAI-Schnittstelle übermittelt. Die Daten werden nach den Vertragsbedingungen von OpenAI nicht zum Training genutzt [bitte anhand Ihres OpenAI-Vertrags prüfen].",
               ]}
@@ -109,7 +109,7 @@ export default function DatenschutzPage() {
 
           <Section title="8. Speicherdauer">
             <p>
-              Anfragen und zugehörige Dokumente werden gespeichert, solange das Büro sie zur Bearbeitung benötigt und die Löschung nicht verlangt wird; das Büro kann Fälle jederzeit löschen. Konten und Büro-Daten werden nach Beendigung des Vertrags gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten bestehen. [Konkrete Fristen ergänzen.]
+              Anfragen, die von einem Büro nicht übernommen werden, werden samt Dokumenten, Nachrichten und Verlauf automatisch gelöscht, wenn seit der letzten Aktivität 12 Monate vergangen sind. Von einem Büro übernommene Fälle bleiben gespeichert, bis das Büro sie löscht; das Büro entscheidet dabei nach seinen eigenen Aufbewahrungspflichten und kann Fälle jederzeit löschen. Konten und Büro-Daten werden nach Beendigung des Vertrags gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten bestehen. Server-Logs werden nach den Vorgaben des Hosting-Anbieters nur kurz aufbewahrt.
             </p>
           </Section>
 

@@ -70,3 +70,16 @@ export async function readFile(path: string): Promise<{ bytes: Uint8Array; mime:
   if (error || !data) return null;
   return { bytes: new Uint8Array(await data.arrayBuffer()), mime: data.type || "application/octet-stream" };
 }
+
+/** Löscht eine Datei aus dem Speicher (z. B. bei der automatischen Löschung alter Anfragen). Fehler werden geloggt, nicht geworfen. */
+export async function deleteFile(path: string): Promise<void> {
+  if (!path) return;
+  if (!isSupabaseConfigured()) {
+    memFiles().delete(path);
+    return;
+  }
+  const admin = createAdminClient();
+  if (!admin) return;
+  const { error } = await admin.storage.from(BUCKET).remove([path]);
+  if (error) console.error("[storage] Löschen fehlgeschlagen:", error.message);
+}
