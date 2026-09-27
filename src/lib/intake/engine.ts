@@ -74,7 +74,6 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const turnSettings = settings.autoReply ? settings : { ...settings, autoFollowUp: false };
   const pendingBefore = nextPending(questions, startFields)?.key ?? null;
   const turn: TurnResult = applyTurn({ questions, settings: turnSettings, fields: startFields, text: input.text, first, extracted, documents });
-  console.error("[debug-intake]", JSON.stringify({ channel: input.channel, textLen: input.text.length, autoReply: settings.autoReply, extractedKeys: Object.keys(extracted), startFieldKeys: Object.keys(startFields), turnFieldKeys: Object.keys(turn.fields) }));
 
   const draft = {
     fields: turn.fields,

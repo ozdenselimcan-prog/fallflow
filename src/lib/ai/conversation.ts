@@ -211,6 +211,11 @@ export function applyTurn(input: TurnInput): TurnResult {
   let recognized: string[] = [];
 
   if (settings.humanHandoff && HANDOFF.test(text)) {
+    // Auch beim Wunsch nach einem Mitarbeiter zuerst die im selben Text bereits genannten Angaben übernehmen
+    // (z. B. „…und bitten um Rückruf“ am Ende einer ansonsten vollständigen Anfrage) – nichts verwerfen.
+    mergeExtracted(fields, input.extracted, { allowFreeText: Boolean(input.first) });
+    if (input.first) fields.description ||= text.trim().slice(0, 1000);
+    Object.assign(fields, deriveFields(fields));
     return result(input, fields, { replies: [p.handoff], handoff: true, done: true });
   }
 
