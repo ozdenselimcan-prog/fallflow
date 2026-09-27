@@ -168,7 +168,7 @@ export function quickRepliesFor(q: Question): string[] {
  * eine nach der anderen – sonst müsste der Kunde für jede einzelne Angabe eine neue Mail schreiben.
  * Der Website-Chat bleibt bei einer Frage nach der anderen, das passt besser zu einem laufenden Gespräch.
  */
-const isInteractive = (channel?: MessageChannel) => !channel || channel === "website";
+export const isInteractive = (channel?: MessageChannel) => !channel || channel === "website";
 
 function missingPrompt(questions: Question[], fields: Record<string, string>, channel?: MessageChannel): { text: string; single: Question | null } {
   const missing = activeQuestions(questions).filter((q) => isRelevant(q, fields) && !isAnswered(fields, q.key));

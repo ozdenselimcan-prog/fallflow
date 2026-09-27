@@ -1,5 +1,5 @@
 import { extractFields } from "@/lib/ai/case-extractor";
-import { applyTurn, nextPending, type TurnResult } from "@/lib/ai/conversation";
+import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import type { Store } from "@/lib/data/store";
 import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib/data/types";
@@ -123,9 +123,11 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   let delivered = true;
   let deliveryNote = "";
-  for (const reply of replies) {
-    const result = await deliverToCustomer({ companyId,
-      channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated });
+  // Website-Chat: jede Antwort eine eigene Sprechblase. E-Mail/WhatsApp: alles in EINER Nachricht senden –
+  // sonst bekäme der Kunde für einen einzigen Gesprächszug mehrere einzelne E-Mails.
+  const outgoing = isInteractive(input.channel) ? replies : replies.length ? [replies.join("\n\n")] : [];
+  for (const reply of outgoing) {
+    const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated });
     if (!result.delivered) {
       delivered = false;
       deliveryNote = result.reason;
