@@ -21,8 +21,9 @@ export async function GET(req: NextRequest) {
   if (!companyId) return NextResponse.json({ error: "companyId fehlt" }, { status: 400 });
   const store = await getPublicStore(companyId);
   if (!store) return NextResponse.json({ error: "Company nicht gefunden" }, { status: 404 });
-  const cases = await store.listCases({ sort: "newest" });
+  const [cases, assistant] = await Promise.all([store.listCases({ sort: "newest" }), store.getAssistant()]);
   return NextResponse.json({
+    assistant,
     cases: cases.map((c) => ({ id: c.id, customerName: c.customerName, service: c.service, source: c.source, summary: c.summary, createdAt: c.createdAt, fields: c.fields })),
   });
 }
