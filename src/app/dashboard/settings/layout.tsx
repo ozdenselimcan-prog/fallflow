@@ -6,7 +6,7 @@ export default function SettingsLayout({ children }: LayoutProps<"/dashboard/set
     <>
       <PageHeader title="Einstellungen" />
       <SettingsTabs />
-      <div className="mt-6 max-w-2xl">{children}</div>
+      <div className="mt-6 max-w-3xl">{children}</div>
     </>
   );
 }

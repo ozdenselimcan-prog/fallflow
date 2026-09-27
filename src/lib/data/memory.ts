@@ -14,7 +14,7 @@ import {
   seedQuestions,
 } from "./seed";
 import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
-import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Company, FollowUp, Member, Question } from "./types";
+import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, FollowUp, Member, Question } from "./types";
 
 interface MemoryDb {
   company: Company;
@@ -254,12 +254,16 @@ export function createMemoryStore(): Store {
       db().members = db().members.filter((m) => m.id !== id);
     },
 
+    async setChannelStatus(kind, status, account) {
+      const d = db();
+      (d as unknown as { channelOverrides: Partial<Record<string, Channel>> }).channelOverrides ??= {};
+      (d as unknown as { channelOverrides: Partial<Record<string, Channel>> }).channelOverrides[kind] = { kind, status, account: account ?? "" };
+    },
     async listChannels() {
-      return CHANNEL_ORDER.map((kind) => ({
-        kind,
-        status: kind === "website" ? ("connected" as const) : kind === "whatsapp" ? ("coming_soon" as const) : ("disconnected" as const),
-        account: "",
-      }));
+      const overrides = (db() as unknown as { channelOverrides?: Partial<Record<string, Channel>> }).channelOverrides ?? {};
+      return CHANNEL_ORDER.map(
+        (kind) => overrides[kind] ?? { kind, status: kind === "website" ? ("connected" as const) : ("disconnected" as const), account: "" },
+      );
     },
     async getSubscription() {
       return { plan: "pro", status: "trialing", currentPeriodEnd: null };

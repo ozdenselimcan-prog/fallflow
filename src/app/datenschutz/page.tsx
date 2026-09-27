@@ -86,7 +86,9 @@ export default function DatenschutzPage() {
                 "OpenAI (nur wenn die KI-Auswertung aktiviert ist): Chat-Texte werden zur Erkennung von Angaben (z. B. Baujahr, Heizung) und zur Erstellung einer Kurzzusammenfassung an die OpenAI-Schnittstelle übermittelt. Die Daten werden nach den Vertragsbedingungen von OpenAI nicht zum Training genutzt [bitte anhand Ihres OpenAI-Vertrags prüfen].",
               ]}
             />
-            <p>Weitere Kanäle (E-Mail-Postfächer, WhatsApp Business) werden nur genutzt, wenn ein Büro sie aktiv verbindet; dann kommen deren Anbieter als weitere Empfänger hinzu.</p>
+            <p>
+              Weitere Kanäle (Gmail, Microsoft 365/Outlook, WhatsApp Business) werden nur genutzt, wenn ein Büro sie mit seinem eigenen Konto aktiv verbindet; dann kommt der jeweilige Anbieter für dieses Büro als weiterer Empfänger hinzu. Die Zugangsdaten jedes Büros (Zugriffs- und Aktualisierungstoken) werden verschlüsselt gespeichert, sind ausschließlich diesem Büro zugeordnet und für andere Büros oder im Browser nicht einsehbar.
+            </p>
           </Section>
 
           <Section title="5. Übermittlung in Drittländer">

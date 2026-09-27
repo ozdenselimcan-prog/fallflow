@@ -441,6 +441,10 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       fail(error, "member remove");
     },
 
+    async setChannelStatus(kind, status, account) {
+      const { error } = await db.from("channels").upsert({ company_id: companyId, kind, status, account: account ?? "" }, { onConflict: "company_id,kind" });
+      fail(error, "channel status");
+    },
     async listChannels(): Promise<Channel[]> {
       const { data, error } = await db.from("channels").select("*").eq("company_id", companyId);
       fail(error, "channels");

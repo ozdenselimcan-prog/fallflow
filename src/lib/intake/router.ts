@@ -4,6 +4,7 @@ import { processIntakeMessage, type IntakeTurn } from "./engine";
 import { findCaseByIdentity } from "./identity";
 
 export interface InboundMessage {
+  companyId: string;
   channel: Exclude<MessageChannel, "website" | "phone">;
   text: string;
   sender: { email?: string; phone?: string; name?: string };
@@ -26,6 +27,7 @@ export async function routeInbound(store: Store, msg: InboundMessage): Promise<I
   const match = findCaseByIdentity(cases, msg.sender);
   const source: CaseSource = msg.channel;
   const turn = await processIntakeMessage(store, {
+    companyId: msg.companyId,
     sessionId: match?.id ?? null,
     text: msg.text,
     source,

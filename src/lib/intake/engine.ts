@@ -11,6 +11,7 @@ import { chatDocumentPrompt } from "./messages";
 export class SessionNotFoundError extends Error {}
 
 export interface IntakeInput {
+  companyId: string;
   /** Fall-ID (unratbare UUID) einer laufenden Unterhaltung, null bei der ersten Nachricht */
   sessionId: string | null;
   text: string;
@@ -55,6 +56,7 @@ export async function extractForText(text: string): Promise<Record<string, strin
  * relevante fehlende Angaben ab, hält Fallakte, Status, Dokumentenanforderung und Follow-ups aktuell.
  */
 export async function processIntakeMessage(store: Store, input: IntakeInput): Promise<IntakeTurn> {
+  const { companyId } = input;
   const [questions, settings] = await Promise.all([store.listQuestions(), store.getAssistant()]);
   const existing = input.sessionId ? await store.getCase(input.sessionId) : null;
   if (input.sessionId && !existing) throw new SessionNotFoundError();
@@ -122,7 +124,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   let delivered = true;
   let deliveryNote = "";
   for (const reply of replies) {
-    const result = await deliverToCustomer({ channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated });
+    const result = await deliverToCustomer({ companyId,
+      channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated });
     if (!result.delivered) {
       delivered = false;
       deliveryNote = result.reason;

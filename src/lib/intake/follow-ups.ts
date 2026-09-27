@@ -38,7 +38,7 @@ export async function dispatchDueFollowUps(store: Store, now = new Date()): Prom
       continue;
     }
     const channel = followUpChannel(c.source, Boolean(c.fields.email));
-    const result = await deliverToCustomer({ channel, email: c.fields.email, phone: c.fields.phone, text: f.message, subject: "Ihre Anfrage zur Energieberatung" });
+    const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text: f.message, subject: "Ihre Anfrage zur Energieberatung" });
     if (result.delivered) {
       await store.saveFollowUp({ ...f, status: "sent", sentAt: now.toISOString(), note: "" });
       await store.addMessage(c.id, "assistant", f.message, { channel, delivery: "delivered" });

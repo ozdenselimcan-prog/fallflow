@@ -115,6 +115,13 @@ export const simulateInboundSchema = z.object({
   text: str(1500).min(1, "Nachricht erforderlich"),
 });
 
+/** WhatsApp Business Cloud API: Zugangsdaten des eigenen Meta-Anschlusses des Büros (kein OAuth, manuelle Eingabe). */
+export const whatsappConnectSchema = z.object({
+  accessToken: z.string().trim().min(20, "Bitte den vollständigen Zugriffstoken eingeben").max(2000),
+  phoneNumberId: z.string().trim().regex(/^\d{5,30}$/, "Nur Ziffern, wie in der Meta Business Suite angezeigt"),
+  wabaId: z.string().trim().regex(/^\d{0,30}$/, "Nur Ziffern").optional().default(""),
+});
+
 export const widgetSessionSchema = z.object({ companyId: z.string().uuid().or(z.literal("demo")) });
 export const widgetMessageSchema = z.object({
   companyId: z.string().uuid().or(z.literal("demo")),

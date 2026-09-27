@@ -1,15 +1,16 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getPublicStore } from "@/lib/data";
+import { findCompanyByWhatsAppPhoneId } from "@/lib/integrations/connections-store";
+import { appConfigured, parseWebhook, verifyWebhook } from "@/lib/integrations/whatsapp";
 import { routeInbound } from "@/lib/intake/router";
-import { whatsappProvider } from "@/lib/integrations/whatsapp";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
-/** Meta-Webhook-Verifizierung. Ohne Credentials: Mock-Antwort, keine Fake-Integration. */
+/** Meta-Webhook-Verifizierung. Ohne FallFlow-App-Konfiguration: Mock-Antwort, keine Fake-Integration. */
 export async function GET(req: NextRequest) {
-  if (whatsappProvider.missingConfig().length) return NextResponse.json({ mock: true, message: "WhatsApp ist nicht konfiguriert." });
+  if (!appConfigured()) return NextResponse.json({ mock: true, message: "WhatsApp ist bei FallFlow noch nicht konfiguriert." });
   const p = req.nextUrl.searchParams;
-  const challenge = whatsappProvider.verifyWebhook(p.get("hub.mode"), p.get("hub.verify_token"), p.get("hub.challenge"));
+  const challenge = verifyWebhook(p.get("hub.mode"), p.get("hub.verify_token"), p.get("hub.challenge"));
   return challenge === null ? new NextResponse("Forbidden", { status: 403 }) : new NextResponse(challenge);
 }
 
@@ -21,18 +22,16 @@ function validSignature(raw: string, header: string | null, secret: string) {
 }
 
 /**
- * Eingehende WhatsApp-Nachrichten → Kunde/Fall erkennen → Nachricht im Fall speichern → KI reagiert.
- * Wird nur verarbeitet, wenn alles konfiguriert ist: WHATSAPP_*-Zugangsdaten, WHATSAPP_APP_SECRET (Signaturprüfung
- * X-Hub-Signature-256) und WHATSAPP_COMPANY_ID (Büro, dem dieser Anschluss gehört). Sonst passiert nichts.
+ * Eingehende WhatsApp-Nachrichten aller Büros landen an diesem einen Meta-App-Webhook.
+ * Die Telefonnummer-ID im Payload (metadata.phone_number_id) identifiziert, welches Büro seinen
+ * WhatsApp-Anschluss darauf verbunden hat (siehe connections-store.ts) – Nachrichten werden strikt
+ * auf dessen Company beschränkt weiterverarbeitet.
  */
 export async function POST(req: NextRequest) {
   if (!rateLimit(`wa:${clientIp(req)}`, 120, 60_000)) return new NextResponse("Too Many Requests", { status: 429 });
-  if (whatsappProvider.missingConfig().length) return NextResponse.json({ mock: true, received: false });
+  if (!appConfigured()) return NextResponse.json({ mock: true, received: false });
 
-  const secret = process.env.WHATSAPP_APP_SECRET;
-  const companyId = process.env.WHATSAPP_COMPANY_ID;
-  if (!secret || !companyId) return NextResponse.json({ mock: true, received: false, message: "WHATSAPP_APP_SECRET und WHATSAPP_COMPANY_ID fehlen." });
-
+  const secret = process.env.WHATSAPP_APP_SECRET!;
   const raw = await req.text();
   if (!validSignature(raw, req.headers.get("x-hub-signature-256"), secret)) return new NextResponse("Forbidden", { status: 403 });
 
@@ -42,16 +41,20 @@ export async function POST(req: NextRequest) {
   } catch {
     return new NextResponse("Bad Request", { status: 400 });
   }
-  const store = await getPublicStore(companyId);
-  if (!store) return NextResponse.json({ received: 0 });
 
-  const messages = whatsappProvider.parseWebhook(payload);
+  const messages = parseWebhook(payload);
+  let received = 0;
   for (const m of messages) {
+    const connection = await findCompanyByWhatsAppPhoneId(m.phoneNumberId);
+    if (!connection) continue; // Anschluss ist keinem Büro zugeordnet – nichts zu tun.
+    const store = await getPublicStore(connection.companyId);
+    if (!store) continue;
     try {
-      await routeInbound(store, { channel: "whatsapp", text: m.text.slice(0, 1500), sender: { phone: m.from } });
+      await routeInbound(store, { companyId: connection.companyId, channel: "whatsapp", text: m.text.slice(0, 1500), sender: { phone: m.from } });
+      received++;
     } catch (err) {
       console.error("[whatsapp] Verarbeitung fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
     }
   }
-  return NextResponse.json({ received: messages.length });
+  return NextResponse.json({ received });
 }

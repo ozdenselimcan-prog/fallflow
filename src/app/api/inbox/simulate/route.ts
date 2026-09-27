@@ -9,7 +9,7 @@ import { simulateInboundSchema } from "@/lib/validation";
  * es wird nichts an einen echten Kanal gesendet.
  */
 export const POST = withSession(
-  async (req, { store }) => {
+  async (req, { store, session }) => {
     const body = await parseBody(req, simulateInboundSchema);
     if (!body.ok) return body.res;
     const { channel, sender, name, text } = body.data;
@@ -17,6 +17,7 @@ export const POST = withSession(
     if (channel === "whatsapp" && sender.replace(/\D/g, "").length < 6) return apiError("Bitte eine gültige Telefonnummer eingeben.", 400);
 
     const { turn, matchedExisting } = await routeInbound(store, {
+      companyId: session.companyId,
       channel,
       text,
       simulated: true,

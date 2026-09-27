@@ -1,8 +1,10 @@
 import type { MessageChannel } from "@/lib/data/types";
+import { getValidTokens } from "./tokens";
+import { getConnection } from "./connections-store";
 import { IntegrationNotReadyError } from "./email";
 import { gmailProvider } from "./gmail";
 import { microsoftProvider } from "./microsoft";
-import { whatsappProvider } from "./whatsapp";
+import { sendWhatsAppMessage } from "./whatsapp";
 
 export interface DeliveryResult {
   delivered: boolean;
@@ -10,12 +12,16 @@ export interface DeliveryResult {
   reason: string;
 }
 
+const EMAIL_PROVIDERS = [gmailProvider, microsoftProvider];
+
 /**
- * Versand an Kunden über die Kanal-Adapter. Es wird nie ein Erfolg vorgetäuscht:
- * solange ein Kanal nicht verbunden bzw. nicht implementiert ist, ist delivered = false.
- * Der Website-Chat gilt als zugestellt, weil die Antwort direkt im offenen Chatfenster erscheint.
+ * Versand an Kunden über die vom jeweiligen Büro verbundenen Kanäle (siehe connections-store.ts).
+ * Es wird nie ein Erfolg vorgetäuscht: solange dieses Büro keinen passenden Kanal verbunden hat,
+ * ist delivered = false. Der Website-Chat gilt als zugestellt, weil die Antwort direkt im offenen
+ * Chatfenster erscheint.
  */
 export async function deliverToCustomer(input: {
+  companyId: string;
   channel: MessageChannel;
   email?: string;
   phone?: string;
@@ -29,17 +35,23 @@ export async function deliverToCustomer(input: {
 
   try {
     if (input.channel === "whatsapp") {
-      const missing = whatsappProvider.missingConfig();
-      if (missing.length) return { delivered: false, reason: "WhatsApp ist nicht verbunden (Demo-Modus)." };
+      const connection = await getConnection(input.companyId, "whatsapp");
+      if (!connection || connection.status !== "connected" || !connection.accessToken) return { delivered: false, reason: "WhatsApp ist für dieses Büro nicht verbunden." };
       if (!input.phone) return { delivered: false, reason: "Keine Telefonnummer vorhanden." };
-      await whatsappProvider.sendMessage(input.phone, input.text);
+      const phoneNumberId = String(connection.metadata.phoneNumberId ?? "");
+      if (!phoneNumberId) return { delivered: false, reason: "WhatsApp-Verbindung ist unvollständig konfiguriert." };
+      await sendWhatsAppMessage({ phoneNumberId, accessToken: connection.accessToken, to: input.phone, text: input.text });
       return { delivered: true, reason: "" };
     }
-    const provider = [gmailProvider, microsoftProvider].find((p) => p.missingConfig().length === 0);
-    if (!provider) return { delivered: false, reason: "Kein E-Mail-Postfach verbunden (Demo-Modus)." };
-    if (!input.email) return { delivered: false, reason: "Keine E-Mail-Adresse vorhanden." };
-    await provider.sendReply(input.email, input.subject ?? "Ihre Anfrage zur Energieberatung", input.text);
-    return { delivered: true, reason: "" };
+
+    for (const provider of EMAIL_PROVIDERS) {
+      const found = await getValidTokens(provider, input.companyId);
+      if (!found) continue;
+      if (!input.email) return { delivered: false, reason: "Keine E-Mail-Adresse vorhanden." };
+      await provider.sendReply(found.tokens, input.email, input.subject ?? "Ihre Anfrage zur Energieberatung", input.text);
+      return { delivered: true, reason: "" };
+    }
+    return { delivered: false, reason: "Für dieses Büro ist kein E-Mail-Postfach verbunden." };
   } catch (err) {
     if (err instanceof IntegrationNotReadyError) return { delivered: false, reason: err.message };
     console.error("[outbound] Versand fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");

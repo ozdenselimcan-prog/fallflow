@@ -26,7 +26,7 @@ const core: NavItem[] = [
 ];
 const config: NavItem[] = [
   { href: "/dashboard/assistant", label: "KI-Assistent", icon: Sparkles },
-  { href: "/dashboard/channels", label: "Kanäle", icon: Globe },
+  { href: "/dashboard/settings/connections", label: "Verbindungen", icon: Globe },
   { href: "/dashboard/team", label: "Team", icon: Users },
   { href: "/dashboard/settings/profile", label: "Einstellungen", icon: Settings, prefix: "/dashboard/settings" },
 ];

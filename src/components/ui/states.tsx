@@ -33,10 +33,10 @@ export function ErrorState({ title = "Etwas ist schiefgelaufen", description, on
   );
 }
 
-export function Notice({ tone = "info", children }: { tone?: "info" | "success" | "error"; children: ReactNode }) {
+export function Notice({ tone = "info", className, children }: { tone?: "info" | "success" | "error"; className?: string; children: ReactNode }) {
   const styles = { info: "bg-accent-soft text-accent", success: "bg-success-soft text-success", error: "bg-danger-soft text-danger" };
   return (
-    <div role={tone === "error" ? "alert" : "status"} className={cn("rounded-xl px-4 py-3 text-sm", styles[tone])}>
+    <div role={tone === "error" ? "alert" : "status"} className={cn("rounded-xl px-4 py-3 text-sm", styles[tone], className)}>
       {children}
     </div>
   );

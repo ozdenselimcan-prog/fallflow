@@ -14,7 +14,7 @@ export const POST = publicRoute("widget-message", 40, async (req) => {
   const store = await getPublicStore(body.data.companyId);
   if (!store) return apiError("Unbekannte Company", 404);
   try {
-    const turn = await processIntakeMessage(store, { sessionId: body.data.sessionId, text: body.data.text, source: "widget", channel: "website" });
+    const turn = await processIntakeMessage(store, { companyId: body.data.companyId, sessionId: body.data.sessionId, text: body.data.text, source: "widget", channel: "website" });
     return json({
       sessionId: turn.sessionId,
       replies: turn.replies,

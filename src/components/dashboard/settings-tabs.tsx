@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { href: "/dashboard/settings/profile", label: "Profil" },
   { href: "/dashboard/settings/company", label: "Unternehmen" },
+  { href: "/dashboard/settings/connections", label: "Verbindungen" },
   { href: "/dashboard/settings/assistant", label: "Assistent" },
   { href: "/dashboard/settings/billing", label: "Abrechnung" },
 ];

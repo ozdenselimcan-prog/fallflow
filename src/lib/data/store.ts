@@ -90,6 +90,8 @@ export interface Store {
   removeMember(id: string): Promise<void>;
 
   listChannels(): Promise<Channel[]>;
+  /** Kanal-Status für die UI setzen (verbunden/getrennt + sichtbarer Account-Name, z. B. E-Mail-Adresse). Keine Tokens. */
+  setChannelStatus(kind: ChannelKind, status: Channel["status"], account?: string): Promise<void>;
   getSubscription(): Promise<Subscription>;
   getStats(): Promise<DashboardStats>;
 }
