@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListChecks } from "lucide-react";
 import { EmptyState } from "@/components/ui/states";
 import { buildingLabel } from "@/lib/cases/fields";
 import type { CaseRecord } from "@/lib/data/types";
@@ -15,7 +16,27 @@ const SOURCE_LABELS: Record<CaseRecord["source"], string> = {
   demo: "Demo",
 };
 
-const missingText = (m?: CaseMeta) => (!m || m.missing.length === 0 ? "–" : m.missing.length <= 2 ? m.missing.join(", ") : `${m.missing.slice(0, 2).join(", ")} +${m.missing.length - 2}`);
+/** Zeigt die fehlenden Angaben zum Anklicken – ohne dass man erst den Fall öffnen muss. */
+function MissingCell({ meta }: { meta?: CaseMeta }) {
+  if (!meta || meta.missing.length === 0) return <span className="text-muted-foreground">–</span>;
+  return (
+    <details className="group relative [&::-webkit-details-marker]:hidden" onClick={(e) => e.stopPropagation()}>
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-warning hover:bg-warning-soft">
+        <ListChecks className="size-3.5 shrink-0" aria-hidden />
+        {meta.missing.length} {meta.missing.length === 1 ? "Angabe fehlt" : "Angaben fehlen"}
+      </summary>
+      <div className="absolute z-10 mt-1 w-56 rounded-xl border border-border bg-card p-3 text-xs shadow-lg">
+        <ul className="space-y-1">
+          {meta.missing.map((m) => (
+            <li key={m} className="text-foreground">
+              {m}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
+  );
+}
 
 /** Desktop: Tabelle, Mobile: Karten. */
 export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseRecord[]; meta?: Record<string, CaseMeta>; emptyDescription?: string }) {
@@ -53,7 +74,9 @@ export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseR
                     </div>
                   )}
                 </td>
-                <td className="max-w-48 px-4 py-3 text-muted-foreground">{missingText(meta[c.id])}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  <MissingCell meta={meta[c.id]} />
+                </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={c.status} />
                 </td>
@@ -67,8 +90,8 @@ export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseR
 
       <ul className="space-y-3 md:hidden">
         {cases.map((c) => (
-          <li key={c.id}>
-            <Link href={`/dashboard/cases/${c.id}`} className="block rounded-2xl border border-border bg-card p-4">
+          <li key={c.id} className="rounded-2xl border border-border bg-card p-4">
+            <Link href={`/dashboard/cases/${c.id}`} className="block">
               <div className="flex items-start justify-between gap-3">
                 <p className="font-medium">{c.customerName}</p>
                 <StatusBadge status={c.status} />
@@ -76,12 +99,16 @@ export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseR
               <p className="mt-1 text-sm text-muted-foreground">
                 {c.service || "–"} · {buildingLabel(c.fields)}
               </p>
-              {meta[c.id] && meta[c.id].missing.length > 0 && <p className="mt-1 text-xs text-muted-foreground">Fehlt: {missingText(meta[c.id])}</p>}
               <div className="mt-3 flex items-center justify-between">
                 <Completeness value={meta[c.id]?.percent ?? c.completeness} />
                 <span className="text-xs text-muted-foreground">{formatDate(c.createdAt)}</span>
               </div>
             </Link>
+            {meta[c.id] && meta[c.id].missing.length > 0 && (
+              <div className="mt-2 border-t border-border pt-2">
+                <MissingCell meta={meta[c.id]} />
+              </div>
+            )}
           </li>
         ))}
       </ul>
