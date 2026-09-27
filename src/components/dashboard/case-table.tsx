@@ -20,7 +20,7 @@ const SOURCE_LABELS: Record<CaseRecord["source"], string> = {
 function MissingCell({ meta }: { meta?: CaseMeta }) {
   if (!meta || meta.missing.length === 0) return <span className="text-muted-foreground">–</span>;
   return (
-    <details className="group relative [&::-webkit-details-marker]:hidden" onClick={(e) => e.stopPropagation()}>
+    <details className="group relative [&::-webkit-details-marker]:hidden">
       <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-warning hover:bg-warning-soft">
         <ListChecks className="size-3.5 shrink-0" aria-hidden />
         {meta.missing.length} {meta.missing.length === 1 ? "Angabe fehlt" : "Angaben fehlen"}
