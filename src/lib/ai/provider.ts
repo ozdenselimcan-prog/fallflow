@@ -7,10 +7,11 @@ export interface AiProvider {
   completeJson(system: string, user: string): Promise<unknown>;
 }
 
-export function getAiProvider(): AiProvider | null {
+/** `modelOverride` erzwingt ein bestimmtes Modell unabhängig von AI_MODEL – z. B. ein günstiges Modell für einfache Ja/Nein-Einschätzungen. */
+export function getAiProvider(modelOverride?: string): AiProvider | null {
   const key = process.env.AI_API_KEY;
   if (!key) return null;
-  const model = process.env.AI_MODEL || "gpt-4o-mini";
+  const model = modelOverride || process.env.AI_MODEL || "gpt-4o-mini";
   const base = (process.env.AI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
 
   return {

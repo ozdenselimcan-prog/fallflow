@@ -1,3 +1,4 @@
+import { isCustomerInquiry } from "@/lib/ai/classify";
 import { getPublicStore } from "@/lib/data";
 import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
@@ -9,9 +10,10 @@ import { getValidTokens } from "./tokens";
  * dieselbe Pipeline wie WhatsApp (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
  * (kein Push-Webhook für Gmail/Microsoft in dieser Version).
  */
-export async function syncMailbox(provider: EmailProvider): Promise<{ connections: number; messages: number; errors: number }> {
+export async function syncMailbox(provider: EmailProvider): Promise<{ connections: number; messages: number; skipped: number; errors: number }> {
   const connections = await listActiveConnections(provider.id);
   let messages = 0;
+  let skipped = 0;
   let errors = 0;
 
   for (const connection of connections) {
@@ -28,8 +30,14 @@ export async function syncMailbox(provider: EmailProvider): Promise<{ connection
         // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
         if (from === connection.accountEmail.trim().toLowerCase()) continue;
         if (/no.?reply|do.?not.?reply|mailer-daemon|postmaster/i.test(from)) continue;
+        const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
+        // Grobe KI-Einschätzung: Newsletter, Rechnungen, interne Mails etc. lösen keinen Fall aus.
+        if (!(await isCustomerInquiry(fullText))) {
+          skipped++;
+          continue;
+        }
         try {
-          await routeInbound(store, { companyId: connection.companyId, channel: "email", text: `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`.slice(0, 1500), sender: { email: from } });
+          await routeInbound(store, { companyId: connection.companyId, channel: "email", text: fullText.slice(0, 1500), sender: { email: from } });
           messages++;
         } catch (err) {
           console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
@@ -43,5 +51,5 @@ export async function syncMailbox(provider: EmailProvider): Promise<{ connection
       await saveConnection({ companyId: connection.companyId, provider: provider.id, lastError: message }).catch(() => {});
     }
   }
-  return { connections: connections.length, messages, errors };
+  return { connections: connections.length, messages, skipped, errors };
 }
