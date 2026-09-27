@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { CaseTable } from "@/components/dashboard/case-table";
+import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/form";
@@ -37,6 +38,7 @@ export default async function CasesPage({ searchParams }: PageProps<"/dashboard/
 
   return (
     <>
+      <LiveRefresh active everyMs={15000} />
       <PageHeader title="Beratungsfälle" description={`${cases.length} ${cases.length === 1 ? "Fall" : "Fälle"}${hasFilters ? " (gefiltert)" : ""}`} />
 
       <form method="get" className="mb-5 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">

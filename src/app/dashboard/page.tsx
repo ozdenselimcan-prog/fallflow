@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, CheckCircle2, Hourglass, Inbox, PartyPopper, Sparkles } from "lucide-react";
 import { CaseTable } from "@/components/dashboard/case-table";
+import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Card, CardHeader } from "@/components/ui/card";
 import { requireSession } from "@/lib/auth/session";
 import { getStore } from "@/lib/data";
@@ -42,6 +43,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <LiveRefresh active everyMs={15000} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           {greeting()}

@@ -4,6 +4,7 @@ import { ExternalLink } from "lucide-react";
 import { ChannelBadge, StatusBadge } from "@/components/dashboard/badges";
 import { CommunicationPanel } from "@/components/dashboard/communication";
 import { InboxSimulator } from "@/components/dashboard/inbox-simulator";
+import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Badge, PageHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
 import { can } from "@/lib/auth/permissions";
@@ -60,6 +61,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/dashboard/
 
   return (
     <>
+      <LiveRefresh active everyMs={15000} />
       <PageHeader title="Posteingang" description="Website, E-Mail, WhatsApp und Telefonnotizen – jede Nachricht wird automatisch dem richtigen Kunden und Fall zugeordnet." action={canWrite ? <InboxSimulator /> : undefined} />
 
       <ul className="mb-5 flex flex-wrap gap-2" aria-label="Kanalstatus">
