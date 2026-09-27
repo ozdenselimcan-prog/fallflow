@@ -1,5 +1,5 @@
 import { isAnswered, SKIPPED } from "@/lib/cases/completeness";
-import type { AssistantSettings, CaseDocument, Question, Tone } from "@/lib/data/types";
+import type { AssistantSettings, CaseDocument, MessageChannel, Question, Tone } from "@/lib/data/types";
 import { buildChecklist, deriveFields, isRelevant } from "@/lib/intake/checklist";
 import { detectBuildingType, detectHeating, detectOwnerStatus, detectService } from "./heuristic";
 import { matchOption } from "./schema";
@@ -25,6 +25,8 @@ export interface TurnInput {
   extracted?: Record<string, string>;
   /** Bereits vorhandene Dokumente (für den Vollständigkeitswert) */
   documents?: CaseDocument[];
+  /** Kanal dieses Zuges. Ohne Angabe (z. B. Dashboard-Vorschau) gilt „interaktiv“ wie beim Website-Chat. */
+  channel?: MessageChannel;
 }
 
 export interface TurnResult {
@@ -161,6 +163,20 @@ export function quickRepliesFor(q: Question): string[] {
   return q.type === "choice" ? [...q.options, skip] : [skip];
 }
 
+/**
+ * Nicht-interaktive Kanäle (E-Mail, WhatsApp) fragen alle fehlenden Angaben in einer Nachricht ab, statt
+ * eine nach der anderen – sonst müsste der Kunde für jede einzelne Angabe eine neue Mail schreiben.
+ * Der Website-Chat bleibt bei einer Frage nach der anderen, das passt besser zu einem laufenden Gespräch.
+ */
+const isInteractive = (channel?: MessageChannel) => !channel || channel === "website";
+
+function missingPrompt(questions: Question[], fields: Record<string, string>, channel?: MessageChannel): { text: string; single: Question | null } {
+  const missing = activeQuestions(questions).filter((q) => isRelevant(q, fields) && !isAnswered(fields, q.key));
+  const next = missing[0] ?? null;
+  if (isInteractive(channel) || missing.length <= 1) return { text: next?.prompt ?? "", single: next };
+  return { text: `Damit wir Ihren Fall abschließen können, benötigen wir noch folgende Angaben:\n${missing.map((q) => `– ${q.prompt}`).join("\n")}`, single: null };
+}
+
 /** „Baujahr 1987, Wohnfläche 160 m²“ – nur echte Werte, nichts erfinden. */
 function describeRecognized(keys: string[], fields: Record<string, string>, questions: Question[]) {
   return keys
@@ -232,7 +248,9 @@ export function applyTurn(input: TurnInput): TurnResult {
       Object.assign(fields, deriveFields(fields));
       const next = nextPending(questions, fields);
       const said = `${p.corrected} ${describeRecognized(changed, fields, questions)}.`;
-      return result(input, fields, next ? { replies: [said, next.prompt], quickReplies: quickRepliesFor(next), recognizedKeys: changed } : { replies: [said], done: true, recognizedKeys: changed });
+      if (!next) return result(input, fields, { replies: [said], done: true, recognizedKeys: changed });
+      const ask = missingPrompt(questions, fields, input.channel);
+      return result(input, fields, { replies: [said, ask.text], quickReplies: ask.single ? quickRepliesFor(ask.single) : [], recognizedKeys: changed });
     }
   }
 
@@ -267,9 +285,10 @@ export function applyTurn(input: TurnInput): TurnResult {
       const gained = mergeExtracted(fields, input.extracted, { allowFreeText: false });
       if (gained.length === 0) {
         const asksQuestion = text.includes("?");
+        const ask = missingPrompt(questions, fields, input.channel);
         return result(input, fields, {
-          replies: [asksQuestion ? p.question : p.retry, pendingBefore.prompt],
-          quickReplies: quickRepliesFor(pendingBefore),
+          replies: [asksQuestion ? p.question : p.retry, ask.text],
+          quickReplies: ask.single ? quickRepliesFor(ask.single) : [],
         });
       }
       recognized.push(...gained);
@@ -283,8 +302,9 @@ export function applyTurn(input: TurnInput): TurnResult {
 
   const pending = nextPending(questions, fields);
   if (pending) {
-    replies.push(pending.prompt);
-    return result(input, fields, { replies, quickReplies: quickRepliesFor(pending), recognizedKeys: recognized });
+    const ask = missingPrompt(questions, fields, input.channel);
+    replies.push(ask.text);
+    return result(input, fields, { replies, quickReplies: ask.single ? quickRepliesFor(ask.single) : [], recognizedKeys: recognized });
   }
 
   const complete = buildChecklist({ questions, fields, documents: input.documents ?? [] }).dataComplete;
