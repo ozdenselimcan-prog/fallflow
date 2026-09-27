@@ -77,7 +77,8 @@ export const gmailProvider: EmailProvider = {
   },
   async fetchNewMessages(tokens, sinceIso) {
     const afterSeconds = Math.floor(new Date(sinceIso ?? Date.now() - 86_400_000).getTime() / 1000);
-    const list = (await googleFetch(`/messages?q=${encodeURIComponent(`after:${afterSeconds} -label:CHAT`)}&maxResults=20`, tokens)) as { messages?: { id: string }[] };
+    // Nur der Posteingang, keine gesendeten/entworfenen/als Spam markierten Mails – sonst würden eigene Antworten erneut als Kundenanfrage einlaufen.
+    const list = (await googleFetch(`/messages?q=${encodeURIComponent(`in:inbox after:${afterSeconds} -label:CHAT -label:SPAM`)}&maxResults=20`, tokens)) as { messages?: { id: string }[] };
     const out: InboundEmail[] = [];
     for (const m of list.messages ?? []) {
       const full = (await googleFetch(`/messages/${m.id}?format=full`, tokens)) as {
@@ -86,6 +87,8 @@ export const gmailProvider: EmailProvider = {
         payload?: { headers?: { name: string; value: string }[]; mimeType?: string; body?: { data?: string }; parts?: unknown[] };
       };
       const headers = full.payload?.headers;
+      // Automatische Mails (Newsletter, Abwesenheitsnotizen, Massenmails) sind keine Kundenanfragen.
+      if (headerValue(headers, "List-Unsubscribe") || headerValue(headers, "Auto-Submitted").toLowerCase().startsWith("auto-") || headerValue(headers, "Precedence").toLowerCase() === "bulk") continue;
       out.push({
         externalId: full.id,
         from: headerValue(headers, "From"),

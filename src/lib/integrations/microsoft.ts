@@ -52,6 +52,7 @@ export const microsoftProvider: EmailProvider = {
   },
   async fetchNewMessages(tokens, sinceIso) {
     const since = sinceIso ?? new Date(Date.now() - 86_400_000).toISOString();
+    // Nur der Posteingang (Standardordner). Massenmails erkennt Graph ohne Zusatzaufwand nicht – Filterung erfolgt zentral in mail-sync.ts.
     const q = `?$filter=receivedDateTime gt ${since}&$orderby=receivedDateTime&$top=20&$select=id,from,subject,bodyPreview,body,receivedDateTime`;
     const list = (await graphFetch(`/mailFolders/inbox/messages${q}`, tokens)) as {
       value?: { id: string; from?: { emailAddress?: { address?: string } }; subject?: string; body?: { content?: string; contentType?: string }; bodyPreview?: string; receivedDateTime: string }[];

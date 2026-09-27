@@ -23,7 +23,11 @@ export async function syncMailbox(provider: EmailProvider): Promise<{ connection
 
       const inbound = await provider.fetchNewMessages(found.tokens, connection.lastSyncedAt);
       for (const mail of inbound) {
-        const from = mail.from.match(/<([^>]+)>/)?.[1] ?? mail.from;
+        const from = (mail.from.match(/<([^>]+)>/)?.[1] ?? mail.from).trim().toLowerCase();
+        // Sicherheitsnetz gegen Endlosschleifen: eine Mail, die vom eigenen verbundenen Postfach kommt (z. B. eine
+        // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
+        if (from === connection.accountEmail.trim().toLowerCase()) continue;
+        if (/no.?reply|do.?not.?reply|mailer-daemon|postmaster/i.test(from)) continue;
         try {
           await routeInbound(store, { companyId: connection.companyId, channel: "email", text: `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`.slice(0, 1500), sender: { email: from } });
           messages++;
