@@ -69,15 +69,23 @@ export const questionSchema = z.object({
 
 export const reorderSchema = z.object({ ids: z.array(z.string()).max(100) });
 
-export const assistantSchema = z.object({
-  name: str(40).min(1, "Name erforderlich"),
-  greeting: str(300).min(1, "Begrüßung erforderlich"),
-  tone: z.enum(TONES),
-  autoReply: z.boolean(),
-  autoFollowUp: z.boolean(),
-  appointmentBooking: z.boolean(),
-  humanHandoff: z.boolean(),
-});
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Format HH:MM");
+
+export const assistantSchema = z
+  .object({
+    name: str(40).min(1, "Name erforderlich"),
+    greeting: str(300).min(1, "Begrüßung erforderlich"),
+    tone: z.enum(TONES),
+    autoReply: z.boolean(),
+    autoFollowUp: z.boolean(),
+    appointmentBooking: z.boolean(),
+    humanHandoff: z.boolean(),
+    workingDays: z.array(z.number().int().min(0).max(6)).max(7),
+    slotStart: timeSchema,
+    slotEnd: timeSchema,
+    slotMinutes: z.coerce.number().int().min(15).max(480),
+  })
+  .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] });
 
 export const companySchema = z.object({
   name: str(120).min(1, "Firmenname erforderlich"),

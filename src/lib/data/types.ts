@@ -155,6 +155,14 @@ export interface AssistantSettings {
   autoFollowUp: boolean;
   appointmentBooking: boolean;
   humanHandoff: boolean;
+  /** Wochentage, an denen Termine angeboten werden: 0 = Sonntag … 6 = Samstag (JS-Konvention). */
+  workingDays: number[];
+  /** Uhrzeit „HH:MM“, ab der Termine angeboten werden. */
+  slotStart: string;
+  /** Uhrzeit „HH:MM“, bis zu der Termine angeboten werden. */
+  slotEnd: string;
+  /** Dauer eines vorgeschlagenen Termins in Minuten. */
+  slotMinutes: number;
 }
 
 export interface Appointment {

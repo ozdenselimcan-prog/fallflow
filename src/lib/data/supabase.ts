@@ -381,6 +381,10 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         autoFollowUp: r.auto_followup,
         appointmentBooking: r.appointment_booking,
         humanHandoff: r.human_handoff,
+        workingDays: r.working_days ?? [1, 2, 3, 4, 5],
+        slotStart: r.slot_start ?? "09:00",
+        slotEnd: r.slot_end ?? "17:00",
+        slotMinutes: r.slot_minutes ?? 60,
       };
     },
     async saveAssistant(s) {
@@ -393,6 +397,10 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         auto_followup: s.autoFollowUp,
         appointment_booking: s.appointmentBooking,
         human_handoff: s.humanHandoff,
+        working_days: s.workingDays,
+        slot_start: s.slotStart,
+        slot_end: s.slotEnd,
+        slot_minutes: s.slotMinutes,
       });
       fail(error, "assistant save");
       return s;

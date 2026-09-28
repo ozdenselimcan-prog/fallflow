@@ -90,7 +90,13 @@ export const DEFAULT_ASSISTANT: AssistantSettings = {
   autoFollowUp: true,
   appointmentBooking: true,
   humanHandoff: true,
+  workingDays: [1, 2, 3, 4, 5],
+  slotStart: "09:00",
+  slotEnd: "17:00",
+  slotMinutes: 60,
 };
+
+export const WEEKDAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"] as const;
 
 export const TONE_LABELS = { professional: "Professionell", friendly: "Freundlich", short: "Kurz" } as const;
 

@@ -7,6 +7,17 @@ import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
 import { refreshCase, ensureUploadToken, uploadUrl } from "./case-ops";
 import { chatDocumentPrompt } from "./messages";
+import {
+  appointmentConfirmedText,
+  appointmentProposalText,
+  appointmentReminderText,
+  availabilityNotUnderstoodText,
+  availabilityQuestion,
+  findNextSlot,
+  looksLikeConfirmation,
+  noSlotFoundText,
+  parseAvailability,
+} from "./scheduling";
 
 export class SessionNotFoundError extends Error {}
 
@@ -94,8 +105,13 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const meta = { channel: input.channel, simulated: Boolean(input.simulated) };
   await store.addMessage(caseId, "user", input.text.slice(0, 2000), { ...meta, delivery: "delivered" });
 
+  // Terminfrage/-bestätigung laufen als eigener kleiner Dialog NACH Abschluss der Datenerfassung: Antwortet der
+  // Kunde in diesem Zustand, ersetzt die Terminantwort die sonst übliche „liegt bereits vor“-Floskel.
+  const priorApptStage = existing?.fields.apptStage ?? "";
+  const inAppointmentFlow = priorApptStage === "ask" || priorApptStage === "proposed";
+
   // Antworten der KI: im Website-Chat erscheinen sie sofort im Fenster, in anderen Kanälen nur bei echtem Versand.
-  const replies = [...turn.replies];
+  const replies = inAppointmentFlow ? [] : [...turn.replies];
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
@@ -119,6 +135,44 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       items: checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.replace("doc:", "") as DocumentKind, label: i.label, done: i.done, required: i.required })),
     };
     if (refreshed.requestedNow.length) replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
+  }
+
+  // Terminvorschlag: Sobald der Fall vollständig ist (oder der Kunde ausdrücklich einen Termin wünscht),
+  // fragt die KI nach passenden Wochentagen, sucht selbstständig einen freien Termin und lässt ihn bestätigen.
+  if (settings.appointmentBooking && !turn.handoff) {
+    const apptFields = refreshed.caseRecord.fields;
+    const stage = apptFields.apptStage ?? "";
+    if (stage === "ask") {
+      const days = parseAvailability(input.text);
+      if (days) {
+        const existingAppts = await store.listAppointments();
+        const slot = findNextSlot({ workingDays: settings.workingDays, customerDays: days, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, existing: existingAppts });
+        if (slot) {
+          await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen", status: "proposed" });
+          await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
+          await store.addEvent(caseId, "appointment", `Termin vorgeschlagen: ${appointmentProposalText(slot)}`);
+          replies.push(appointmentProposalText(slot));
+        } else {
+          await store.updateCase(caseId, { fields: { apptStage: "failed" } });
+          replies.push(noSlotFoundText);
+        }
+      } else {
+        replies.push(availabilityNotUnderstoodText);
+      }
+    } else if (stage === "proposed") {
+      const pending = (await store.listAppointments()).find((a) => a.caseId === caseId && a.status === "proposed");
+      if (pending && looksLikeConfirmation(input.text)) {
+        await store.saveAppointment({ ...pending, status: "confirmed" });
+        await store.updateCase(caseId, { fields: { apptStage: "confirmed" } });
+        await store.addEvent(caseId, "appointment", "Termin vom Kunden bestätigt");
+        replies.push(appointmentConfirmedText(new Date(pending.startsAt)));
+      } else if (pending) {
+        replies.push(appointmentReminderText(new Date(pending.startsAt)));
+      }
+    } else if (stage === "" && (turn.appointmentRequested || turn.complete)) {
+      await store.updateCase(caseId, { fields: { apptStage: "ask" } });
+      replies.push(availabilityQuestion(settings.workingDays));
+    }
   }
 
   let delivered = true;
