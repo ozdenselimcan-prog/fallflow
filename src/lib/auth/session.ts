@@ -36,17 +36,13 @@ export const getSession = cache(async (): Promise<Session | null> => {
   } = await db.auth.getUser();
   if (!user) return null;
 
-  const { data: member } = await db
-    .from("company_members")
-    .select("company_id, role")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("created_at")
-    .limit(1)
-    .maybeSingle();
+  // Beide Abfragen hängen nur von user.id ab, nicht voneinander – parallel statt nacheinander (spart eine
+  // Datenbank-Runde bei jedem Seitenaufruf).
+  const [{ data: member }, { data: profile }] = await Promise.all([
+    db.from("company_members").select("company_id, role").eq("user_id", user.id).eq("status", "active").order("created_at").limit(1).maybeSingle(),
+    db.from("profiles").select("first_name, last_name").eq("id", user.id).maybeSingle(),
+  ]);
   if (!member) return null;
-
-  const { data: profile } = await db.from("profiles").select("first_name, last_name").eq("id", user.id).maybeSingle();
   return {
     userId: user.id,
     email: user.email ?? "",

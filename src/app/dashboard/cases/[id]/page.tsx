@@ -29,16 +29,17 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const { id } = await params;
   const session = await requireSession();
   const store = await getStore(session);
-  const c = await store.getCase(id).catch(() => null);
-  if (!c) notFound();
-
-  const [events, messages, documents, followUps, questions] = await Promise.all([
+  // Keine dieser Abfragen hängt vom Ergebnis der anderen ab, alle brauchen nur die id – parallel statt
+  // nacheinander (spart eine Datenbank-Runde beim Öffnen einer Fallakte).
+  const [c, events, messages, documents, followUps, questions] = await Promise.all([
+    store.getCase(id).catch(() => null),
     store.listEvents(id),
     store.listMessages(id),
     store.listDocuments(id),
     store.listFollowUps(id),
     store.listQuestions(),
   ]);
+  if (!c) notFound();
   const canWrite = can(session.role, "cases:write");
   const checklist = buildChecklist({ questions, fields: c.fields, documents });
   const readiness = readinessOf(c.status, checklist);
