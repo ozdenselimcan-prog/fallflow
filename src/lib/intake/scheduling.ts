@@ -110,6 +110,9 @@ export const formatSlot = (d: Date) => `${dateFmt.format(d)} um ${timeFmt.format
 const CONFIRM = /^\s*(ja\b|jawohl|passt|okay?\b|einverstanden|gerne|klingt gut|super|perfekt|in ordnung|bestätig)/i;
 export const looksLikeConfirmation = (text: string) => CONFIRM.test(text.trim());
 
+const REJECT = /\b(nein|leider nicht|geht (bei mir |uns )?(leider )?nicht|passt (mir |uns )?(leider )?nicht|kann (ich )?(leider )?nicht|nicht möglich|anderen? (tag|termin|zeitpunkt)|andere zeit|verschieben|klappt nicht)\b/i;
+export const looksLikeRejection = (text: string) => REJECT.test(text.trim());
+
 /** Kurze, für den jeweiligen Ton passende Formulierung der Verfügbarkeits-Frage. */
 export function availabilityQuestion(workingDays: number[]): string {
   const names = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
@@ -119,6 +122,8 @@ export function availabilityQuestion(workingDays: number[]): string {
 
 export const appointmentProposalText = (slot: Date) => `Wie wäre es mit ${formatSlot(slot)}? Bitte bestätigen Sie kurz, ob der Termin für Sie passt.`;
 export const appointmentReminderText = (slot: Date) => `Passt der Termin am ${formatSlot(slot)} für Sie? Bitte kurz bestätigen, oder nennen Sie mir andere Wochentage.`;
+export const declinedRepromptText = (workingDays: number[]) => `Kein Problem, dann suche ich einen anderen Termin. ${availabilityQuestion(workingDays)}`;
+export const rebookedText = (slot: Date) => `Wie wäre es stattdessen mit ${formatSlot(slot)}? Bitte bestätigen Sie kurz, ob das passt.`;
 export const appointmentConfirmedText = (slot: Date) => `Termin bestätigt: ${formatSlot(slot)}. Wir freuen uns auf das Gespräch!`;
 export const noSlotFoundText = "Leider konnte ich in den nächsten Wochen keinen passenden Termin finden. Ein Mitarbeiter meldet sich bei Ihnen, um einen Termin zu vereinbaren.";
 export const availabilityNotUnderstoodText = "Das habe ich leider nicht verstanden. Bitte nennen Sie mir die Wochentage, an denen es Ihnen passt, z. B. „Montag bis Freitag“.";
