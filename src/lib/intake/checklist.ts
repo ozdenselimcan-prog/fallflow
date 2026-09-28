@@ -104,7 +104,12 @@ export type StatusHint = "chat" | "waiting" | "edit";
 /** Leitet den Prozessstatus aus dem Fallstand ab. CONVERTED bleibt immer erhalten. */
 export function deriveStatus(current: CaseStatus, checklist: Checklist, hint: StatusHint = "edit"): CaseStatus {
   if (current === "CONVERTED") return "CONVERTED";
-  if (checklist.dataComplete) return checklist.unrequestedDocuments.length === 0 ? "READY_FOR_REVIEW" : "COMPLETE";
+  if (checklist.dataComplete) {
+    // „Bereit zur Prüfung“ erst, wenn Pflichtdokumente wirklich hochgeladen sind – ein nur angefordertes
+    // Dokument (Kunde hat noch nicht reagiert) gilt nicht als vollständig.
+    const docsReceived = checklist.items.filter((i) => i.kind === "document" && i.required).every((i) => i.done);
+    return docsReceived ? "READY_FOR_REVIEW" : "COMPLETE";
+  }
   if (hint === "waiting") return "WAITING_FOR_CUSTOMER";
   if (hint === "chat") return "QUALIFYING";
   return current === "NEW" || current === "QUALIFYING" || current === "WAITING_FOR_CUSTOMER" ? current : "QUALIFYING";

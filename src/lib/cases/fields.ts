@@ -107,7 +107,7 @@ export const STATUS_HINTS: Record<CaseStatus, string> = {
   NEW: "Anfrage eingegangen, noch nicht ausgewertet.",
   QUALIFYING: "Die KI sammelt gerade die fehlenden Informationen.",
   WAITING_FOR_CUSTOMER: "Es fehlen Angaben oder Dokumente vom Kunden.",
-  COMPLETE: "Alle Pflichtangaben liegen vor, Dokumente sind noch nicht angefordert.",
+  COMPLETE: "Alle Pflichtangaben liegen vor, Dokumente fehlen noch oder wurden erst angefordert.",
   READY_FOR_REVIEW: "Fallakte vorbereitet – bereit zur Übernahme durch den Berater.",
   CONVERTED: "Vom Berater übernommen.",
 };

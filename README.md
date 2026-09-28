@@ -27,7 +27,7 @@ Ohne Supabase-Variablen läuft die App im **Demo-Modus** (Daten im Arbeitsspeich
 | **Completeness Score** | Anteil erfüllter Pflichtpunkte in % = Pflichtangaben (Fragen-Builder) + Pflichtdokumente. Dynamisch aus den Falldaten berechnet, nie manuell gesetzt. |
 | **Dokumentenbedarf** | Grundriss immer; Energieausweis bei Beratungsleistungen (nicht beim Energieausweis selbst); Fotos optional (`documentRequirements`). |
 | **Lead-Readiness** | Reiner Prozessstatus: Unvollständig / Fast vollständig (≤ 2 fehlen) / Vollständig (100 %) / Bereit zur Bearbeitung. Keine Kaufwahrscheinlichkeit. |
-| **Statusregeln** | `COMPLETE` = alle Pflichtangaben da, Dokumente noch nicht angefordert. `READY_FOR_REVIEW` = Angaben da und Dokumente erhalten **oder angefordert** (Fall kann übernommen werden, Upload kann folgen). Ein laufendes Gespräch ohne Aktivität > 30 Min. wird als `WAITING_FOR_CUSTOMER` angezeigt (abgeleitet, nicht gespeichert). |
+| **Statusregeln** | `COMPLETE` = alle Pflichtangaben da, Pflichtdokumente fehlen noch oder wurden erst angefordert. `READY_FOR_REVIEW` = Angaben da **und** alle Pflichtdokumente tatsächlich hochgeladen. Ein laufendes Gespräch ohne Aktivität > 30 Min. wird als `WAITING_FOR_CUSTOMER` angezeigt (abgeleitet, nicht gespeichert). |
 | **Dynamischer Frage-Flow** | [conversation.ts](src/lib/ai/conversation.ts): jede Nachricht wird ausgewertet (KI oder Regeln), bekannte Angaben übernommen, nur relevante fehlende erfragt (`isRelevant`). Keine Beratung, nichts erfunden. |
 | **Automatik** | [case-ops.ts](src/lib/intake/case-ops.ts) `refreshCase`: Score, Status, Zusammenfassung, automatische Dokumentenanforderung, Follow-up-Planung nach jeder Änderung. |
 
