@@ -149,6 +149,8 @@ export interface SlotSearch {
   existing: Pick<Appointment, "startsAt" | "durationMin">[];
   from?: Date;
   horizonDays?: number;
+  /** Höchstzahl an Terminen pro Kalendertag – null/undefined = unbegrenzt. */
+  maxAppointmentsPerDay?: number | null;
 }
 
 const MIN_LEAD_MS = 2 * 3_600_000; // mindestens 2 Stunden Vorlauf
@@ -160,8 +162,18 @@ function busyRanges(existing: Pick<Appointment, "startsAt" | "durationMin">[]) {
   });
 }
 
-/** Erster freier Slot an einem einzelnen Kalendertag innerhalb der Bürozeit, oder null (Tag komplett belegt). */
-function firstFreeSlotOnDay(ymd: Ymd, slotStart: string, slotEnd: string, slotMinutes: number, busy: { start: number; end: number }[]): Date | null {
+const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+const ymdKey = (ymd: Ymd) => `${ymd.y}-${String(ymd.m).padStart(2, "0")}-${String(ymd.d).padStart(2, "0")}`;
+/** Anzahl bestehender Termine an einem Kalendertag (Europe/Berlin) – für die Tagesobergrenze. */
+function countOnDay(ymd: Ymd, existing: Pick<Appointment, "startsAt" | "durationMin">[]): number {
+  const key = ymdKey(ymd);
+  return existing.filter((a) => dayFmt.format(new Date(a.startsAt)) === key).length;
+}
+
+/** Erster freier Slot an einem einzelnen Kalendertag innerhalb der Bürozeit, oder null (Tag komplett belegt oder Tagesobergrenze erreicht). */
+function firstFreeSlotOnDay(ymd: Ymd, slotStart: string, slotEnd: string, slotMinutes: number, existing: Pick<Appointment, "startsAt" | "durationMin">[], maxPerDay?: number | null): Date | null {
+  if (maxPerDay && countOnDay(ymd, existing) >= maxPerDay) return null;
+  const busy = busyRanges(existing);
   const start = parseTime(slotStart);
   const end = parseTime(slotEnd);
   let cursorMin = start.h * 60 + start.m;
@@ -177,18 +189,17 @@ function firstFreeSlotOnDay(ymd: Ymd, slotStart: string, slotEnd: string, slotMi
   return null;
 }
 
-/** Sucht den nächsten freien Termin: Schnittmenge aus Bürotagen und Kundentagen, innerhalb der Bürozeit, ohne Überschneidung. */
+/** Sucht den nächsten freien Termin: Schnittmenge aus Bürotagen und Kundentagen, innerhalb der Bürozeit, ohne Überschneidung, unter der Tagesobergrenze. */
 export function findNextSlot(input: SlotSearch): Date | null {
   const allowedDays = new Set(input.workingDays.filter((d) => input.customerDays.includes(d)));
   if (allowedDays.size === 0) return null;
-  const busy = busyRanges(input.existing);
   const start = berlinTodayYmd(input.from ?? new Date());
   const horizon = input.horizonDays ?? 21;
 
   for (let i = 0; i <= horizon; i++) {
     const day = addDays(start, i);
     if (!allowedDays.has(weekdayOf(day))) continue;
-    const slot = firstFreeSlotOnDay(day, input.slotStart, input.slotEnd, input.slotMinutes, busy);
+    const slot = firstFreeSlotOnDay(day, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay);
     if (slot) return slot;
   }
   return null;
@@ -196,10 +207,10 @@ export function findNextSlot(input: SlotSearch): Date | null {
 
 export type DateSlotReason = "ok" | "not_a_working_day" | "fully_booked";
 
-/** Prüft ein vom Kunden genanntes konkretes Datum: frei, kein Bürotag, oder ausgebucht. */
+/** Prüft ein vom Kunden genanntes konkretes Datum: frei, kein Bürotag, oder ausgebucht (auch bei erreichter Tagesobergrenze). */
 export function findSlotOnDate(ymd: Ymd, input: Omit<SlotSearch, "customerDays" | "from">): { slot: Date | null; reason: DateSlotReason } {
   if (!input.workingDays.includes(weekdayOf(ymd))) return { slot: null, reason: "not_a_working_day" };
-  const slot = firstFreeSlotOnDay(ymd, input.slotStart, input.slotEnd, input.slotMinutes, busyRanges(input.existing));
+  const slot = firstFreeSlotOnDay(ymd, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay);
   return slot ? { slot, reason: "ok" } : { slot: null, reason: "fully_booked" };
 }
 

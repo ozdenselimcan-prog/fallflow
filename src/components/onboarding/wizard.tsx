@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
-import { SERVICES } from "@/lib/cases/fields";
+import { SERVICES, WEEKDAY_LABELS } from "@/lib/cases/fields";
 import { apiFetch, useMutation } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -20,20 +20,38 @@ interface Props {
   widgetReceived: boolean;
 }
 
-const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Erfassungsfelder", "Website verbinden"];
+interface Availability {
+  workingDays: number[];
+  slotStart: string;
+  slotEnd: string;
+  slotMinutes: number;
+  maxAppointmentsPerDay: number | null;
+}
+
+const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotStart: "09:00", slotEnd: "17:00", slotMinutes: 60, maxAppointmentsPerDay: null };
+/** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
+const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Erfassungsfelder", "Terminvergabe", "Website verbinden"];
 
 export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived }: Props) {
   const [step, setStep] = useState(0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
   const [services, setServices] = useState<string[]>(initial.services);
   const [active, setActive] = useState<string[]>(fieldOptions.filter((f) => f.active).map((f) => f.key));
+  const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
   const { pending, error, run } = useMutation();
 
   const toggle = (list: string[], value: string, on: boolean) => (on ? [...list, value] : list.filter((x) => x !== value));
+  const toggleDay = (day: number) => {
+    const has = availability.workingDays.includes(day);
+    const next = has ? availability.workingDays.filter((d) => d !== day) : [...availability.workingDays, day];
+    setAvailability({ ...availability, workingDays: next.sort((a, b) => a - b) });
+  };
 
   const finish = async () => {
     const ok = await run(
-      () => apiFetch("POST", "/api/onboarding", { ...company, services, activeFieldKeys: active }),
+      () => apiFetch("POST", "/api/onboarding", { ...company, services, activeFieldKeys: active, availability }),
       { refresh: false },
     );
     // Volles Neuladen statt Client-Navigation: sonst kann eine zwischengespeicherte Weiterleitung zurück ins Onboarding führen.
@@ -59,7 +77,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
           <div className="space-y-3">
             <h1 className="text-2xl font-semibold tracking-tight">Willkommen bei FallFlow{firstName ? `, ${firstName}` : ""}</h1>
             <p className="text-muted-foreground">
-              In vier kurzen Schritten richten wir Ihr Büro ein: Firmendaten, Ihre Leistungen, die Angaben für neue Fälle und das Website-Widget. Alles lässt sich später in den Einstellungen ändern.
+              In fünf kurzen Schritten richten wir Ihr Büro ein: Firmendaten, Ihre Leistungen, die Angaben für neue Fälle, Ihre Terminvergabe und das Website-Widget. Alles lässt sich später in den Einstellungen ändern.
             </p>
           </div>
         )}
@@ -106,6 +124,55 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
         )}
 
         {step === 4 && (
+          <div className="space-y-4">
+            <h1 className="text-2xl font-semibold tracking-tight">Wann können Sie Termine anbieten?</h1>
+            <p className="text-sm text-muted-foreground">
+              Sobald ein Fall vollständig ist, schlägt die KI dem Kunden selbstständig einen freien Termin vor – nur an diesen Tagen, in diesem Zeitfenster.
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Verfügbare Wochentage">
+              {DISPLAY_ORDER.map((day) => {
+                const isActive = availability.workingDays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => toggleDay(day)}
+                    className={cn(
+                      "flex size-10 items-center justify-center rounded-xl border text-sm font-medium transition-colors",
+                      isActive ? "border-accent bg-accent-soft text-accent" : "border-border bg-card text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {WEEKDAY_LABELS[day]}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Von">
+                <Input type="time" value={availability.slotStart} onChange={(e) => setAvailability({ ...availability, slotStart: e.target.value })} required />
+              </Field>
+              <Field label="Bis">
+                <Input type="time" value={availability.slotEnd} onChange={(e) => setAvailability({ ...availability, slotEnd: e.target.value })} required />
+              </Field>
+              <Field label="Termindauer (Minuten)">
+                <Input type="number" min={15} max={480} step={15} value={availability.slotMinutes} onChange={(e) => setAvailability({ ...availability, slotMinutes: Number(e.target.value) })} required />
+              </Field>
+              <Field label="Max. Termine pro Tag (optional)" hint="Leer lassen für unbegrenzt (nur durch das Zeitfenster begrenzt).">
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  placeholder="unbegrenzt"
+                  value={availability.maxAppointmentsPerDay ?? ""}
+                  onChange={(e) => setAvailability({ ...availability, maxAppointmentsPerDay: e.target.value ? Number(e.target.value) : null })}
+                />
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Website verbinden</h1>
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">

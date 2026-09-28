@@ -154,7 +154,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // genannt wurde – sofort neu gesucht.
   if (settings.appointmentBooking && !turn.handoff) {
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
-    const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes };
+    const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay };
 
     const bookSlot = async (slot: Date, rebook: boolean) => {
       await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen", status: "proposed" });

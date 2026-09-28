@@ -84,6 +84,7 @@ export const assistantSchema = z
     slotStart: timeSchema,
     slotEnd: timeSchema,
     slotMinutes: z.coerce.number().int().min(15).max(480),
+    maxAppointmentsPerDay: z.coerce.number().int().min(1).max(50).nullable(),
   })
   .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] });
 
@@ -94,9 +95,21 @@ export const companySchema = z.object({
   address: str(300).default(""),
 });
 
+/** Verfügbarkeit für Terminvorschläge – im Onboarding und später in den Assistent-Einstellungen gepflegt. */
+export const availabilitySchema = z
+  .object({
+    workingDays: z.array(z.number().int().min(0).max(6)).max(7),
+    slotStart: timeSchema,
+    slotEnd: timeSchema,
+    slotMinutes: z.coerce.number().int().min(15).max(480),
+    maxAppointmentsPerDay: z.coerce.number().int().min(1).max(50).nullable(),
+  })
+  .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] });
+
 export const onboardingSchema = companySchema.extend({
   services: z.array(str(60)).max(20),
   activeFieldKeys: z.array(str(40)).max(50),
+  availability: availabilitySchema,
 });
 
 export const profileSchema = z.object({ firstName: str(60).min(1, "Vorname erforderlich"), lastName: str(60).min(1, "Nachname erforderlich") });

@@ -385,6 +385,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         slotStart: r.slot_start ?? "09:00",
         slotEnd: r.slot_end ?? "17:00",
         slotMinutes: r.slot_minutes ?? 60,
+        maxAppointmentsPerDay: r.max_appointments_per_day ?? null,
       };
     },
     async saveAssistant(s) {
@@ -401,6 +402,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         slot_start: s.slotStart,
         slot_end: s.slotEnd,
         slot_minutes: s.slotMinutes,
+        max_appointments_per_day: s.maxAppointmentsPerDay,
       });
       fail(error, "assistant save");
       return s;

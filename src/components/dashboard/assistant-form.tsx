@@ -99,7 +99,7 @@ export function AssistantForm({ initial, canEdit }: { initial: AssistantSettings
                   );
                 })}
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Von">
                   <Input type="time" value={s.slotStart} onChange={(e) => set("slotStart", e.target.value)} required />
                 </Field>
@@ -108,6 +108,16 @@ export function AssistantForm({ initial, canEdit }: { initial: AssistantSettings
                 </Field>
                 <Field label="Termindauer (Min.)">
                   <Input type="number" min={15} max={480} step={15} value={s.slotMinutes} onChange={(e) => set("slotMinutes", Number(e.target.value))} required />
+                </Field>
+                <Field label="Max. Termine pro Tag" hint="Leer lassen für unbegrenzt (nur durch das Zeitfenster begrenzt).">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    placeholder="unbegrenzt"
+                    value={s.maxAppointmentsPerDay ?? ""}
+                    onChange={(e) => set("maxAppointmentsPerDay", e.target.value ? Number(e.target.value) : null)}
+                  />
                 </Field>
               </div>
             </div>

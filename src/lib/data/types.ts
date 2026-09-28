@@ -163,6 +163,8 @@ export interface AssistantSettings {
   slotEnd: string;
   /** Dauer eines vorgeschlagenen Termins in Minuten. */
   slotMinutes: number;
+  /** Höchstzahl an Terminen, die die KI pro Kalendertag vergibt. null = unbegrenzt (nur durch Bürozeiten begrenzt). */
+  maxAppointmentsPerDay: number | null;
 }
 
 export interface Appointment {
