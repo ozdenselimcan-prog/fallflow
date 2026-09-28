@@ -1,13 +1,49 @@
 import type { Appointment } from "@/lib/data/types";
 
 /**
- * Terminvorschlagsfunktion: liest die vom Kunden genannten Wochentage aus Freitext, sucht darin den
- * nächsten freien Termin innerhalb der Bürozeiten (unter Berücksichtigung bestehender Termine) und
- * formatiert Vorschlag/Bestätigung. Reine Logik, keine Datenbankzugriffe (die liegen in intake/engine.ts).
+ * Terminvorschlagsfunktion: liest vom Kunden genannte Wochentage oder ein konkretes Datum aus Freitext,
+ * sucht darin den nächsten freien Termin innerhalb der Bürozeiten (unter Berücksichtigung bestehender
+ * Termine – auch vom Büro ohne Fallbezug eingetragener Blocker) und formatiert Vorschlag/Bestätigung.
+ * Reine Logik, keine Datenbankzugriffe (die liegen in intake/engine.ts).
+ *
+ * Alle Uhrzeiten werden als Europe/Berlin-Ortszeit behandelt, unabhängig davon, in welcher Zeitzone der
+ * Server läuft (Vercel läuft in UTC) – siehe berlinWallTimeToUtc/berlinTodayYmd.
  */
+
+const TZ = "Europe/Berlin";
+interface Ymd {
+  y: number;
+  m: number; // 1–12
+  d: number;
+}
+
+/** Wandelt eine als Europe/Berlin-Ortszeit gemeinte Uhrzeit in den tatsächlichen UTC-Zeitpunkt um (DST-sicher). */
+function berlinWallTimeToUtc(y: number, m: number, d: number, hh: number, mm: number): Date {
+  const guess = new Date(Date.UTC(y, m - 1, d, hh, mm));
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const p = Object.fromEntries(fmt.formatToParts(guess).map((x) => [x.type, x.value])) as Record<string, string>;
+  const shown = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour === 24 ? 0 : +p.hour, +p.minute);
+  return new Date(guess.getTime() + (guess.getTime() - shown));
+}
+
+/** Heutiges Kalenderdatum in Europe/Berlin (unabhängig von der Serverzeitzone). */
+function berlinTodayYmd(from = new Date()): Ymd {
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+  const p = Object.fromEntries(fmt.formatToParts(from).map((x) => [x.type, x.value])) as Record<string, string>;
+  return { y: +p.year, m: +p.month, d: +p.day };
+}
+
+const addDays = (ymd: Ymd, n: number): Ymd => {
+  const t = Date.UTC(ymd.y, ymd.m - 1, ymd.d) + n * 86_400_000;
+  const d = new Date(t);
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
+};
+/** Kalender-Wochentag eines Datums (0=So…6=Sa) – zeitzonenunabhängig, da reine Kalenderarithmetik. */
+const weekdayOf = (ymd: Ymd) => new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d)).getUTCDay();
 
 const WEEKDAY_NAMES = ["sonntag", "montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag"];
 const WEEKDAY_SHORT = ["so", "mo", "di", "mi", "do", "fr", "sa"];
+const MONTH_NAMES = ["januar", "februar", "märz|maerz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember"];
 const ANYTIME = /\b(jederzeit|immer|egal|flexibel|wann (immer|es passt)|jeden tag)\b/i;
 
 /** Erkennt Wochentage aus einer Kundenantwort, z. B. „Montag bis Freitag“, „Di, Do und Sa“, „jederzeit“. Ohne Treffer: null. */
@@ -49,6 +85,56 @@ export function parseAvailability(text: string): number[] | null {
   return [...new Set(found.map((f) => f.day))];
 }
 
+/**
+ * Erkennt ein konkretes Kalenderdatum in Freitext: „15. Oktober“, „15.10.“, „15.10.2026“, „morgen“,
+ * „übermorgen“, „nächsten Dienstag“. Ohne Treffer: null. Ein erkanntes Datum in der Vergangenheit
+ * (z. B. Monat ohne Jahr, der dieses Jahr schon vorbei ist) wird auf das nächste passende Jahr gelegt.
+ */
+export function parseSpecificDate(text: string, from = new Date()): Ymd | null {
+  const t = text.toLowerCase();
+  const today = berlinTodayYmd(from);
+
+  if (/\bmorgen\b/.test(t) && !/\bübermorgen\b/.test(t)) return addDays(today, 1);
+  if (/\bübermorgen\b/.test(t)) return addDays(today, 2);
+
+  const relWeekday = t.match(/\b(nächsten?|kommenden?|diesen)\s+(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/);
+  if (relWeekday) {
+    const target = WEEKDAY_NAMES.indexOf(relWeekday[2]);
+    for (let i = relWeekday[1].startsWith("diesen") ? 0 : 1; i <= 7; i++) {
+      const cand = addDays(today, i);
+      if (weekdayOf(cand) === target) return cand;
+    }
+  }
+
+  const monthPattern = MONTH_NAMES.map((m) => `(?:${m})`).join("|");
+  const byName = t.match(new RegExp(`\\b(\\d{1,2})\\.?\\s*(${monthPattern})\\b(?:\\s+(\\d{4}))?`, "i"));
+  if (byName) {
+    const day = +byName[1];
+    const monthIdx = MONTH_NAMES.findIndex((m) => new RegExp(`^(?:${m})$`, "i").test(byName[2]));
+    if (day >= 1 && day <= 31 && monthIdx >= 0) {
+      const year = byName[3] ? +byName[3] : today.y;
+      let cand: Ymd = { y: year, m: monthIdx + 1, d: day };
+      if (!byName[3] && Date.UTC(cand.y, cand.m - 1, cand.d) < Date.UTC(today.y, today.m - 1, today.d)) cand = { ...cand, y: year + 1 };
+      return cand;
+    }
+  }
+
+  // Kein abschließendes \b: nach einem optionalen Jahr folgt oft nur ein Satzzeichen ("8.10." / "10.10.?"),
+  // zwischen dem nichts als Wortgrenze zählt – (?!\d) reicht, um versehentliches Mid-Number-Matching zu vermeiden.
+  const numeric = t.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?(?!\d)/);
+  if (numeric) {
+    const day = +numeric[1];
+    const month = +numeric[2];
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      const year = numeric[3] ? (numeric[3].length === 2 ? 2000 + +numeric[3] : +numeric[3]) : today.y;
+      let cand: Ymd = { y: year, m: month, d: day };
+      if (!numeric[3] && Date.UTC(cand.y, cand.m - 1, cand.d) < Date.UTC(today.y, today.m - 1, today.d)) cand = { ...cand, y: year + 1 };
+      return cand;
+    }
+  }
+  return null;
+}
+
 const parseTime = (hhmm: string) => {
   const [h, m] = hhmm.split(":").map(Number);
   return { h: h || 0, m: m || 0 };
@@ -65,47 +151,65 @@ export interface SlotSearch {
   horizonDays?: number;
 }
 
-/** Sucht den nächsten freien Termin: Schnittmenge aus Bürotagen und Kundentagen, innerhalb der Bürozeit, ohne Überschneidung. */
-export function findNextSlot(input: SlotSearch): Date | null {
-  const allowedDays = new Set(input.workingDays.filter((d) => input.customerDays.includes(d)));
-  if (allowedDays.size === 0) return null;
-  const start = parseTime(input.slotStart);
-  const end = parseTime(input.slotEnd);
-  const horizon = input.horizonDays ?? 21;
-  const minLeadMs = 2 * 3_600_000; // mindestens 2 Stunden Vorlauf
+const MIN_LEAD_MS = 2 * 3_600_000; // mindestens 2 Stunden Vorlauf
 
-  const busy = input.existing.map((a) => {
+function busyRanges(existing: Pick<Appointment, "startsAt" | "durationMin">[]) {
+  return existing.map((a) => {
     const s = new Date(a.startsAt).getTime();
     return { start: s, end: s + a.durationMin * 60_000 };
   });
+}
 
-  const day = new Date(input.from ?? new Date());
-  day.setSeconds(0, 0);
-
-  for (let i = 0; i <= horizon; i++) {
-    const d = new Date(day);
-    d.setDate(d.getDate() + i);
-    if (!allowedDays.has(d.getDay())) continue;
-
-    let slot = new Date(d);
-    slot.setHours(start.h, start.m, 0, 0);
-    const dayEnd = new Date(d);
-    dayEnd.setHours(end.h, end.m, 0, 0);
-
-    while (slot.getTime() + input.slotMinutes * 60_000 <= dayEnd.getTime()) {
-      const slotEnd = slot.getTime() + input.slotMinutes * 60_000;
-      const early = slot.getTime() < Date.now() + minLeadMs;
-      const overlaps = busy.some((b) => slot.getTime() < b.end && slotEnd > b.start);
-      if (!early && !overlaps) return new Date(slot);
-      slot = new Date(slot.getTime() + input.slotMinutes * 60_000);
-    }
+/** Erster freier Slot an einem einzelnen Kalendertag innerhalb der Bürozeit, oder null (Tag komplett belegt). */
+function firstFreeSlotOnDay(ymd: Ymd, slotStart: string, slotEnd: string, slotMinutes: number, busy: { start: number; end: number }[]): Date | null {
+  const start = parseTime(slotStart);
+  const end = parseTime(slotEnd);
+  let cursorMin = start.h * 60 + start.m;
+  const endMin = end.h * 60 + end.m;
+  while (cursorMin + slotMinutes <= endMin) {
+    const slot = berlinWallTimeToUtc(ymd.y, ymd.m, ymd.d, Math.floor(cursorMin / 60), cursorMin % 60);
+    const slotEndMs = slot.getTime() + slotMinutes * 60_000;
+    const early = slot.getTime() < Date.now() + MIN_LEAD_MS;
+    const overlaps = busy.some((b) => slot.getTime() < b.end && slotEndMs > b.start);
+    if (!early && !overlaps) return slot;
+    cursorMin += slotMinutes;
   }
   return null;
 }
 
-const dateFmt = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
-const timeFmt = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+/** Sucht den nächsten freien Termin: Schnittmenge aus Bürotagen und Kundentagen, innerhalb der Bürozeit, ohne Überschneidung. */
+export function findNextSlot(input: SlotSearch): Date | null {
+  const allowedDays = new Set(input.workingDays.filter((d) => input.customerDays.includes(d)));
+  if (allowedDays.size === 0) return null;
+  const busy = busyRanges(input.existing);
+  const start = berlinTodayYmd(input.from ?? new Date());
+  const horizon = input.horizonDays ?? 21;
+
+  for (let i = 0; i <= horizon; i++) {
+    const day = addDays(start, i);
+    if (!allowedDays.has(weekdayOf(day))) continue;
+    const slot = firstFreeSlotOnDay(day, input.slotStart, input.slotEnd, input.slotMinutes, busy);
+    if (slot) return slot;
+  }
+  return null;
+}
+
+export type DateSlotReason = "ok" | "not_a_working_day" | "fully_booked";
+
+/** Prüft ein vom Kunden genanntes konkretes Datum: frei, kein Bürotag, oder ausgebucht. */
+export function findSlotOnDate(ymd: Ymd, input: Omit<SlotSearch, "customerDays" | "from">): { slot: Date | null; reason: DateSlotReason } {
+  if (!input.workingDays.includes(weekdayOf(ymd))) return { slot: null, reason: "not_a_working_day" };
+  const slot = firstFreeSlotOnDay(ymd, input.slotStart, input.slotEnd, input.slotMinutes, busyRanges(input.existing));
+  return slot ? { slot, reason: "ok" } : { slot: null, reason: "fully_booked" };
+}
+
+/** Datum eines Ymd als UTC-Mitternacht-Date für findNextSlot({ from }) – nur zum Weitersuchen ab diesem Tag. */
+export const ymdToDate = (ymd: Ymd) => new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d, 12));
+
+const dateFmt = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: TZ });
+const timeFmt = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
 export const formatSlot = (d: Date) => `${dateFmt.format(d)} um ${timeFmt.format(d)} Uhr`;
+export const formatYmd = (ymd: Ymd) => dateFmt.format(new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d, 12)));
 
 const CONFIRM = /^\s*(ja\b|jawohl|passt|okay?\b|einverstanden|gerne|klingt gut|super|perfekt|in ordnung|bestätig)/i;
 export const looksLikeConfirmation = (text: string) => CONFIRM.test(text.trim());
@@ -117,7 +221,7 @@ export const looksLikeRejection = (text: string) => REJECT.test(text.trim());
 export function availabilityQuestion(workingDays: number[]): string {
   const names = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
   const example = workingDays.length >= 5 ? `${names[workingDays[0]]} bis ${names[workingDays[workingDays.length - 1]]}` : workingDays.map((d) => names[d]).join(", ");
-  return `An welchen Wochentagen passt es Ihnen am besten für ein Beratungsgespräch? (z. B. „${example}“)`;
+  return `An welchen Wochentagen (oder an welchem konkreten Datum) passt es Ihnen am besten für ein Beratungsgespräch? (z. B. „${example}“ oder „15. Oktober“)`;
 }
 
 export const appointmentProposalText = (slot: Date) => `Wie wäre es mit ${formatSlot(slot)}? Bitte bestätigen Sie kurz, ob der Termin für Sie passt.`;
@@ -126,6 +230,13 @@ export const declinedRepromptText = (workingDays: number[]) => `Kein Problem, da
 export const rebookedText = (slot: Date) => `Wie wäre es stattdessen mit ${formatSlot(slot)}? Bitte bestätigen Sie kurz, ob das passt.`;
 export const appointmentConfirmedText = (slot: Date) => `Termin bestätigt: ${formatSlot(slot)}. Wir freuen uns auf das Gespräch!`;
 export const noSlotFoundText = "Leider konnte ich in den nächsten Wochen keinen passenden Termin finden. Ein Mitarbeiter meldet sich bei Ihnen, um einen Termin zu vereinbaren.";
-export const availabilityNotUnderstoodText = "Das habe ich leider nicht verstanden. Bitte nennen Sie mir die Wochentage, an denen es Ihnen passt, z. B. „Montag bis Freitag“.";
+export function noOverlapText(workingDays: number[]): string {
+  const names = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+  const offered = workingDays.map((d) => names[d]).join(", ");
+  return `An diesen Tagen bieten wir leider keine Termine an. Wir sind an folgenden Tagen verfügbar: ${offered}. Würde einer davon für Sie passen?`;
+}
+export const availabilityNotUnderstoodText = "Das habe ich leider nicht verstanden. Bitte nennen Sie mir die Wochentage oder ein konkretes Datum, z. B. „Montag bis Freitag“ oder „15. Oktober“.";
+export const notAWorkingDayText = (ymd: Ymd) => `Am ${formatYmd(ymd)} bieten wir leider keine Termine an.`;
+export const fullyBookedText = (ymd: Ymd) => `Der ${formatYmd(ymd)} ist leider schon ausgebucht.`;
 
 export const WEEKDAY_LABELS_FULL = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"] as const;
