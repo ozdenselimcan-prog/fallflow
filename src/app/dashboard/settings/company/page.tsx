@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { CompanyForm } from "@/components/dashboard/settings-forms";
-import { can } from "@/lib/auth/permissions";
+import { SettingsBoard } from "@/components/dashboard/settings-board";
 import { requireSession } from "@/lib/auth/session";
+import { loadSettingsData } from "@/lib/dashboard/settings-data";
 import { getStore } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Unternehmen" };
 
 export default async function CompanySettingsPage() {
   const session = await requireSession();
-  const c = await (await getStore(session)).getCompany();
-  return <CompanyForm initial={{ name: c.name, website: c.website, phone: c.phone, address: c.address }} canEdit={can(session.role, "company:manage")} />;
+  const data = await loadSettingsData(session, await getStore(session));
+  return <SettingsBoard data={data} initialTab="company" />;
 }
