@@ -38,8 +38,12 @@ function AuthForm({ schema, fields, action, submitLabel, footer }: { schema: z.Z
       onSubmit={handleSubmit((values) =>
         start(async () => {
           setResult({});
-          // redirect() im Server Action beendet den Aufruf mit einer Navigation; nur Fehler/Hinweise kommen zurück.
+          // redirect() im Server Action beendet den Aufruf mit einer Navigation; nur Fehler/Hinweise/externe Ziele kommen zurück.
           const res = await action(values);
+          if (res.redirectTo) {
+            window.location.href = res.redirectTo;
+            return;
+          }
           if (res) setResult(res);
         }),
       )}

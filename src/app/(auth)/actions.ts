@@ -12,6 +12,10 @@ import { forgotSchema, loginSchema, passwordSchema, signupSchema } from "@/lib/v
 export interface ActionResult {
   error?: string;
   message?: string;
+  /** Externe URL (z. B. Stripe Checkout), zu der der Browser weitergeleitet werden soll. redirect() aus einer
+   * per JS aufgerufenen Server Action navigiert Next.js zuverlässig nur innerhalb der eigenen App, deshalb
+   * übernimmt das Formular selbst die Weiterleitung per window.location. */
+  redirectTo?: string;
 }
 
 async function throttle(scope: string) {
@@ -74,7 +78,7 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
         } catch (err) {
           console.error("[signup] Trial-Checkout fehlgeschlagen:", err instanceof Error ? err.message : "Fehler");
         }
-        if (checkoutUrl) redirect(checkoutUrl);
+        if (checkoutUrl) return { redirectTo: checkoutUrl };
       }
     }
   }
