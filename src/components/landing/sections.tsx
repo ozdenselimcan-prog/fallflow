@@ -246,6 +246,7 @@ export function PricingSection() {
               <span className="text-4xl font-semibold tracking-tight">{p.priceEur} €</span>
               <span className="text-muted-foreground">/Monat</span>
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">7 Tage kostenlos, danach automatisch {p.priceEur} €/Monat. Jederzeit kündbar.</p>
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
               {p.features.map((f) => (
                 <li key={f} className="flex items-start gap-2">
@@ -254,8 +255,8 @@ export function PricingSection() {
                 </li>
               ))}
             </ul>
-            <Link href="/signup" className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
-              Kostenlos starten
+            <Link href={`/signup?plan=${p.id}`} className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
+              7 Tage kostenlos testen
             </Link>
           </Card>
         ))}

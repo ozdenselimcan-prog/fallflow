@@ -32,10 +32,14 @@ interface CheckoutParams {
   planId: Plan["id"];
   customerEmail: string;
   existingCustomerId: string | null;
+  /** Anzahl Testtage; bei Angabe wird die Zahlungsmethode trotzdem zwingend erfasst (Vertrag ab Registrierung). */
+  trialDays?: number;
+  successUrl?: string;
+  cancelUrl?: string;
 }
 
-/** Erzeugt eine Stripe-Checkout-Session für ein Upgrade. Wirft, wenn Stripe/Preis nicht konfiguriert ist. */
-export async function createCheckoutSession({ companyId, planId, customerEmail, existingCustomerId }: CheckoutParams) {
+/** Erzeugt eine Stripe-Checkout-Session für ein Upgrade oder den Registrierungs-Vertragsabschluss. Wirft, wenn Stripe/Preis nicht konfiguriert ist. */
+export async function createCheckoutSession({ companyId, planId, customerEmail, existingCustomerId, trialDays, successUrl, cancelUrl }: CheckoutParams) {
   const stripe = getStripeClient();
   if (!stripe) throw new Error("Stripe ist nicht konfiguriert");
   const price = priceIdForPlan(planId);
@@ -44,11 +48,20 @@ export async function createCheckoutSession({ companyId, planId, customerEmail, 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price, quantity: 1 }],
-    success_url: `${siteConfig.appUrl}/dashboard/settings/billing?checkout=success`,
-    cancel_url: `${siteConfig.appUrl}/dashboard/settings/billing?checkout=cancelled`,
+    success_url: successUrl ?? `${siteConfig.appUrl}/dashboard/settings/billing?checkout=success`,
+    cancel_url: cancelUrl ?? `${siteConfig.appUrl}/dashboard/settings/billing?checkout=cancelled`,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: customerEmail }),
     client_reference_id: companyId,
-    subscription_data: { metadata: { companyId, plan: planId } },
+    ...(trialDays
+      ? {
+          payment_method_collection: "always" as const,
+          subscription_data: {
+            trial_period_days: trialDays,
+            trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } },
+            metadata: { companyId, plan: planId },
+          },
+        }
+      : { subscription_data: { metadata: { companyId, plan: planId } } }),
     metadata: { companyId, plan: planId },
   });
   if (!session.url) throw new Error("Stripe hat keine Checkout-URL zurückgegeben");

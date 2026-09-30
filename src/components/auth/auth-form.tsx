@@ -80,11 +80,11 @@ export function LoginForm() {
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ plan }: { plan?: string }) {
   return (
     <AuthForm
       schema={signupSchema}
-      action={signupAction}
+      action={(v) => signupAction({ ...v, plan })}
       submitLabel="Konto erstellen"
       fields={[
         { name: "firstName", label: "Vorname", autoComplete: "given-name" },

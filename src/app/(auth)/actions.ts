@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { siteConfig } from "@/lib/config/site";
+import { createCheckoutSession, stripeConfigured } from "@/lib/integrations/stripe";
 import { rateLimit } from "@/lib/rate-limit";
 import { createUserClient } from "@/lib/supabase/clients";
 import { isSupabaseConfigured } from "@/lib/utils";
@@ -42,7 +43,7 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
 
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
-    const { firstName, lastName, company, email, password } = parsed.data;
+    const { firstName, lastName, company, email, password, plan } = parsed.data;
     const { data, error } = await db.auth.signUp({
       email,
       password,
@@ -53,6 +54,29 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
     });
     if (error) return { error: "Die Registrierung war nicht möglich. Bitte prüfen Sie Ihre Angaben." };
     if (!data.session) return { message: "Fast geschafft: Wir haben Ihnen eine E-Mail zur Bestätigung geschickt." };
+
+    // 7 Tage kostenlose Testphase, aber wie ein Vertrag: Zahlungsmethode wird sofort erfasst,
+    // nach Ablauf bucht Stripe automatisch ab. Ohne Stripe-Konfiguration einfach ohne Testphase weiter.
+    if (stripeConfigured() && data.user) {
+      const { data: member } = await db.from("company_members").select("company_id").eq("user_id", data.user.id).maybeSingle();
+      if (member?.company_id) {
+        let checkoutUrl: string | null = null;
+        try {
+          checkoutUrl = await createCheckoutSession({
+            companyId: member.company_id,
+            planId: plan ?? "starter",
+            customerEmail: email,
+            existingCustomerId: null,
+            trialDays: 7,
+            successUrl: `${siteConfig.appUrl}/onboarding`,
+            cancelUrl: `${siteConfig.appUrl}/onboarding`,
+          });
+        } catch (err) {
+          console.error("[signup] Trial-Checkout fehlgeschlagen:", err instanceof Error ? err.message : "Fehler");
+        }
+        if (checkoutUrl) redirect(checkoutUrl);
+      }
+    }
   }
   redirect("/onboarding");
 }

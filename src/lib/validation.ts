@@ -16,6 +16,7 @@ export const signupSchema = z.object({
   email: z.string().trim().email("Bitte gültige E-Mail eingeben"),
   password: passwordSchema,
   company: str(120).min(1, "Unternehmen erforderlich"),
+  plan: z.enum(["starter", "pro", "business"]).optional(),
 });
 
 export const forgotSchema = z.object({ email: z.string().trim().email("Bitte gültige E-Mail eingeben") });
