@@ -7,7 +7,7 @@ import type { CaseDocument, CaseStatus, DocumentKind, Question } from "@/lib/dat
  * Vollständigkeits-Checkliste, Dokumentenbedarf, Lead-Readiness und Statusableitung.
  */
 
-const ENERGY_CERT_SERVICES = ["iSFP", "Energieberatung", "Sanierung", "Fördermittelberatung", "Baubegleitung", "Heizung"];
+const ENERGY_CERT_SERVICES = ["iSFP", "Energieberatung", "Sanierung", "Baubegleitung", "Heizung"];
 const FLOORS_SERVICES = ["iSFP", "Sanierung", "Baubegleitung"];
 
 export interface DocumentRequirement {
