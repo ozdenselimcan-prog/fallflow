@@ -218,29 +218,33 @@ interface Props {
   whatsapp: ConnectionView | null;
   whatsappAppConfigured: boolean;
   websiteConnected: boolean;
+  /** Im Onboarding gibt es die Website-Karte schon als eigenen Schritt – dort ausblenden. */
+  showWebsite?: boolean;
 }
 
-export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsoft, whatsapp, whatsappAppConfigured, websiteConnected }: Props) {
+export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsoft, whatsapp, whatsappAppConfigured, websiteConnected, showWebsite = true }: Props) {
   return (
     <div className="space-y-4">
-      <Card className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-              <Globe className="size-5" />
-            </span>
-            <div>
-              <h2 className="font-semibold">Website-Chat</h2>
-              <p className="text-sm text-muted-foreground">Ein Script-Tag genügt, um das Widget in Ihre bestehende Website einzubinden.</p>
+      {showWebsite && (
+        <Card className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+                <Globe className="size-5" />
+              </span>
+              <div>
+                <h2 className="font-semibold">Website-Chat</h2>
+                <p className="text-sm text-muted-foreground">Ein Script-Tag genügt, um das Widget in Ihre bestehende Website einzubinden.</p>
+              </div>
             </div>
+            <StatusBadge status={websiteConnected ? "connected" : "disconnected"} />
           </div>
-          <StatusBadge status={websiteConnected ? "connected" : "disconnected"} />
-        </div>
-        <div className="mt-4 space-y-3">
-          <p className="text-sm text-muted-foreground">Fügen Sie diesen Code vor dem schließenden &lt;/body&gt;-Tag Ihrer Website ein:</p>
-          <WidgetSnippet appUrl={appUrl} companyId={companyId} />
-        </div>
-      </Card>
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-muted-foreground">Fügen Sie diesen Code vor dem schließenden &lt;/body&gt;-Tag Ihrer Website ein:</p>
+            <WidgetSnippet appUrl={appUrl} companyId={companyId} />
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <OAuthCard provider="gmail" connection={gmail} canManage={canManage} />

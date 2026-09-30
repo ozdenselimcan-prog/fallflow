@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
+import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
 import { SERVICES, WEEKDAY_LABELS } from "@/lib/cases/fields";
 import { apiFetch, useMutation } from "@/lib/use-api";
@@ -18,6 +19,7 @@ interface Props {
   initial: { name: string; website: string; phone: string; address: string; services: string[] };
   fieldOptions: { key: string; label: string; active: boolean }[];
   widgetReceived: boolean;
+  connections: { gmail: ConnectionView | null; microsoft: ConnectionView | null; whatsapp: ConnectionView | null; whatsappAppConfigured: boolean };
 }
 
 interface Availability {
@@ -32,14 +34,15 @@ const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotS
 /** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Erfassungsfelder", "Terminvergabe", "Website verbinden"];
+const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Erfassungsfelder", "Terminvergabe", "Website verbinden", "E-Mail & WhatsApp"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections }: Props) {
   const [step, setStep] = useState(0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
   const [services, setServices] = useState<string[]>(initial.services);
   const [active, setActive] = useState<string[]>(fieldOptions.filter((f) => f.active).map((f) => f.key));
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
+  const [saved, setSaved] = useState(false);
   const { pending, error, run } = useMutation();
 
   const toggle = (list: string[], value: string, on: boolean) => (on ? [...list, value] : list.filter((x) => x !== value));
@@ -49,13 +52,26 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
     setAvailability({ ...availability, workingDays: next.sort((a, b) => a - b) });
   };
 
+  const save = () => run(() => apiFetch("POST", "/api/onboarding", { ...company, services, activeFieldKeys: active, availability }), { refresh: false });
+
+  // Vor dem letzten Schritt (Kanäle verbinden) vorab speichern: Gmail/Microsoft leiten zur
+  // Google-/Microsoft-Anmeldung weg, ohne das würden bis dahin eingegebene Angaben verloren gehen.
+  const next = async () => {
+    if (step === STEPS.length - 2 && !saved) {
+      const ok = await save();
+      if (!ok) return;
+      setSaved(true);
+    }
+    setStep(step + 1);
+  };
+
   const finish = async () => {
-    const ok = await run(
-      () => apiFetch("POST", "/api/onboarding", { ...company, services, activeFieldKeys: active, availability }),
-      { refresh: false },
-    );
+    if (!saved) {
+      const ok = await save();
+      if (!ok) return;
+    }
     // Volles Neuladen statt Client-Navigation: sonst kann eine zwischengespeicherte Weiterleitung zurück ins Onboarding führen.
-    if (ok) window.location.href = "/dashboard";
+    window.location.href = "/dashboard";
   };
 
   return (
@@ -188,16 +204,37 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
             <a href={`/widget/${companyId}`} target="_blank" rel="noreferrer" className="inline-block text-sm font-medium text-accent hover:underline">
               Widget in neuem Tab testen →
             </a>
-            {error && <Notice tone="error">{error}</Notice>}
           </div>
         )}
+
+        {step === 6 && (
+          <div className="space-y-4">
+            <h1 className="text-2xl font-semibold tracking-tight">E-Mail & WhatsApp verbinden</h1>
+            <p className="text-sm text-muted-foreground">
+              Optional, aber empfohlen: Verbinden Sie Ihr Postfach oder WhatsApp Business, damit Anfragen von dort automatisch übernommen werden. Sie können das auch später in den Einstellungen nachholen.
+            </p>
+            <ConnectionsPanel
+              appUrl={appUrl}
+              companyId={companyId}
+              canManage
+              gmail={connections.gmail}
+              microsoft={connections.microsoft}
+              whatsapp={connections.whatsapp}
+              whatsappAppConfigured={connections.whatsappAppConfigured}
+              websiteConnected={false}
+              showWebsite={false}
+            />
+          </div>
+        )}
+
+        {error && <Notice tone="error" className="mt-4">{error}</Notice>}
 
         <div className="mt-8 flex items-center justify-between">
           <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={step === 0 || pending}>
             <ArrowLeft className="size-4" /> Zurück
           </Button>
           {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep(step + 1)} disabled={step === 1 && !company.name.trim()}>
+            <Button onClick={next} loading={pending && step === STEPS.length - 2} disabled={step === 1 && !company.name.trim()}>
               Weiter <ArrowRight className="size-4" />
             </Button>
           ) : (
