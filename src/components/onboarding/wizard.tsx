@@ -34,7 +34,7 @@ const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotS
 /** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Erfassungsfelder", "Terminvergabe", "Website verbinden", "E-Mail & WhatsApp"];
+const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Erfassungsfelder", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
 
 export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections }: Props) {
   const [step, setStep] = useState(0);
@@ -209,9 +209,9 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
 
         {step === 6 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-semibold tracking-tight">E-Mail & WhatsApp verbinden</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">E-Mail verbinden</h1>
             <p className="text-sm text-muted-foreground">
-              Optional, aber empfohlen: Verbinden Sie Ihr Postfach oder WhatsApp Business, damit Anfragen von dort automatisch übernommen werden. Sie können das auch später in den Einstellungen nachholen.
+              Optional, aber empfohlen: Verbinden Sie Ihr Postfach, damit Anfragen von dort automatisch übernommen werden. Sie können das auch später in den Einstellungen nachholen.
             </p>
             <ConnectionsPanel
               appUrl={appUrl}

@@ -250,7 +250,8 @@ export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsof
         <OAuthCard provider="gmail" connection={gmail} canManage={canManage} />
         <OAuthCard provider="microsoft" connection={microsoft} canManage={canManage} />
       </div>
-      <WhatsAppCard connection={whatsapp} canManage={canManage} appConfigured={whatsappAppConfigured} />
+      {/* WhatsApp-Verbindung vorerst ausgeblendet (kaum genutzt) - Code/Backend bleiben bestehen, siehe WhatsAppCard oben. */}
+      {false && <WhatsAppCard connection={whatsapp} canManage={canManage} appConfigured={whatsappAppConfigured} />}
     </div>
   );
 }
