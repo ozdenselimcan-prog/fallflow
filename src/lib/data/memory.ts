@@ -266,7 +266,7 @@ export function createMemoryStore(): Store {
       );
     },
     async getSubscription() {
-      return { plan: "pro", status: "trialing", currentPeriodEnd: null };
+      return { plan: "pro", status: "trialing", currentPeriodEnd: null, stripeCustomerId: null };
     },
     async getStats() {
       return computeStats(db().cases.map(withEffectiveStatus), db().appointments);

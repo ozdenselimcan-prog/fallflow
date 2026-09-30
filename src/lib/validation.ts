@@ -114,6 +114,8 @@ export const onboardingSchema = companySchema.extend({
 
 export const profileSchema = z.object({ firstName: str(60).min(1, "Vorname erforderlich"), lastName: str(60).min(1, "Nachname erforderlich") });
 
+export const checkoutSchema = z.object({ plan: z.enum(["starter", "pro", "business"]) });
+
 export const inviteSchema = z.object({ email: z.string().trim().email("Bitte gültige E-Mail eingeben"), role: z.enum(ROLES).exclude(["OWNER"]) });
 export const roleSchema = z.object({ id: z.string(), role: z.enum(ROLES).exclude(["OWNER"]) });
 

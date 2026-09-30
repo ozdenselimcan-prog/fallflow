@@ -3,6 +3,7 @@
 import { Check, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import type { Plan } from "@/lib/config/pricing";
 import { AssistantForm } from "@/components/dashboard/assistant-form";
 import { ConnectionsPanel } from "@/components/dashboard/connections-panel";
 import { CompanyForm, ProfileForm } from "@/components/dashboard/settings-forms";
@@ -37,7 +38,24 @@ interface Props {
  */
 export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
   const [tab, setTab] = useState<SettingsTab>(initialTab);
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
   const { plan, upgrades, subscription, canManage: canManageBilling, stripeReady } = data.billing;
+  const hasStripeCustomer = Boolean(subscription.stripeCustomerId);
+
+  async function goToStripe(path: "/api/billing/checkout" | "/api/billing/portal", body?: { plan: Plan["id"] }) {
+    setBillingError(null);
+    setBillingBusy(true);
+    try {
+      const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+      const json = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !json.url) throw new Error(json.error ?? "Aktion fehlgeschlagen");
+      window.location.href = json.url;
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
+      setBillingBusy(false);
+    }
+  }
 
   return (
     <div>
@@ -100,9 +118,14 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                   ))}
                 </ul>
                 {subscription.currentPeriodEnd && <p className="text-sm text-muted-foreground">Aktuelle Periode bis {formatDate(subscription.currentPeriodEnd)}</p>}
+                {billingError && <p className="text-sm text-destructive">{billingError}</p>}
                 {upgrades.length > 0 && canManageBilling && (
                   <div className="space-y-2">
-                    <Button disabled={!stripeReady} title={stripeReady ? undefined : "Stripe ist noch nicht konfiguriert"}>
+                    <Button
+                      disabled={!stripeReady || billingBusy}
+                      title={stripeReady ? undefined : "Stripe ist noch nicht konfiguriert"}
+                      onClick={() => goToStripe("/api/billing/checkout", { plan: upgrades[0].id })}
+                    >
                       Auf {upgrades[0].name} upgraden
                     </Button>
                     {!stripeReady && <p className="text-xs text-muted-foreground">Die Zahlungsabwicklung (Stripe) ist vorbereitet, aber noch nicht aktiviert: STRIPE_SECRET_KEY und STRIPE_WEBHOOK_SECRET fehlen.</p>}
@@ -112,7 +135,15 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
             </Card>
             <Card>
               <CardHeader title="Rechnungen" />
-              <p className="p-5 text-sm text-muted-foreground">Noch keine Rechnungen. Sobald die Zahlungsabwicklung aktiv ist, erscheinen Rechnungen hier.</p>
+              <div className="space-y-3 p-5">
+                {stripeReady && hasStripeCustomer && canManageBilling ? (
+                  <Button variant="secondary" disabled={billingBusy} onClick={() => goToStripe("/api/billing/portal")}>
+                    Zahlungsmethode & Rechnungen im Kundenportal öffnen
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Noch keine Rechnungen. Sobald ein Plan über Stripe gebucht wurde, erscheinen Zahlungsmethode und Rechnungen hier.</p>
+                )}
+              </div>
             </Card>
           </div>
         )}

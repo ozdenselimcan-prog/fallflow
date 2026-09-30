@@ -467,7 +467,12 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
     async getSubscription() {
       const { data, error } = await db.from("subscriptions").select("*").eq("company_id", companyId).maybeSingle();
       fail(error, "subscription");
-      return { plan: data?.plan ?? "starter", status: data?.status ?? "trialing", currentPeriodEnd: data?.current_period_end ?? null };
+      return {
+        plan: data?.plan ?? "starter",
+        status: data?.status ?? "trialing",
+        currentPeriodEnd: data?.current_period_end ?? null,
+        stripeCustomerId: data?.stripe_customer_id ?? null,
+      };
     },
     async getStats() {
       const [cases, appointments] = await Promise.all([store.listCases(), store.listAppointments()]);

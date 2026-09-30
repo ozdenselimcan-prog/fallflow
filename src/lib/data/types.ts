@@ -200,6 +200,7 @@ export interface Subscription {
   plan: "starter" | "pro" | "business";
   status: "trialing" | "active" | "past_due" | "canceled";
   currentPeriodEnd: string | null;
+  stripeCustomerId: string | null;
 }
 
 export interface CaseFilters {
