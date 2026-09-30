@@ -27,6 +27,9 @@ export interface Company {
   address: string;
   services: string[];
   onboardingCompleted: boolean;
+  /** Bei der Leistung "Fördermittelberatung": zusätzlich Energieausweis/Grundriss verlangen? Standard: nein. */
+  foerderEnergyCertificate: boolean;
+  foerderFloorplan: boolean;
 }
 
 export interface Profile {

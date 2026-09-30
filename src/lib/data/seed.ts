@@ -39,6 +39,8 @@ export function seedCompany(): Company {
     address: "Beispielstraße 1, 80331 München",
     services: ["Energieberatung", "iSFP", "Energieausweis", "Fördermittelberatung"],
     onboardingCompleted: true,
+    foerderEnergyCertificate: false,
+    foerderFloorplan: false,
   };
 }
 

@@ -25,7 +25,15 @@ export async function loadSettingsData(session: Session, store: Store) {
 
   return {
     profile: { firstName: session.firstName, lastName: session.lastName, email: session.email },
-    company: { name: company.name, website: company.website, phone: company.phone, address: company.address },
+    company: {
+      name: company.name,
+      website: company.website,
+      phone: company.phone,
+      address: company.address,
+      services: company.services,
+      foerderEnergyCertificate: company.foerderEnergyCertificate,
+      foerderFloorplan: company.foerderFloorplan,
+    },
     connections: {
       appUrl: siteConfig.appUrl,
       companyId: session.companyId,

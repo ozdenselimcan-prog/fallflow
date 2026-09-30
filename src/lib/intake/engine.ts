@@ -78,7 +78,8 @@ export async function extractForText(text: string): Promise<Record<string, strin
  */
 export async function processIntakeMessage(store: Store, input: IntakeInput): Promise<IntakeTurn> {
   const { companyId } = input;
-  const [questions, settings] = await Promise.all([store.listQuestions(), store.getAssistant()]);
+  const [questions, settings, company] = await Promise.all([store.listQuestions(), store.getAssistant(), store.getCompany()]);
+  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const existing = input.sessionId ? await store.getCase(input.sessionId) : null;
   if (input.sessionId && !existing) throw new SessionNotFoundError();
 
@@ -94,7 +95,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   const turnSettings = settings.autoReply ? settings : { ...settings, autoFollowUp: false };
   const pendingBefore = nextPending(questions, startFields)?.key ?? null;
-  const turn: TurnResult = applyTurn({ questions, settings: turnSettings, fields: startFields, text: input.text, first, extracted, documents, channel: input.channel });
+  const turn: TurnResult = applyTurn({ questions, settings: turnSettings, fields: startFields, text: input.text, first, extracted, documents, channel: input.channel, foerderOverrides });
 
   const draft = {
     fields: turn.fields,

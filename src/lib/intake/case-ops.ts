@@ -110,14 +110,15 @@ const PREPARED = ["COMPLETE", "READY_FOR_REVIEW", "CONVERTED"];
  * Wird nach jeder Änderung aufgerufen (Chat-Nachricht, Upload, Bearbeitung, Notiz).
  */
 export async function refreshCase(store: Store, caseId: string, opts: RefreshOptions = {}): Promise<RefreshResult> {
-  const [current, questions, settings] = await Promise.all([store.getCase(caseId), store.listQuestions(), store.getAssistant()]);
+  const [current, questions, settings, company] = await Promise.all([store.getCase(caseId), store.listQuestions(), store.getAssistant(), store.getCompany()]);
   if (!current) throw new Error("Fall nicht gefunden");
 
   let c = current;
   let documents = await store.listDocuments(caseId);
   const derived = deriveFields(c.fields);
   const fields = { ...c.fields, ...derived };
-  let checklist = buildChecklist({ questions, fields, documents });
+  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
+  let checklist = buildChecklist({ questions, fields, documents, foerderOverrides });
 
   let requestedNow: DocumentKind[] = [];
   let uploadLink: string | null = null;
@@ -127,7 +128,7 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
     requestedNow = res.requested;
     uploadLink = res.url;
     documents = await store.listDocuments(caseId);
-    checklist = buildChecklist({ questions, fields, documents });
+    checklist = buildChecklist({ questions, fields, documents, foerderOverrides });
     c = (await store.getCase(caseId)) ?? c;
   }
 

@@ -1,6 +1,6 @@
 import { isAnswered, SKIPPED } from "@/lib/cases/completeness";
 import type { AssistantSettings, CaseDocument, MessageChannel, Question, Tone } from "@/lib/data/types";
-import { buildChecklist, deriveFields, isRelevant } from "@/lib/intake/checklist";
+import { buildChecklist, deriveFields, isRelevant, type FoerderDocumentOverrides } from "@/lib/intake/checklist";
 import { detectBuildingType, detectHeating, detectOwnerStatus, detectService } from "./heuristic";
 import { matchOption } from "./schema";
 
@@ -27,6 +27,8 @@ export interface TurnInput {
   documents?: CaseDocument[];
   /** Kanal dieses Zuges. Ohne Angabe (z. B. Dashboard-Vorschau) gilt „interaktiv“ wie beim Website-Chat. */
   channel?: MessageChannel;
+  /** Bei Fördermittelberatung: Energieausweis/Grundriss zusätzlich verlangen? Ohne Angabe: nein. */
+  foerderOverrides?: FoerderDocumentOverrides;
 }
 
 export interface TurnResult {
@@ -191,7 +193,7 @@ function describeRecognized(keys: string[], fields: Record<string, string>, ques
 
 const result = (input: TurnInput, fields: Record<string, string>, extra: Partial<TurnResult> & { replies: string[] }): TurnResult => {
   const pending = nextPending(input.questions, fields);
-  const checklist = buildChecklist({ questions: input.questions, fields, documents: input.documents ?? [] });
+  const checklist = buildChecklist({ questions: input.questions, fields, documents: input.documents ?? [], foerderOverrides: input.foerderOverrides });
   return {
     fields,
     quickReplies: [],

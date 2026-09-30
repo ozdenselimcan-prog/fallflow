@@ -34,6 +34,8 @@ const mapCompany = (r: Row): Company => ({
   address: r.address,
   services: r.services ?? [],
   onboardingCompleted: r.onboarding_completed,
+  foerderEnergyCertificate: r.foerder_energy_certificate ?? false,
+  foerderFloorplan: r.foerder_floorplan ?? false,
 });
 
 const mapCase = (r: Row): CaseRecord => ({
@@ -146,6 +148,8 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       if (patch.address !== undefined) row.address = patch.address;
       if (patch.services !== undefined) row.services = patch.services;
       if (patch.onboardingCompleted !== undefined) row.onboarding_completed = patch.onboardingCompleted;
+      if (patch.foerderEnergyCertificate !== undefined) row.foerder_energy_certificate = patch.foerderEnergyCertificate;
+      if (patch.foerderFloorplan !== undefined) row.foerder_floorplan = patch.foerderFloorplan;
       const { data, error } = await db.from("companies").update(row).eq("id", companyId).select("*").single();
       fail(error, "company update");
       return mapCompany(data!);

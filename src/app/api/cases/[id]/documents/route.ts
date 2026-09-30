@@ -20,8 +20,13 @@ export const POST = withSession(
     const c = await store.getCase(id);
     if (!c) return apiError("Nicht gefunden", 404);
 
-    const [questions, documents] = await Promise.all([store.listQuestions(), store.listDocuments(id)]);
-    const checklist = buildChecklist({ questions, fields: c.fields, documents });
+    const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(id), store.getCompany()]);
+    const checklist = buildChecklist({
+      questions,
+      fields: c.fields,
+      documents,
+      foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    });
     const kinds: DocumentKind[] = body.data.kinds ?? checklist.missing.filter((i) => i.kind === "document").map((i) => i.key.replace("doc:", "") as DocumentKind);
     if (kinds.length === 0) return apiError("Es fehlen keine Dokumente.", 400);
 

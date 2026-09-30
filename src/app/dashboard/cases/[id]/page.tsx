@@ -31,17 +31,19 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const store = await getStore(session);
   // Keine dieser Abfragen hängt vom Ergebnis der anderen ab, alle brauchen nur die id – parallel statt
   // nacheinander (spart eine Datenbank-Runde beim Öffnen einer Fallakte).
-  const [c, events, messages, documents, followUps, questions] = await Promise.all([
+  const [c, events, messages, documents, followUps, questions, company] = await Promise.all([
     store.getCase(id).catch(() => null),
     store.listEvents(id),
     store.listMessages(id),
     store.listDocuments(id),
     store.listFollowUps(id),
     store.listQuestions(),
+    store.getCompany(),
   ]);
   if (!c) notFound();
   const canWrite = can(session.role, "cases:write");
-  const checklist = buildChecklist({ questions, fields: c.fields, documents });
+  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
+  const checklist = buildChecklist({ questions, fields: c.fields, documents, foerderOverrides });
   const readiness = readinessOf(c.status, checklist);
   const extra = questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
   const requiredKeys = questions.filter((q) => q.active && q.required).map((q) => q.key);
@@ -96,7 +98,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
           <DocumentsPanel
             caseId={c.id}
             documents={documents.map(publicDocument)}
-            requirements={documentRequirements(c.fields).map((r) => ({ kind: r.kind, required: r.required }))}
+            requirements={documentRequirements(c.fields, foerderOverrides).map((r) => ({ kind: r.kind, required: r.required }))}
             customerName={c.customerName}
             email={c.fields.email ?? ""}
             uploadLink={currentUploadLink(c)}

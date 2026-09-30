@@ -26,12 +26,14 @@ export async function dispatchDueFollowUps(store: Store, now = new Date()): Prom
   const summary: DispatchSummary = { due: 0, sent: 0, manual: 0, cancelled: 0 };
   const due = (await store.listFollowUps()).filter((f) => f.status === "planned" && Date.parse(f.scheduledFor) <= now.getTime());
   if (due.length === 0) return summary;
-  const [questions, documents] = await Promise.all([store.listQuestions(), store.listDocuments()]);
+  const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(), store.getCompany()]);
+  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
 
   for (const f of due) {
     summary.due++;
     const c = await store.getCase(f.caseId);
-    const stillNeeded = c && c.status !== "CONVERTED" && buildChecklist({ questions, fields: c.fields, documents: documents.filter((d) => d.caseId === c.id) }).missing.length > 0;
+    const stillNeeded =
+      c && c.status !== "CONVERTED" && buildChecklist({ questions, fields: c.fields, documents: documents.filter((d) => d.caseId === c.id), foerderOverrides }).missing.length > 0;
     if (!c || !stillNeeded) {
       await store.saveFollowUp({ ...f, status: "cancelled", note: "Nicht mehr nötig." });
       summary.cancelled++;

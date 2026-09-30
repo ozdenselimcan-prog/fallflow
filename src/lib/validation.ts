@@ -94,6 +94,9 @@ export const companySchema = z.object({
   website: str(200).default(""),
   phone: str(40).default(""),
   address: str(300).default(""),
+  services: z.array(str(60)).max(20).optional(),
+  foerderEnergyCertificate: z.boolean().optional(),
+  foerderFloorplan: z.boolean().optional(),
 });
 
 /** Verfügbarkeit für Terminvorschläge – im Onboarding und später in den Assistent-Einstellungen gepflegt. */

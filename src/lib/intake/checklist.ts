@@ -9,6 +9,8 @@ import type { CaseDocument, CaseStatus, DocumentKind, Question } from "@/lib/dat
 
 const ENERGY_CERT_SERVICES = ["iSFP", "Energieberatung", "Sanierung", "Baubegleitung", "Heizung"];
 const FLOORS_SERVICES = ["iSFP", "Sanierung", "Baubegleitung"];
+/** Für diese Leistung sind Energieausweis/Grundriss je Büro einstellbar (Standard: nicht nötig). */
+const FOERDER_SERVICE = "Fördermittelberatung";
 
 export interface DocumentRequirement {
   kind: DocumentKind;
@@ -17,11 +19,23 @@ export interface DocumentRequirement {
   reason: string;
 }
 
+export interface FoerderDocumentOverrides {
+  energyCertificate: boolean;
+  floorplan: boolean;
+}
+
 /** Welche Dokumente für diesen Fall gebraucht werden – abhängig von der gewünschten Leistung. */
-export function documentRequirements(fields: Record<string, string>): DocumentRequirement[] {
+export function documentRequirements(fields: Record<string, string>, foerderOverrides?: FoerderDocumentOverrides): DocumentRequirement[] {
   const service = fields.service ?? "";
-  const out: DocumentRequirement[] = [{ kind: "floorplan", label: DOCUMENT_LABELS.floorplan, required: true, reason: "Grundlage für die Gebäudeaufnahme" }];
-  if (ENERGY_CERT_SERVICES.includes(service)) {
+  const isFoerder = service === FOERDER_SERVICE;
+  const out: DocumentRequirement[] = [];
+  // Grundriss ist sonst immer Pflicht (Basis der Gebäudeaufnahme) – nur bei Fördermittelberatung einstellbar.
+  const wantsFloorplan = isFoerder ? Boolean(foerderOverrides?.floorplan) : true;
+  if (wantsFloorplan) {
+    out.push({ kind: "floorplan", label: DOCUMENT_LABELS.floorplan, required: true, reason: "Grundlage für die Gebäudeaufnahme" });
+  }
+  const wantsEnergyCert = isFoerder ? Boolean(foerderOverrides?.energyCertificate) : ENERGY_CERT_SERVICES.includes(service);
+  if (wantsEnergyCert) {
     out.push({ kind: "energy_certificate", label: DOCUMENT_LABELS.energy_certificate, required: true, reason: "Ausgangswerte des Gebäudes" });
   }
   out.push({ kind: "photos", label: DOCUMENT_LABELS.photos, required: false, reason: "Fassade, Heizung, Dach – erleichtert die Vorbereitung" });
@@ -66,7 +80,7 @@ export interface Checklist {
   dataComplete: boolean;
 }
 
-export function buildChecklist(input: { questions: Question[]; fields: Record<string, string>; documents: CaseDocument[] }): Checklist {
+export function buildChecklist(input: { questions: Question[]; fields: Record<string, string>; documents: CaseDocument[]; foerderOverrides?: FoerderDocumentOverrides }): Checklist {
   const { fields, documents } = input;
   const items: ChecklistItem[] = [];
 
@@ -75,7 +89,7 @@ export function buildChecklist(input: { questions: Question[]; fields: Record<st
     const done = isAnswered(fields, q.key) && fields[q.key] !== SKIPPED;
     items.push({ key: q.key, label: q.label, kind: "field", required: q.required, done });
   }
-  for (const req of documentRequirements(fields)) {
+  for (const req of documentRequirements(fields, input.foerderOverrides)) {
     const done = documents.some((d) => d.kind === req.kind && d.status === "received");
     const requested = done || documents.some((d) => d.kind === req.kind && d.status === "requested");
     items.push({ key: `doc:${req.kind}`, label: req.label, kind: "document", required: req.required, done, requested });

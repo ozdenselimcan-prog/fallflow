@@ -3,9 +3,12 @@
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/form";
+import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
+import { SERVICES } from "@/lib/cases/fields";
 import { apiFetch, useMutation } from "@/lib/use-api";
+
+const FOERDER_SERVICE = "Fördermittelberatung";
 
 function FormCard({ children, onSubmit, pending, error, saved, canEdit = true }: { children: ReactNode; onSubmit: () => void; pending: boolean; error: string | null; saved: boolean; canEdit?: boolean }) {
   return (
@@ -47,14 +50,30 @@ export function ProfileForm({ firstName, lastName, email }: { firstName: string;
   );
 }
 
-export function CompanyForm({ initial, canEdit }: { initial: { name: string; website: string; phone: string; address: string }; canEdit: boolean }) {
+interface CompanyInitial {
+  name: string;
+  website: string;
+  phone: string;
+  address: string;
+  services: string[];
+  foerderEnergyCertificate: boolean;
+  foerderFloorplan: boolean;
+}
+
+export function CompanyForm({ initial, canEdit }: { initial: CompanyInitial; canEdit: boolean }) {
   const [v, setV] = useState(initial);
   const [saved, setSaved] = useState(false);
   const { pending, error, run } = useMutation();
-  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const set = (k: "name" | "website" | "phone" | "address") => (e: React.ChangeEvent<HTMLInputElement>) => {
     setV({ ...v, [k]: e.target.value });
     setSaved(false);
   };
+  const toggleService = (service: string, on: boolean) => {
+    setV({ ...v, services: on ? [...v.services, service] : v.services.filter((s) => s !== service) });
+    setSaved(false);
+  };
+  const offersFoerderung = v.services.includes(FOERDER_SERVICE);
+
   return (
     <FormCard pending={pending} error={error} saved={saved} canEdit={canEdit} onSubmit={async () => setSaved(Boolean(await run(() => apiFetch("PUT", "/api/company", v))))}>
       <Field label="Firmenname">
@@ -69,6 +88,35 @@ export function CompanyForm({ initial, canEdit }: { initial: { name: string; web
       <Field label="Adresse">
         <Input value={v.address} onChange={set("address")} maxLength={300} />
       </Field>
+      <Field label="Leistungen" hint="Nur ausgewählte Leistungen kann der Assistent Kunden anbieten.">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {SERVICES.map((s) => (
+            <Checkbox key={s} label={s} checked={v.services.includes(s)} onChange={(on) => toggleService(s, on)} />
+          ))}
+        </div>
+      </Field>
+      {offersFoerderung && (
+        <Field label="Bei Fördermittelberatung zusätzlich verlangen" hint="Standardmäßig verlangt der Assistent bei reiner Fördermittelberatung weder Energieausweis noch Grundriss.">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Checkbox
+              label="Energieausweis"
+              checked={v.foerderEnergyCertificate}
+              onChange={(on) => {
+                setV({ ...v, foerderEnergyCertificate: on });
+                setSaved(false);
+              }}
+            />
+            <Checkbox
+              label="Grundriss"
+              checked={v.foerderFloorplan}
+              onChange={(on) => {
+                setV({ ...v, foerderFloorplan: on });
+                setSaved(false);
+              }}
+            />
+          </div>
+        </Field>
+      )}
     </FormCard>
   );
 }
