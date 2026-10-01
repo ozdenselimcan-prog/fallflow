@@ -8,24 +8,18 @@ import { normalizePhone } from "./identity";
 import { refreshCase, ensureUploadToken, uploadUrl } from "./case-ops";
 import { chatDocumentPrompt } from "./messages";
 import {
-  appointmentConfirmedText,
-  appointmentProposalText,
-  appointmentReminderText,
+  appointmentPendingReviewText,
   availabilityNotUnderstoodText,
   availabilityQuestion,
-  declinedRepromptText,
   findNextSlot,
   findSlotOnDate,
   formatSlot,
   fullyBookedText,
-  looksLikeConfirmation,
-  looksLikeRejection,
   noOverlapText,
   noSlotFoundText,
   notAWorkingDayText,
   parseAvailability,
   parseSpecificDate,
-  rebookedText,
   ymdToDate,
 } from "./scheduling";
 
@@ -151,36 +145,38 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // Terminvorschlag: Sobald der Fall vollständig ist (oder der Kunde ausdrücklich einen Termin wünscht),
   // fragt die KI nach passenden Wochentagen ODER einem konkreten Datum, sucht selbstständig einen freien
   // Termin (unter Berücksichtigung bestehender Termine UND vom Büro im Kalender eingetragener Blocker) und
-  // lässt ihn bestätigen. Lehnt der Kunde ab, wird der Vorschlag verworfen und – falls eine neue Angabe
-  // genannt wurde – sofort neu gesucht.
+  // lässt ihn vom Team freigeben: Der Kunde erfährt das genaue Datum bewusst NICHT direkt von der KI,
+  // erst wenn ein Mitarbeiter den Vorschlag im Kalender akzeptiert (oder selbst einen anderen Termin
+  // wählt), geht die Terminbestätigung per Mail an den Kunden raus (siehe /api/appointments/[id]/accept
+  // und .../decline).
   if (settings.appointmentBooking && !turn.handoff) {
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
     const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay };
 
-    const bookSlot = async (slot: Date, rebook: boolean) => {
-      await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen", status: "proposed" });
+    const bookSlot = async (slot: Date) => {
+      await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
       await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
-      await store.addEvent(caseId, "appointment", `Termin vorgeschlagen: ${formatSlot(slot)}`);
-      replies.push(rebook ? rebookedText(slot) : appointmentProposalText(slot));
+      await store.addEvent(caseId, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
+      replies.push(appointmentPendingReviewText);
     };
 
-    /** Versucht zuerst ein konkretes Datum, sonst einen Wochentag-Bereich aus dem Kundentext zu lesen und zu buchen. Gibt zurück, ob etwas erkannt wurde. */
-    const resolveAndPropose = async (text: string, rebook: boolean): Promise<boolean> => {
+    /** Versucht zuerst ein konkretes Datum, sonst einen Wochentag-Bereich aus dem Kundentext zu lesen und vorzuschlagen. Gibt zurück, ob etwas erkannt wurde. */
+    const resolveAndPropose = async (text: string): Promise<boolean> => {
       const existingAppts = await store.listAppointments();
       const specificDate = parseSpecificDate(text);
       if (specificDate) {
         const exact = findSlotOnDate(specificDate, { ...slotBase, existing: existingAppts });
         if (exact.reason === "ok" && exact.slot) {
-          await bookSlot(exact.slot, rebook);
+          await bookSlot(exact.slot);
           return true;
         }
         const info = exact.reason === "not_a_working_day" ? notAWorkingDayText(specificDate) : fullyBookedText(specificDate);
         const alt = findNextSlot({ ...slotBase, customerDays: settings.workingDays, existing: existingAppts, from: ymdToDate(specificDate) });
         if (alt) {
-          await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen", status: "proposed" });
+          await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
           await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
-          await store.addEvent(caseId, "appointment", `Wunschtermin nicht verfügbar, stattdessen vorgeschlagen: ${formatSlot(alt)}`);
-          replies.push(`${info} ${appointmentProposalText(alt)}`);
+          await store.addEvent(caseId, "appointment", `Wunschtermin nicht verfügbar, Alternative vorgeschlagen, wartet auf Freigabe: ${formatSlot(alt)}`);
+          replies.push(`${info} ${appointmentPendingReviewText}`);
         } else {
           await store.updateCase(caseId, { fields: { apptStage: "failed" } });
           replies.push(`${info} ${noSlotFoundText}`);
@@ -191,13 +187,12 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       if (!days) return false;
       if (!days.some((d) => settings.workingDays.includes(d))) {
         // Keiner der genannten Tage ist überhaupt ein Bürotag – klar sagen, statt "nichts gefunden".
-        // Stage bleibt "ask" (auch nach einer Ablehnung), damit der Kunde direkt neue Tage nennen kann.
         await store.updateCase(caseId, { fields: { apptStage: "ask" } });
         replies.push(noOverlapText(settings.workingDays));
         return true;
       }
       const slot = findNextSlot({ ...slotBase, customerDays: days, existing: existingAppts });
-      if (slot) await bookSlot(slot, rebook);
+      if (slot) await bookSlot(slot);
       else {
         await store.updateCase(caseId, { fields: { apptStage: "failed" } });
         replies.push(noSlotFoundText);
@@ -206,29 +201,12 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     };
 
     if (stage === "ask") {
-      if (!(await resolveAndPropose(input.text, false))) replies.push(availabilityNotUnderstoodText);
-    } else if (stage === "proposed") {
-      const pending = (await store.listAppointments()).find((a) => a.caseId === caseId && a.status === "proposed");
-      if (pending && looksLikeConfirmation(input.text)) {
-        await store.saveAppointment({ ...pending, status: "confirmed" });
-        await store.updateCase(caseId, { fields: { apptStage: "confirmed" } });
-        await store.addEvent(caseId, "appointment", "Termin vom Kunden bestätigt");
-        replies.push(appointmentConfirmedText(new Date(pending.startsAt)));
-      } else if (pending && (looksLikeRejection(input.text) || parseAvailability(input.text) || parseSpecificDate(input.text))) {
-        // Kunde lehnt den Vorschlag ab (mit oder ohne neue Angabe) – Vorschlag verwerfen, nicht als belegt stehen lassen.
-        await store.deleteAppointment(pending.id);
-        await store.addEvent(caseId, "appointment", "Terminvorschlag vom Kunden abgelehnt");
-        if (!(await resolveAndPropose(input.text, true))) {
-          await store.updateCase(caseId, { fields: { apptStage: "ask" } });
-          replies.push(declinedRepromptText(settings.workingDays));
-        }
-      } else if (pending) {
-        replies.push(appointmentReminderText(new Date(pending.startsAt)));
-      }
+      if (!(await resolveAndPropose(input.text))) replies.push(availabilityNotUnderstoodText);
     } else if (stage === "" && (turn.appointmentRequested || turn.complete)) {
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       replies.push(availabilityQuestion(settings.workingDays));
     }
+    // stage "proposed"/"confirmed"/"failed": liegt beim Team bzw. ist bereits final – die KI sagt dazu nichts Neues mehr.
   }
 
   let delivered = true;

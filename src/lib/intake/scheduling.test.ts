@@ -1,14 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  findNextSlot,
-  findSlotOnDate,
-  looksLikeConfirmation,
-  looksLikeRejection,
-  parseAvailability,
-  parseSpecificDate,
-  ymdToDate,
-  type DateSlotReason,
-} from "./scheduling";
+import { findNextSlot, findSlotOnDate, parseAvailability, parseSpecificDate, ymdToDate, type DateSlotReason } from "./scheduling";
 
 /**
  * findNextSlot/findSlotOnDate lehnen Termine ab, die weniger als 2h in der Zukunft liegen (MIN_LEAD_MS),
@@ -174,20 +165,6 @@ describe("findSlotOnDate", () => {
     const nineAm = ymdToDate(fridayYmd);
     const res = findSlotOnDate(fridayYmd, { ...base, existing: [{ startsAt: nineAm.toISOString(), durationMin: 30 }], maxAppointmentsPerDay: 1 });
     expect(res).toEqual<{ slot: Date | null; reason: DateSlotReason }>({ slot: null, reason: "fully_booked" });
-  });
-});
-
-describe("looksLikeConfirmation / looksLikeRejection", () => {
-  it("erkennt Zusagen", () => {
-    expect(looksLikeConfirmation("Ja, passt super")).toBe(true);
-    expect(looksLikeConfirmation("Klingt gut!")).toBe(true);
-    expect(looksLikeConfirmation("Nein danke")).toBe(false);
-  });
-
-  it("erkennt Absagen", () => {
-    expect(looksLikeRejection("Nein, das geht bei mir leider nicht")).toBe(true);
-    expect(looksLikeRejection("Können wir das verschieben?")).toBe(true);
-    expect(looksLikeRejection("Ja, passt")).toBe(false);
   });
 });
 

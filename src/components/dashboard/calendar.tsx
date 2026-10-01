@@ -42,6 +42,8 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState(() => new Date());
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [declining, setDeclining] = useState(false);
+  const [declineAt, setDeclineAt] = useState("");
   const { pending, error, setError, run } = useMutation();
 
   const byDay = useMemo(() => {
@@ -83,6 +85,7 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
   };
   const openEdit = (a: Appointment) => {
     setError(null);
+    setDeclining(false);
     setDraft({ id: a.id, caseId: a.caseId, title: a.title, startsAt: toLocalInput(new Date(a.startsAt)), durationMin: a.durationMin, notes: a.notes, status: a.status });
   };
 
@@ -100,6 +103,30 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
     if (ok) setDraft(null);
   };
 
+  const isAiProposal = draft?.id && draft.status === "proposed" && draft.caseId;
+
+  const accept = async () => {
+    if (!draft?.id) return;
+    const ok = await run(() => apiFetch("POST", `/api/appointments/${draft.id}/accept`));
+    if (ok) setDraft(null);
+  };
+
+  const startDeclining = () => {
+    setError(null);
+    setDeclineAt(draft?.startsAt ?? "");
+    setDeclining(true);
+  };
+
+  const sendDecline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!draft?.id || !declineAt) return;
+    const ok = await run(() => apiFetch("POST", `/api/appointments/${draft.id}/decline`, { startsAt: new Date(declineAt).toISOString() }));
+    if (ok) {
+      setDeclining(false);
+      setDraft(null);
+    }
+  };
+
   const today = dayKey(new Date());
 
   const chips = (day: Date) =>
@@ -108,7 +135,7 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
         key={a.id}
         type="button"
         onClick={() => openEdit(a)}
-        title={a.status === "proposed" ? "Vorgeschlagen – wartet auf Bestätigung" : undefined}
+        title={a.status === "proposed" ? "KI-Vorschlag – wartet auf Ihre Freigabe" : undefined}
         className={cn(
           "block w-full truncate rounded-md px-1.5 py-0.5 text-left text-xs hover:bg-accent hover:text-white",
           a.status === "proposed" ? "border border-dashed border-warning bg-warning-soft text-warning" : "bg-accent-soft text-accent",
@@ -189,8 +216,56 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
           ))}
       </div>
 
-      <Dialog open={draft !== null} onClose={() => setDraft(null)} title={draft?.id ? "Termin bearbeiten" : "Termin erstellen"}>
-        {draft && (
+      <Dialog
+        open={draft !== null}
+        onClose={() => {
+          setDraft(null);
+          setDeclining(false);
+        }}
+        title={isAiProposal ? "KI-Terminvorschlag" : draft?.id ? "Termin bearbeiten" : "Termin erstellen"}
+      >
+        {draft && isAiProposal && !declining && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Die KI hat diesen Termin vorbereitet. Der Kunde kennt den genauen Zeitpunkt noch nicht – erst nach Ihrer Freigabe (oder einem anderen von Ihnen gewählten Termin) erhält er eine Nachricht mit dem Termin.
+            </p>
+            <p className="rounded-xl bg-background px-4 py-3 text-sm font-medium">{new Date(draft.startsAt).toLocaleString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr</p>
+            {error && <Notice tone="error">{error}</Notice>}
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" onClick={remove} loading={pending}>
+                <Trash2 className="size-4 text-danger" /> Löschen
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={startDeclining} disabled={pending}>
+                  Ablehnen – anderen Termin wählen
+                </Button>
+                <Button onClick={accept} loading={pending}>
+                  Akzeptieren
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {draft && isAiProposal && declining && (
+          <form onSubmit={sendDecline} className="space-y-4">
+            <p className="text-sm text-muted-foreground">Welcher Termin soll dem Kunden stattdessen bestätigt werden?</p>
+            <Field label="Neuer Termin">
+              <Input type="datetime-local" value={declineAt} onChange={(e) => setDeclineAt(e.target.value)} required />
+            </Field>
+            {error && <Notice tone="error">{error}</Notice>}
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setDeclining(false)}>
+                Zurück
+              </Button>
+              <Button type="submit" loading={pending}>
+                Termin bestätigen und Kunden informieren
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {draft && !isAiProposal && (
           <form onSubmit={submit} className="space-y-4">
             <fieldset disabled={!canWrite} className="space-y-4">
               <Field label="Titel">
@@ -207,7 +282,7 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
               {draft.id && (
                 <Field label="Status">
                   <Select value={draft.status ?? "confirmed"} onChange={(e) => setDraft({ ...draft, status: e.target.value as Appointment["status"] })}>
-                    <option value="proposed">Vorgeschlagen – wartet auf Kundenbestätigung</option>
+                    <option value="proposed">Vorgeschlagen</option>
                     <option value="confirmed">Bestätigt</option>
                   </Select>
                 </Field>
