@@ -8,13 +8,16 @@ import { normalizePhone } from "./identity";
 import { refreshCase, ensureUploadToken, uploadUrl } from "./case-ops";
 import { chatDocumentPrompt } from "./messages";
 import {
+  appointmentCancelledText,
   appointmentPendingReviewText,
+  appointmentRescheduleQueuedText,
   availabilityNotUnderstoodText,
   availabilityQuestion,
   findNextSlot,
   findSlotOnDate,
   formatSlot,
   fullyBookedText,
+  looksLikeCancellation,
   noOverlapText,
   noSlotFoundText,
   notAWorkingDayText,
@@ -153,21 +156,21 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
     const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay };
 
-    const bookSlot = async (slot: Date) => {
+    const bookSlot = async (slot: Date, pendingText: string = appointmentPendingReviewText) => {
       await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
       await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
       await store.addEvent(caseId, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
-      replies.push(appointmentPendingReviewText);
+      replies.push(pendingText);
     };
 
     /** Versucht zuerst ein konkretes Datum, sonst einen Wochentag-Bereich aus dem Kundentext zu lesen und vorzuschlagen. Gibt zurück, ob etwas erkannt wurde. */
-    const resolveAndPropose = async (text: string): Promise<boolean> => {
+    const resolveAndPropose = async (text: string, pendingText: string = appointmentPendingReviewText): Promise<boolean> => {
       const existingAppts = await store.listAppointments();
       const specificDate = parseSpecificDate(text);
       if (specificDate) {
         const exact = findSlotOnDate(specificDate, { ...slotBase, existing: existingAppts });
         if (exact.reason === "ok" && exact.slot) {
-          await bookSlot(exact.slot);
+          await bookSlot(exact.slot, pendingText);
           return true;
         }
         const info = exact.reason === "not_a_working_day" ? notAWorkingDayText(specificDate) : fullyBookedText(specificDate);
@@ -176,7 +179,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
           await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
           await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
           await store.addEvent(caseId, "appointment", `Wunschtermin nicht verfügbar, Alternative vorgeschlagen, wartet auf Freigabe: ${formatSlot(alt)}`);
-          replies.push(`${info} ${appointmentPendingReviewText}`);
+          replies.push(`${info} ${pendingText}`);
         } else {
           await store.updateCase(caseId, { fields: { apptStage: "failed" } });
           replies.push(`${info} ${noSlotFoundText}`);
@@ -192,7 +195,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
         return true;
       }
       const slot = findNextSlot({ ...slotBase, customerDays: days, existing: existingAppts });
-      if (slot) await bookSlot(slot);
+      if (slot) await bookSlot(slot, pendingText);
       else {
         await store.updateCase(caseId, { fields: { apptStage: "failed" } });
         replies.push(noSlotFoundText);
@@ -200,7 +203,18 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       return true;
     };
 
-    if (stage === "ask") {
+    // Kunde sagt einen bereits bestätigten Termin ab. Nur innerhalb eines bekannten, bereits laufenden
+    // Falls (existing) – bei der allerersten Nachricht eines unbekannten Absenders ignoriert die KI das
+    // bewusst, sonst könnte eine völlig fremde Mail fälschlich einen Termin canceln.
+    const confirmedAppt = existing ? (await store.listAppointments()).find((a) => a.caseId === caseId && a.status === "confirmed") : undefined;
+    if (existing && confirmedAppt && looksLikeCancellation(input.text)) {
+      await store.deleteAppointment(confirmedAppt.id);
+      await store.addEvent(caseId, "appointment", `Termin vom Kunden abgesagt: ${formatSlot(new Date(confirmedAppt.startsAt))}`);
+      await store.updateCase(caseId, { fields: { apptStage: "ask" } });
+      // Schlägt der Kunde in derselben Nachricht gleich einen neuen Termin vor, direkt weitersuchen
+      // (wieder nur "vorgeschlagen", wartet erneut auf Freigabe durchs Team) statt extra nachzufragen.
+      if (!(await resolveAndPropose(input.text, appointmentRescheduleQueuedText))) replies.push(appointmentCancelledText);
+    } else if (stage === "ask") {
       if (!(await resolveAndPropose(input.text))) replies.push(availabilityNotUnderstoodText);
     } else if (stage === "" && (turn.appointmentRequested || turn.complete)) {
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });

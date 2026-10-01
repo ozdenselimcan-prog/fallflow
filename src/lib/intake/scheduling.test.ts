@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findNextSlot, findSlotOnDate, parseAvailability, parseSpecificDate, ymdToDate, type DateSlotReason } from "./scheduling";
+import { findNextSlot, findSlotOnDate, looksLikeCancellation, parseAvailability, parseSpecificDate, ymdToDate, type DateSlotReason } from "./scheduling";
 
 /**
  * findNextSlot/findSlotOnDate lehnen Termine ab, die weniger als 2h in der Zukunft liegen (MIN_LEAD_MS),
@@ -165,6 +165,20 @@ describe("findSlotOnDate", () => {
     const nineAm = ymdToDate(fridayYmd);
     const res = findSlotOnDate(fridayYmd, { ...base, existing: [{ startsAt: nineAm.toISOString(), durationMin: 30 }], maxAppointmentsPerDay: 1 });
     expect(res).toEqual<{ slot: Date | null; reason: DateSlotReason }>({ slot: null, reason: "fully_booked" });
+  });
+});
+
+describe("looksLikeCancellation", () => {
+  it("erkennt gängige Absageformulierungen", () => {
+    expect(looksLikeCancellation("Ich muss den Termin leider absagen")).toBe(true);
+    expect(looksLikeCancellation("Der Termin fällt leider aus")).toBe(true);
+    expect(looksLikeCancellation("Ich schaffe es leider nicht")).toBe(true);
+    expect(looksLikeCancellation("Kann ich den Termin verschieben?")).toBe(true);
+  });
+
+  it("reagiert nicht auf unrelatierten Text", () => {
+    expect(looksLikeCancellation("Vielen Dank für den Termin, bis dann!")).toBe(false);
+    expect(looksLikeCancellation("Wie teuer ist eine Energieberatung?")).toBe(false);
   });
 });
 

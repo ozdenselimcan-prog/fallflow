@@ -235,6 +235,12 @@ export function availabilityQuestion(workingDays: number[]): string {
 // erst im Kalender (oder waehlt selbst einen anderen Zeitpunkt), danach erst erfaehrt der Kunde das Datum.
 export const appointmentPendingReviewText = "Vielen Dank! Ich habe einen passenden Termin für Sie vorbereitet. Ein Mitarbeiter bestätigt Ihnen den genauen Termin in Kürze.";
 export const appointmentConfirmedText = (slot: Date) => `Termin bestätigt: ${formatSlot(slot)}. Wir freuen uns auf das Gespräch!`;
+
+/** Kunde sagt einen bereits bestätigten Termin ab (nur relevant innerhalb eines bekannten, laufenden Falls). */
+const CANCEL = /\b(termin\s*(leider\s*)?(doch\s*)?(nicht\s*wahrnehmen|absagen|canceln|stornieren)|termin\s*fällt\s*(leider\s*)?aus|(muss|möchte)\s*(den\s*)?termin\s*(leider\s*)?absagen|schaffe\s*es\s*(leider\s*)?nicht|kann\s*(den\s*)?termin\s*(leider\s*)?nicht\s*(wahrnehmen|einhalten)|termin\s*verschieben)\b/i;
+export const looksLikeCancellation = (text: string) => CANCEL.test(text.trim());
+export const appointmentCancelledText = "Kein Problem, der Termin ist storniert. Sagen Sie uns gerne, welche Wochentage oder welches Datum stattdessen für Sie passen würden.";
+export const appointmentRescheduleQueuedText = "Danke für die Rückmeldung! Der bisherige Termin ist storniert, und ich habe bereits einen neuen passenden Termin für Sie vorbereitet. Ein Mitarbeiter bestätigt ihn Ihnen in Kürze.";
 export const noSlotFoundText = "Leider konnte ich in den nächsten Wochen keinen passenden Termin finden. Ein Mitarbeiter meldet sich bei Ihnen, um einen Termin zu vereinbaren.";
 export function noOverlapText(workingDays: number[]): string {
   const names = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
