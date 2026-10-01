@@ -4,9 +4,11 @@ import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
 import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
-import type { CaseDocument, CaseRecord, DocumentKind } from "@/lib/data/types";
+import type { Appointment, CaseDocument, CaseRecord, DocumentKind } from "@/lib/data/types";
+import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
 import { documentRequestMessage, infoReminderMessage } from "./messages";
+import { appointmentConfirmedText, formatSlot } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
 
@@ -193,4 +195,37 @@ export async function syncFollowUps(store: Store, c: CaseRecord, checklist: Chec
   }
   await store.saveFollowUp({ caseId: c.id, kind, message, scheduledFor: nextMorning(1), status: "planned", sentAt: null, note: "" });
   await store.addEvent(c.id, "followup", "Follow-up geplant für morgen");
+}
+
+export type ConfirmAppointmentResult =
+  | { ok: true; appointment: Appointment; delivered: boolean; reason: string }
+  | { ok: false; status: number; message: string };
+
+/**
+ * Mitarbeiter gibt einen KI-vorgeschlagenen Termin frei – entweder unverändert (Akzeptieren) oder mit
+ * einem selbst gewählten Zeitpunkt (Ablehnen + eigener Termin). In beiden Fällen gilt der Termin danach
+ * als bestätigt und der Kunde erfährt jetzt zum ersten Mal den genauen Zeitpunkt – vorher kannte er ihn
+ * bewusst nicht (siehe engine.ts, appointmentPendingReviewText).
+ */
+export async function confirmAppointment(store: Store, appointmentId: string, overrideStartsAt?: string): Promise<ConfirmAppointmentResult> {
+  const appt = (await store.listAppointments()).find((a) => a.id === appointmentId);
+  if (!appt) return { ok: false, status: 404, message: "Termin nicht gefunden" };
+  if (!appt.caseId) return { ok: false, status: 400, message: "Termin ist keinem Fall zugeordnet" };
+  const c = await store.getCase(appt.caseId);
+  if (!c) return { ok: false, status: 404, message: "Fall nicht gefunden" };
+
+  const saved = await store.saveAppointment({ ...appt, startsAt: overrideStartsAt ?? appt.startsAt, status: "confirmed" });
+  await store.updateCase(c.id, { fields: { apptStage: "confirmed" } });
+  await store.addEvent(
+    c.id,
+    "appointment",
+    overrideStartsAt ? `Vorschlag abgelehnt, Team hat stattdessen bestätigt: ${formatSlot(new Date(saved.startsAt))}` : `Termin vom Team bestätigt: ${formatSlot(new Date(saved.startsAt))}`,
+  );
+
+  const text = appointmentConfirmedText(new Date(saved.startsAt));
+  const channel = c.source === "whatsapp" || (!c.fields.email && c.fields.phone) ? "whatsapp" : "email";
+  const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Beratungstermin" });
+  await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
+
+  return { ok: true, appointment: saved, delivered: result.delivered, reason: result.reason };
 }
