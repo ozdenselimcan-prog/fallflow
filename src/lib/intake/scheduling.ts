@@ -94,8 +94,10 @@ export function parseSpecificDate(text: string, from = new Date()): Ymd | null {
   const t = text.toLowerCase();
   const today = berlinTodayYmd(from);
 
-  if (/\bmorgen\b/.test(t) && !/\bübermorgen\b/.test(t)) return addDays(today, 1);
-  if (/\bübermorgen\b/.test(t)) return addDays(today, 2);
+  // \b erkennt "ü" nicht als Wortzeichen (reines ASCII) – ohne Unicode-Grenze würde "übermorgen" nie matchen.
+  const UEBERMORGEN = /(?<![\p{L}\p{N}])übermorgen(?![\p{L}\p{N}])/iu;
+  if (/\bmorgen\b/.test(t) && !UEBERMORGEN.test(t)) return addDays(today, 1);
+  if (UEBERMORGEN.test(t)) return addDays(today, 2);
 
   const relWeekday = t.match(/\b(nächsten?|kommenden?|diesen)\s+(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/);
   if (relWeekday) {

@@ -1,0 +1,201 @@
+import { describe, expect, it } from "vitest";
+import {
+  findNextSlot,
+  findSlotOnDate,
+  looksLikeConfirmation,
+  looksLikeRejection,
+  parseAvailability,
+  parseSpecificDate,
+  ymdToDate,
+  type DateSlotReason,
+} from "./scheduling";
+
+/**
+ * findNextSlot/findSlotOnDate lehnen Termine ab, die weniger als 2h in der Zukunft liegen (MIN_LEAD_MS),
+ * und vergleichen dabei gegen die ECHTE Systemzeit, nicht gegen den Test-Parameter `from`. Alle Testdaten
+ * müssen deshalb relativ zu `Date.now()` berechnet werden statt hartkodierte Kalenderdaten zu verwenden,
+ * sonst verfällt die Suite irgendwann von selbst.
+ */
+const berlinYmdFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" });
+function berlinYmd(d: Date) {
+  const [y, m, day] = berlinYmdFmt.format(d).split("-").map(Number);
+  return { y, m, d: day };
+}
+const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 86_400_000);
+function nextWeekday(from: Date, targetDow: number, minDaysAhead: number) {
+  let d = addDays(from, minDaysAhead);
+  while (d.getUTCDay() !== targetDow) d = addDays(d, 1);
+  return d;
+}
+
+// Donnerstag (4), mindestens 30 Tage voraus – weit genug weg von der 2h-Mindestvorlaufzeit und von DST-Umstellungen.
+const REF = nextWeekday(new Date(), 4, 30);
+const REF_YMD = berlinYmd(REF);
+
+describe("parseAvailability", () => {
+  it("erkennt einzelne Wochentage (voll und abgekürzt)", () => {
+    expect(parseAvailability("Dienstag passt mir gut")).toEqual([2]);
+    expect(parseAvailability("Di oder Do wäre super")).toEqual(expect.arrayContaining([2, 4]));
+  });
+
+  it("erkennt einen Bereich 'X bis Y'", () => {
+    expect(parseAvailability("Montag bis Freitag")).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("'jederzeit' ergibt alle Wochentage", () => {
+    expect(parseAvailability("Jederzeit, bin flexibel")).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  });
+
+  it("ohne erkennbaren Wochentag: null", () => {
+    expect(parseAvailability("Ich weiß noch nicht")).toBeNull();
+  });
+});
+
+describe("parseSpecificDate", () => {
+  it("erkennt 'morgen' und 'übermorgen', nicht verwechselt", () => {
+    expect(parseSpecificDate("morgen", REF)).toEqual(berlinYmd(addDays(REF, 1)));
+    expect(parseSpecificDate("übermorgen", REF)).toEqual(berlinYmd(addDays(REF, 2)));
+  });
+
+  it("erkennt 'nächsten <Wochentag>'", () => {
+    // REF ist ein Donnerstag; "nächsten Montag" ist der folgende Montag (4 Tage später).
+    expect(parseSpecificDate("nächsten Montag", REF)).toEqual(berlinYmd(addDays(REF, 4)));
+  });
+
+  it("erkennt Datum mit Monatsname, inkl. explizitem Jahr", () => {
+    expect(parseSpecificDate(`3. März ${REF_YMD.y + 3}`, REF)).toEqual({ y: REF_YMD.y + 3, m: 3, d: 3 });
+  });
+
+  it("erkennt numerisches Datum (TT.MM.JJJJ)", () => {
+    expect(parseSpecificDate(`am 20.03.${REF_YMD.y + 3}`, REF)).toEqual({ y: REF_YMD.y + 3, m: 3, d: 20 });
+  });
+
+  it("legt ein Datum ohne Jahr, das dieses Jahr schon vorbei ist, auf das nächste Jahr", () => {
+    // Ein Tag kurz VOR dem Bezugspunkt, ohne Jahresangabe genannt, muss auf naechstes Jahr fallen.
+    const past = addDays(REF, -2);
+    const pastYmd = berlinYmd(past);
+    const monthNames = ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember"];
+    expect(parseSpecificDate(`${pastYmd.d}. ${monthNames[pastYmd.m - 1]}`, REF)).toEqual({ ...pastYmd, y: pastYmd.y + 1 });
+  });
+
+  it("ohne erkennbares Datum: null", () => {
+    expect(parseSpecificDate("irgendwann mal", REF)).toBeNull();
+  });
+});
+
+describe("findNextSlot – Zeitzone (Regressionstest für den fruehren Timezone-Bug)", () => {
+  it("liefert einen Slot um 09:00 Berlin-Zeit als 08:00 oder 07:00 UTC (je nach Sommer-/Winterzeit)", () => {
+    const slot = findNextSlot({
+      workingDays: [REF.getUTCDay()],
+      customerDays: [REF.getUTCDay()],
+      slotStart: "09:00",
+      slotEnd: "17:00",
+      slotMinutes: 60,
+      existing: [],
+      from: addDays(REF, -7),
+    });
+    expect(slot).not.toBeNull();
+    // 09:00 Berlin ist je nach Jahreszeit 08:00 UTC (Winterzeit) oder 07:00 UTC (Sommerzeit) – nie etwas anderes.
+    expect([7, 8]).toContain(slot!.getUTCHours());
+  });
+
+  it("ein Slot sechs Monate später (andere Jahreszeit) landet weiterhin exakt auf 09:00 Berlin-Zeit", () => {
+    const other = nextWeekday(addDays(REF, 183), REF.getUTCDay(), 0);
+    const slot = findNextSlot({
+      workingDays: [other.getUTCDay()],
+      customerDays: [other.getUTCDay()],
+      slotStart: "09:00",
+      slotEnd: "17:00",
+      slotMinutes: 60,
+      existing: [],
+      from: addDays(other, -7),
+    });
+    expect(slot).not.toBeNull();
+    const berlinHour = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Berlin", hourCycle: "h23", hour: "2-digit" }).format(slot!);
+    expect(berlinHour).toBe("09");
+  });
+});
+
+describe("findNextSlot", () => {
+  const base = {
+    workingDays: [1, 2, 3, 4, 5],
+    customerDays: [1, 2, 3, 4, 5],
+    slotStart: "09:00",
+    slotEnd: "11:00",
+    slotMinutes: 60,
+    existing: [],
+    from: REF,
+  };
+
+  it("findet keinen Termin ohne Schnittmenge aus Büro- und Kundentagen", () => {
+    expect(findNextSlot({ ...base, workingDays: [1, 2, 3, 4, 5], customerDays: [0, 6] })).toBeNull();
+  });
+
+  it("überspringt bereits belegte Slots am selben Tag", () => {
+    // Nur ein möglicher Slot pro Tag (09–10 Uhr), damit ihn zu belegen den ganzen Tag ausbucht.
+    const oneSlotPerDay = { ...base, slotEnd: "10:00", workingDays: [5], customerDays: [5] };
+    const friday = berlinYmd(nextWeekday(REF, 5, 0));
+    const freeFirst = findSlotOnDate(friday, oneSlotPerDay);
+    expect(freeFirst.slot).not.toBeNull();
+
+    const slot = findNextSlot({ ...oneSlotPerDay, existing: [{ startsAt: freeFirst.slot!.toISOString(), durationMin: 60 }] });
+    expect(slot).not.toBeNull();
+    expect(berlinYmd(slot!)).not.toEqual(friday);
+  });
+
+  it("respektiert die maximale Terminanzahl pro Tag", () => {
+    const friday = nextWeekday(REF, 5, 0);
+    const nineAm = ymdToDate(berlinYmd(friday));
+    const slot = findNextSlot({ ...base, workingDays: [5], customerDays: [5], existing: [{ startsAt: nineAm.toISOString(), durationMin: 30 }], maxAppointmentsPerDay: 1 });
+    expect(slot).not.toBeNull();
+    expect(berlinYmd(slot!)).not.toEqual(berlinYmd(friday));
+  });
+});
+
+describe("findSlotOnDate", () => {
+  const base = { workingDays: [1, 2, 3, 4, 5], slotStart: "09:00", slotEnd: "17:00", slotMinutes: 60, existing: [] };
+
+  it("meldet 'not_a_working_day' für einen Tag außerhalb der Bürotage", () => {
+    const saturday = berlinYmd(nextWeekday(REF, 6, 0));
+    const res = findSlotOnDate(saturday, base);
+    expect(res).toEqual<{ slot: Date | null; reason: DateSlotReason }>({ slot: null, reason: "not_a_working_day" });
+  });
+
+  it("findet einen freien Slot an einem Bürotag", () => {
+    const friday = berlinYmd(nextWeekday(REF, 5, 0));
+    const res = findSlotOnDate(friday, base);
+    expect(res.reason).toBe("ok");
+    expect(res.slot).not.toBeNull();
+  });
+
+  it("meldet 'fully_booked', wenn die Tagesobergrenze erreicht ist", () => {
+    const friday = nextWeekday(REF, 5, 0);
+    const fridayYmd = berlinYmd(friday);
+    const nineAm = ymdToDate(fridayYmd);
+    const res = findSlotOnDate(fridayYmd, { ...base, existing: [{ startsAt: nineAm.toISOString(), durationMin: 30 }], maxAppointmentsPerDay: 1 });
+    expect(res).toEqual<{ slot: Date | null; reason: DateSlotReason }>({ slot: null, reason: "fully_booked" });
+  });
+});
+
+describe("looksLikeConfirmation / looksLikeRejection", () => {
+  it("erkennt Zusagen", () => {
+    expect(looksLikeConfirmation("Ja, passt super")).toBe(true);
+    expect(looksLikeConfirmation("Klingt gut!")).toBe(true);
+    expect(looksLikeConfirmation("Nein danke")).toBe(false);
+  });
+
+  it("erkennt Absagen", () => {
+    expect(looksLikeRejection("Nein, das geht bei mir leider nicht")).toBe(true);
+    expect(looksLikeRejection("Können wir das verschieben?")).toBe(true);
+    expect(looksLikeRejection("Ja, passt")).toBe(false);
+  });
+});
+
+describe("ymdToDate", () => {
+  it("erzeugt ein stabiles Datum (Mittag UTC, kein Tagesrand-Risiko)", () => {
+    const d = ymdToDate({ y: 2026, m: 3, d: 20 });
+    expect(d.getUTCFullYear()).toBe(2026);
+    expect(d.getUTCMonth()).toBe(2);
+    expect(d.getUTCDate()).toBe(20);
+  });
+});
