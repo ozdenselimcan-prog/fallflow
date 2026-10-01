@@ -32,7 +32,7 @@ export default async function OnboardingPage() {
         firstName={session.firstName}
         companyId={company.id}
         appUrl={siteConfig.appUrl}
-        initial={{ name: company.name, website: company.website, phone: company.phone, address: company.address, services: company.services }}
+        initial={{ name: company.name, website: company.website, phone: company.phone, address: company.address, services: company.services, contactFormUrl: company.contactFormUrl }}
         fieldOptions={fieldOptions}
         widgetReceived={cases.some((c) => c.source === "widget")}
         connections={{ gmail: byProvider.get("gmail") ?? null, microsoft: byProvider.get("microsoft") ?? null, whatsapp: byProvider.get("whatsapp") ?? null, whatsappAppConfigured: whatsappAppConfigured() }}

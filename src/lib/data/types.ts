@@ -30,6 +30,8 @@ export interface Company {
   /** Bei der Leistung "Fördermittelberatung": zusätzlich Energieausweis/Grundriss verlangen? Standard: nein. */
   foerderEnergyCertificate: boolean;
   foerderFloorplan: boolean;
+  /** Eigenes Kontaktformular des Büros (optional). Wenn gesetzt, schickt die KI den Link bei jeder neuen Anfrage zuerst mit. */
+  contactFormUrl: string;
 }
 
 export interface Profile {

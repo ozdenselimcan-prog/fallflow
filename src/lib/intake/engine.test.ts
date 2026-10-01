@@ -75,6 +75,32 @@ describe("processIntakeMessage – Terminvorschlag", () => {
   });
 });
 
+describe("processIntakeMessage – eigenes Kontaktformular", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = freshStore();
+  });
+
+  it("schickt den Formular-Link bei der ersten Nachricht mit, wenn das Büro einen hinterlegt hat", async () => {
+    await store.updateCompany({ contactFormUrl: "https://buero-beispiel.de/kontakt" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    expect(first.replies[0]).toContain("https://buero-beispiel.de/kontakt");
+  });
+
+  it("schickt keinen Link, wenn kein Formular hinterlegt ist", async () => {
+    await store.updateCompany({ contactFormUrl: "" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    expect(first.replies.join(" ")).not.toContain("http");
+  });
+
+  it("schickt den Link nicht erneut bei Folgenachrichten derselben Unterhaltung", async () => {
+    await store.updateCompany({ contactFormUrl: "https://buero-beispiel.de/kontakt" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    const second = await processIntakeMessage(store, { companyId: "demo", sessionId: first.sessionId, text: "Energieberatung", source: "widget", channel: "website" });
+    expect(second.replies.join(" ")).not.toContain("buero-beispiel.de");
+  });
+});
+
 describe("confirmAppointment", () => {
   let store: Store;
   beforeEach(() => {

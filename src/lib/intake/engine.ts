@@ -120,6 +120,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   // Antworten der KI: im Website-Chat erscheinen sie sofort im Fenster, in anderen Kanälen nur bei echtem Versand.
   const replies = inAppointmentFlow ? [] : [...turn.replies];
+  // Eigenes Kontaktformular des Büros (falls hinterlegt): bei jeder neuen Anfrage zuerst mitschicken,
+  // zusätzlich zu den normalen Erfassungsfragen – ersetzt sie nicht.
+  if (first && company.contactFormUrl) replies.unshift(`Sie können Ihre Angaben optional auch über unser Kontaktformular einreichen: ${company.contactFormUrl}`);
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
