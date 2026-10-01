@@ -1,25 +1,24 @@
 "use client";
 
-import { Check, ListChecks } from "lucide-react";
-import Link from "next/link";
+import { Check } from "lucide-react";
 import { useState } from "react";
 import type { Plan } from "@/lib/config/pricing";
-import { AssistantForm } from "@/components/dashboard/assistant-form";
 import { ConnectionsPanel } from "@/components/dashboard/connections-panel";
 import { CompanyForm, ProfileForm } from "@/components/dashboard/settings-forms";
-import { Button, buttonStyles } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
 import { Notice } from "@/components/ui/states";
 import { cn, formatDate } from "@/lib/utils";
 import type { SettingsData } from "@/lib/dashboard/settings-data";
 
-export type SettingsTab = "profile" | "company" | "connections" | "assistant" | "billing";
+// Der KI-Assistent hat eine eigene, vollwertige Seite mit Live-Vorschau (siehe /dashboard/assistant,
+// in der Sidebar verlinkt) – kein eigener Reiter hier, um die Einstellung nicht doppelt zu pflegen.
+export type SettingsTab = "profile" | "company" | "connections" | "billing";
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "profile", label: "Profil" },
   { id: "company", label: "Unternehmen" },
   { id: "connections", label: "Verbindungen" },
-  { id: "assistant", label: "Assistent" },
   { id: "billing", label: "Abrechnung" },
 ];
 
@@ -90,15 +89,6 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
             </p>
             <ConnectionsPanel {...data.connections} />
           </>
-        )}
-
-        {tab === "assistant" && (
-          <div className="space-y-4">
-            <AssistantForm initial={data.assistant.initial} canEdit={data.assistant.canEdit} />
-            <Link href="/dashboard/assistant/questions" className={buttonStyles({ variant: "secondary" })}>
-              <ListChecks className="size-3.5" /> Frage-Flow bearbeiten
-            </Link>
-          </div>
         )}
 
         {tab === "billing" && (

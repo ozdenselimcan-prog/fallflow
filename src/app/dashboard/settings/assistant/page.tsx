@@ -1,13 +1,6 @@
-import type { Metadata } from "next";
-import { SettingsBoard } from "@/components/dashboard/settings-board";
-import { requireSession } from "@/lib/auth/session";
-import { loadSettingsData } from "@/lib/dashboard/settings-data";
-import { getStore } from "@/lib/data";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Assistent-Einstellungen" };
-
-export default async function AssistantSettingsPage() {
-  const session = await requireSession();
-  const data = await loadSettingsData(session, await getStore(session));
-  return <SettingsBoard data={data} initialTab="assistant" />;
+/** Alter Pfad – der KI-Assistent hat eine eigene, vollwertige Seite statt eines Einstellungs-Reiters. */
+export default function AssistantSettingsRedirect() {
+  redirect("/dashboard/assistant");
 }

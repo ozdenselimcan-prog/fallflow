@@ -7,16 +7,16 @@ import { listConnections, toStatus } from "@/lib/integrations/connections-store"
 import { appConfigured as whatsappAppConfigured } from "@/lib/integrations/whatsapp";
 
 /**
- * Lädt alle Daten für den Einstellungsbereich (Profil, Unternehmen, Verbindungen, Assistent, Abrechnung)
- * in einem Rutsch. Wird von jeder der fünf Settings-Routen genutzt, damit der Tab-Wechsel danach
- * komplett im Browser läuft (siehe SettingsBoard) statt bei jedem Klick neu vom Server zu laden.
+ * Lädt alle Daten für den Einstellungsbereich (Profil, Unternehmen, Verbindungen, Abrechnung) in einem
+ * Rutsch. Wird von jeder der vier Settings-Routen genutzt, damit der Tab-Wechsel danach komplett im
+ * Browser läuft (siehe SettingsBoard) statt bei jedem Klick neu vom Server zu laden. Der KI-Assistent
+ * hat eine eigene Seite (/dashboard/assistant) statt eines Reiters hier.
  */
 export async function loadSettingsData(session: Session, store: Store) {
-  const [company, connections, channels, assistant, subscription] = await Promise.all([
+  const [company, connections, channels, subscription] = await Promise.all([
     store.getCompany(),
     listConnections(session.companyId),
     store.listChannels(),
-    store.getAssistant(),
     store.getSubscription(),
   ]);
 
@@ -44,7 +44,6 @@ export async function loadSettingsData(session: Session, store: Store) {
       whatsappAppConfigured: whatsappAppConfigured(),
       websiteConnected: website,
     },
-    assistant: { initial: assistant, canEdit: can(session.role, "assistant:manage") },
     billing: {
       subscription,
       plan: getPlan(subscription.plan),
