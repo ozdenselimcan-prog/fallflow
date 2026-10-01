@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/landing/footer";
 import { Navbar } from "@/components/landing/navbar";
+import { siteConfig } from "@/lib/config/site";
 
 export const metadata: Metadata = { title: "Datenschutzerklärung" };
 
@@ -44,7 +45,7 @@ export default function DatenschutzPage() {
               <br />
               80937 München
               <br />
-              E-Mail: [E-MAIL] · Telefon: [TELEFON]
+              E-Mail: {siteConfig.supportEmail}
             </p>
             <p>
               Für die Daten, die Endkunden in das Chat-Widget eines Energieberatungsbüros eingeben, ist grundsätzlich das jeweilige Büro verantwortlich (Art. 4 Nr. 7 DSGVO). Der Betreiber von FallFlow verarbeitet diese Daten in dessen Auftrag (Art. 28 DSGVO).
@@ -130,7 +131,7 @@ export default function DatenschutzPage() {
           </Section>
 
           <Section title="11. Kontakt zum Datenschutz">
-            <p>[E-MAIL bzw. Kontakt der für den Datenschutz zuständigen Stelle / des Datenschutzbeauftragten]</p>
+            <p>{siteConfig.supportEmail}</p>
           </Section>
         </div>
       </main>

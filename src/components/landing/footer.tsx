@@ -8,7 +8,7 @@ const links = [
   { label: "FAQ", href: "/#faq" },
   { label: "Datenschutz", href: "/datenschutz" },
   { label: "Impressum", href: "/impressum" },
-  { label: "Kontakt", href: "mailto:[E-MAIL]" },
+  { label: "Kontakt", href: `mailto:${siteConfig.supportEmail}` },
 ];
 
 export function Footer() {

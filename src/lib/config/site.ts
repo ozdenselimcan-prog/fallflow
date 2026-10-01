@@ -3,6 +3,7 @@ export const siteConfig = {
   description:
     "FallFlow sammelt automatisch die fehlenden Informationen, fordert Dokumente an und bereitet neue Kundenfälle für Energieberater vor.",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  supportEmail: "fallflow.support@gmail.com",
 };
 
 export const navLinks = [

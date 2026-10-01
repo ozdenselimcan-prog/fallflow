@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/landing/footer";
 import { Navbar } from "@/components/landing/navbar";
+import { siteConfig } from "@/lib/config/site";
 
 export const metadata: Metadata = { title: "Impressum" };
 
@@ -10,7 +11,7 @@ export default function ImpressumPage() {
       <Navbar />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-semibold tracking-tight">Impressum</h1>
-        <p className="mt-3 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">Entwurf: Bitte ergänzen Sie die Angaben in eckigen Klammern (E-Mail, Telefon, ggf. Register/USt-IdNr.) vor dem Livebetrieb.</p>
+        <p className="mt-3 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">Entwurf: Bitte das Registereintrag-Feld prüfen, falls ein Handelsregistereintrag besteht. Vor dem Livebetrieb rechtlich prüfen lassen.</p>
         <div className="mt-8 space-y-6 leading-relaxed [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold">
           <section>
             <h2>Angaben gemäß § 5 DDG</h2>
@@ -28,15 +29,15 @@ export default function ImpressumPage() {
           </section>
           <section>
             <h2>Kontakt</h2>
-            <p>
-              E-Mail: [E-MAIL]
-              <br />
-              Telefon: [TELEFON]
-            </p>
+            <p>E-Mail: {siteConfig.supportEmail}</p>
           </section>
           <section>
-            <h2>Registereintrag und Umsatzsteuer-ID</h2>
-            <p>[Registergericht, Registernummer und USt-IdNr., sofern vorhanden]</p>
+            <h2>Umsatzsteuer</h2>
+            <p>Gemäß § 19 Abs. 1 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen; es liegt keine Umsatzsteuer-Identifikationsnummer vor.</p>
+          </section>
+          <section>
+            <h2>Registereintrag</h2>
+            <p>[Registergericht und Registernummer, sofern ein Handelsregistereintrag besteht – sonst entfällt dieser Abschnitt]</p>
           </section>
         </div>
       </main>
