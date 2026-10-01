@@ -34,6 +34,13 @@ export interface RefreshedTokens {
   expiresIn: number;
 }
 
+/** Grobe Text-Extraktion aus HTML-Mail-Inhalt (Tags entfernen, Whitespace normalisieren) – kein echter HTML-Parser. */
+export const stripHtml = (html: string) =>
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 /**
  * Adapter-Schnittstelle für E-Mail-Postfächer. FallFlow hat pro Anbieter genau eine App-Identität
  * (GOOGLE_CLIENT_ID/SECRET bzw. MICROSOFT_CLIENT_ID/SECRET als Vercel-Variablen). Die Zugangsdaten

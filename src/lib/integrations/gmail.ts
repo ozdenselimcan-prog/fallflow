@@ -1,4 +1,4 @@
-import { IntegrationNotReadyError, type EmailProvider, type InboundEmail, type ProviderTokens } from "./email";
+import { IntegrationNotReadyError, stripHtml, type EmailProvider, type InboundEmail, type ProviderTokens } from "./email";
 
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send", "openid", "email"];
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -17,11 +17,16 @@ function headerValue(headers: { name: string; value: string }[] | undefined, nam
   return headers?.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
 }
 
+export interface GmailPart {
+  mimeType?: string;
+  body?: { data?: string };
+  parts?: GmailPart[];
+}
+
 /** Sucht im MIME-Body rekursiv nach dem ersten text/plain-Teil (Fallback: text/html ohne Tags). */
-function extractBody(payload: { mimeType?: string; body?: { data?: string }; parts?: unknown[] } | undefined): string {
+export function extractBody(payload: GmailPart | undefined): string {
   if (!payload) return "";
-  type Part = { mimeType?: string; body?: { data?: string }; parts?: Part[] };
-  const stack: Part[] = [payload as Part];
+  const stack: GmailPart[] = [payload];
   let html = "";
   while (stack.length) {
     const p = stack.shift()!;
@@ -29,7 +34,7 @@ function extractBody(payload: { mimeType?: string; body?: { data?: string }; par
     if (p.mimeType === "text/html" && p.body?.data && !html) html = decodeB64url(p.body.data);
     if (p.parts) stack.push(...p.parts);
   }
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return stripHtml(html);
 }
 
 export const gmailProvider: EmailProvider = {
@@ -84,7 +89,7 @@ export const gmailProvider: EmailProvider = {
       const full = (await googleFetch(`/messages/${m.id}?format=full`, tokens)) as {
         id: string;
         internalDate?: string;
-        payload?: { headers?: { name: string; value: string }[]; mimeType?: string; body?: { data?: string }; parts?: unknown[] };
+        payload?: GmailPart & { headers?: { name: string; value: string }[] };
       };
       const headers = full.payload?.headers;
       // Automatische Mails (Newsletter, Abwesenheitsnotizen, Massenmails) sind keine Kundenanfragen.

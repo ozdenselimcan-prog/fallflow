@@ -1,4 +1,4 @@
-import { IntegrationNotReadyError, type EmailProvider, type InboundEmail, type ProviderTokens } from "./email";
+import { IntegrationNotReadyError, stripHtml, type EmailProvider, type InboundEmail, type ProviderTokens } from "./email";
 
 const SCOPES = ["offline_access", "User.Read", "Mail.Read", "Mail.Send"];
 const TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
@@ -61,7 +61,7 @@ export const microsoftProvider: EmailProvider = {
       externalId: m.id,
       from: m.from?.emailAddress?.address ?? "",
       subject: m.subject ?? "",
-      body: (m.body?.contentType === "html" ? (m.body.content ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : m.body?.content ?? m.bodyPreview ?? "").slice(0, 4000),
+      body: (m.body?.contentType === "html" ? stripHtml(m.body.content ?? "") : (m.body?.content ?? m.bodyPreview ?? "")).slice(0, 4000),
       receivedAt: m.receivedDateTime,
     }));
   },
