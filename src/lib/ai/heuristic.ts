@@ -73,7 +73,7 @@ export function heuristicExtract(text: string): Record<string, string> {
   set("email", text.match(/[^\s@,;<>]{1,64}@[^\s@,;<>]{1,255}\.[a-z]{2,}/i)?.[0]?.toLowerCase());
   set("phone", text.match(/(?<!\d)(?:\+49|0)[\d\s/()-]{7,18}\d/)?.[0]?.trim());
 
-  const name = text.match(/(?:ich bin|mein name ist|ich heiße|hier ist|hier spricht)\s+(?:herr |frau )?(\p{Lu}[\p{L}-]+(?:\s+\p{Lu}[\p{L}-]+)?)/u)?.[1];
+  const name = text.match(/(?:ich bin|mein name ist|ich heiße|hier ist|hier spricht)\s+(?:herr |frau )?(\p{Lu}[\p{L}-]+(?:\s+\p{Lu}[\p{L}-]+)?)/iu)?.[1];
   if (name && !NOT_A_NAME.test(name)) out.name = name;
 
   set("description", text.trim().slice(0, 1000));
