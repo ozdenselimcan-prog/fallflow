@@ -15,11 +15,12 @@ const STANDARD_KEYS = ["service", "buildingType", "yearBuilt", "livingArea", "he
 export default async function OnboardingPage() {
   const session = await requireSession();
   const store = await getStore(session);
-  const [company, questions, cases, connections] = await Promise.all([
+  const [company, questions, cases, connections, documentTemplates] = await Promise.all([
     store.getCompany(),
     store.listQuestions(),
     store.listCases(),
     listConnections(session.companyId),
+    store.listDocumentTemplates(),
   ]);
 
   const fieldOptions = STANDARD_KEYS.map((key) => questions.find((q) => q.key === key)).filter((q) => q !== undefined).map((q) => ({ key: q.key, label: q.label, active: q.active }));
@@ -36,6 +37,7 @@ export default async function OnboardingPage() {
         fieldOptions={fieldOptions}
         widgetReceived={cases.some((c) => c.source === "widget")}
         connections={{ gmail: byProvider.get("gmail") ?? null, microsoft: byProvider.get("microsoft") ?? null, whatsapp: byProvider.get("whatsapp") ?? null, whatsappAppConfigured: whatsappAppConfigured() }}
+        documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName }))}
       />
     </main>
   );
