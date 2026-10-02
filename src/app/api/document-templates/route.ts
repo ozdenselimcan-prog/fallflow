@@ -26,7 +26,9 @@ export const POST = withSession(
     if (mime !== "application/pdf") return apiError("Nur PDF-Dateien sind erlaubt.", 415);
 
     const fileName = sanitizeFileName(file.name, "pdf");
-    const text = await extractPdfText(bytes);
+    // Kopie übergeben: die PDF-Textextraktion übernimmt den Speicher des übergebenen Arrays (wie bei
+    // pdf.js üblich), danach wäre "bytes" leer – der Upload unten braucht die unangetasteten Originaldaten.
+    const text = await extractPdfText(bytes.slice());
     const suggested = await suggestTemplateService(fileName, text);
 
     const storagePath = await saveFile({ companyId: session.companyId, caseId: "templates", bytes, mime });
