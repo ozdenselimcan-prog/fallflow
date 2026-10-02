@@ -194,6 +194,17 @@ export interface Member {
   status: "active" | "invited";
 }
 
+/** Büro-eigene PDF-Vorlage (z. B. eine Vollmacht), einer Leistung zugeordnet – wird Kunden automatisch als Download-Link geschickt. */
+export interface DocumentTemplate {
+  id: string;
+  companyId: string;
+  service: string;
+  title: string;
+  fileName: string;
+  storagePath: string;
+  createdAt: string;
+}
+
 export type ChannelKind = "website" | "gmail" | "microsoft" | "whatsapp";
 export interface Channel {
   kind: ChannelKind;

@@ -14,6 +14,7 @@ import type {
   ChannelKind,
   Company,
   DashboardStats,
+  DocumentTemplate,
   FollowUp,
   Member,
   MessageMeta,
@@ -88,6 +89,10 @@ export interface Store {
   inviteMember(email: string, role: Role): Promise<Member>;
   updateMemberRole(id: string, role: Role): Promise<void>;
   removeMember(id: string): Promise<void>;
+
+  listDocumentTemplates(): Promise<DocumentTemplate[]>;
+  saveDocumentTemplate(t: Omit<DocumentTemplate, "id" | "companyId" | "createdAt"> & { id?: string }): Promise<DocumentTemplate>;
+  deleteDocumentTemplate(id: string): Promise<void>;
 
   listChannels(): Promise<Channel[]>;
   /** Kanal-Status für die UI setzen (verbunden/getrennt + sichtbarer Account-Name, z. B. E-Mail-Adresse). Keine Tokens. */

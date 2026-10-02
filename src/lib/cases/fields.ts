@@ -8,6 +8,8 @@ export const SERVICES = [
   "Baubegleitung",
   "Heizung",
   "Sanierung",
+  "Einzelmaßnahme",
+  "Hydraulischer Abgleich",
   "Sonstiges",
 ] as const;
 

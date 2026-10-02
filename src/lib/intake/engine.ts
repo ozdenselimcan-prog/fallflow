@@ -1,6 +1,7 @@
 import { extractFields } from "@/lib/ai/case-extractor";
 import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
 import { heuristicExtract } from "@/lib/ai/heuristic";
+import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib/data/types";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
@@ -75,7 +76,7 @@ export async function extractForText(text: string): Promise<Record<string, strin
  */
 export async function processIntakeMessage(store: Store, input: IntakeInput): Promise<IntakeTurn> {
   const { companyId } = input;
-  const [questions, settings, company] = await Promise.all([store.listQuestions(), store.getAssistant(), store.getCompany()]);
+  const [questions, settings, company, templates] = await Promise.all([store.listQuestions(), store.getAssistant(), store.getCompany(), store.listDocumentTemplates()]);
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const existing = input.sessionId ? await store.getCase(input.sessionId) : null;
   if (input.sessionId && !existing) throw new SessionNotFoundError();
@@ -146,6 +147,18 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       items: checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.replace("doc:", "") as DocumentKind, label: i.label, done: i.done, required: i.required })),
     };
     if (refreshed.requestedNow.length) replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
+  }
+
+  // Büro-Vorlage (z. B. eine Vollmacht) automatisch mitschicken, sobald die passende Leistung bekannt ist –
+  // als Download-Link, nicht als Anhang (funktioniert so auf allen Kanälen gleich). Pro Fall nur einmal,
+  // damit der Link nicht bei jeder weiteren Nachricht wiederholt wird.
+  const matchingTemplate = turn.fields.service ? templates.find((t) => t.service && t.service === turn.fields.service) : undefined;
+  if (matchingTemplate && refreshed.caseRecord.fields.templateSentFor !== matchingTemplate.id) {
+    const token = await ensureUploadToken(store, refreshed.caseRecord);
+    const templateUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${matchingTemplate.id}`;
+    replies.push(`Für Ihr Anliegen („${matchingTemplate.title}“) finden Sie hier das passende Dokument zum Download: ${templateUrl}`);
+    await store.updateCase(caseId, { fields: { templateSentFor: matchingTemplate.id } });
+    await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${matchingTemplate.title}`);
   }
 
   // Terminvorschlag: Sobald der Fall vollständig ist (oder der Kunde ausdrücklich einen Termin wünscht),

@@ -101,6 +101,32 @@ describe("processIntakeMessage – eigenes Kontaktformular", () => {
   });
 });
 
+describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = freshStore();
+  });
+
+  it("schickt einen Download-Link mit, sobald die passende Leistung erkannt ist", async () => {
+    const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    expect(first.replies.join(" ")).toContain(`/template/${template.id}`);
+  });
+
+  it("schickt keinen Link ohne passende Vorlage", async () => {
+    await store.saveDocumentTemplate({ service: "iSFP", title: "Vollmacht iSFP", fileName: "vollmacht-isfp.pdf", storagePath: "demo/templates/y.pdf" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    expect(first.replies.join(" ")).not.toContain("/template/");
+  });
+
+  it("schickt den Link nicht erneut bei Folgenachrichten derselben Unterhaltung", async () => {
+    const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    const second = await processIntakeMessage(store, { companyId: "demo", sessionId: first.sessionId, text: "Max Mustermann", source: "widget", channel: "website" });
+    expect(second.replies.join(" ")).not.toContain(`/template/${template.id}`);
+  });
+});
+
 describe("confirmAppointment", () => {
   let store: Store;
   beforeEach(() => {

@@ -13,11 +13,12 @@ import { appConfigured as whatsappAppConfigured } from "@/lib/integrations/whats
  * hat eine eigene Seite (/dashboard/assistant) statt eines Reiters hier.
  */
 export async function loadSettingsData(session: Session, store: Store) {
-  const [company, connections, channels, subscription] = await Promise.all([
+  const [company, connections, channels, subscription, documentTemplates] = await Promise.all([
     store.getCompany(),
     listConnections(session.companyId),
     store.listChannels(),
     store.getSubscription(),
+    store.listDocumentTemplates(),
   ]);
 
   const byProvider = new Map(connections.map((c) => [c.provider, toStatus(c)]));
@@ -35,6 +36,7 @@ export async function loadSettingsData(session: Session, store: Store) {
       foerderFloorplan: company.foerderFloorplan,
       contactFormUrl: company.contactFormUrl,
     },
+    documentTemplates: documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName })),
     connections: {
       appUrl: siteConfig.appUrl,
       companyId: session.companyId,

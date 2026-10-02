@@ -19,6 +19,15 @@ describe("detectService", () => {
   it("liefert leeren String ohne erkennbares Stichwort", () => {
     expect(detectService("Hallo, ich hätte eine Frage zu meinem Haus")).toBe("");
   });
+
+  it("erkennt Einzelmaßnahme vor der allgemeineren Förderantrag-Erkennung", () => {
+    expect(detectService("Ich möchte eine Einzelmaßnahme fördern lassen")).toBe("Einzelmaßnahme");
+    expect(detectService("Brauche eine EM-Vollmacht")).toBe("Einzelmaßnahme");
+  });
+
+  it("erkennt Hydraulischen Abgleich vor der allgemeineren Heizungs-Erkennung", () => {
+    expect(detectService("Wir brauchen einen hydraulischen Abgleich unserer Heizung")).toBe("Hydraulischer Abgleich");
+  });
 });
 
 describe("detectBuildingType", () => {

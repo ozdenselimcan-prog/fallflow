@@ -10,6 +10,7 @@ import type {
   CaseRecord,
   Channel,
   Company,
+  DocumentTemplate,
   FollowUp,
   Member,
   Question,
@@ -37,6 +38,16 @@ const mapCompany = (r: Row): Company => ({
   foerderEnergyCertificate: r.foerder_energy_certificate ?? false,
   foerderFloorplan: r.foerder_floorplan ?? false,
   contactFormUrl: r.contact_form_url ?? "",
+});
+
+const mapDocumentTemplate = (r: Row): DocumentTemplate => ({
+  id: r.id,
+  companyId: r.company_id,
+  service: r.service,
+  title: r.title,
+  fileName: r.file_name,
+  storagePath: r.storage_path,
+  createdAt: r.created_at,
 });
 
 const mapCase = (r: Row): CaseRecord => ({
@@ -455,6 +466,24 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
     async removeMember(id) {
       const { error } = await db.from("company_members").delete().eq("company_id", companyId).eq("id", id);
       fail(error, "member remove");
+    },
+
+    async listDocumentTemplates(): Promise<DocumentTemplate[]> {
+      const { data, error } = await db.from("document_templates").select("*").eq("company_id", companyId).order("created_at");
+      fail(error, "document templates");
+      return (data ?? []).map(mapDocumentTemplate);
+    },
+    async saveDocumentTemplate(t) {
+      const row = { company_id: companyId, service: t.service, title: t.title, file_name: t.fileName, storage_path: t.storagePath };
+      const { data, error } = t.id
+        ? await db.from("document_templates").update(row).eq("id", t.id).eq("company_id", companyId).select("*").single()
+        : await db.from("document_templates").insert(row).select("*").single();
+      fail(error, "document template save");
+      return mapDocumentTemplate(data!);
+    },
+    async deleteDocumentTemplate(id) {
+      const { error } = await db.from("document_templates").delete().eq("id", id).eq("company_id", companyId);
+      fail(error, "document template delete");
     },
 
     async setChannelStatus(kind, status, account) {

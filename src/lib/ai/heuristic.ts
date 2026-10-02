@@ -8,6 +8,8 @@ export function detectService(text: string): string {
   const t = text.toLowerCase();
   if (/isfp|sanierungsfahrplan/.test(t)) return "iSFP";
   if (/energieausweis/.test(t)) return "Energieausweis";
+  if (/einzelmaßnahme|einzelmassnahme|\bem[\s-]?vollmacht\b/.test(t)) return "Einzelmaßnahme";
+  if (/hydraulisch(er|en)?\s*abgleich/.test(t)) return "Hydraulischer Abgleich";
   if (/förder|foerder|bafa|kfw/.test(t)) return "Fördermittelberatung";
   if (/baubegleitung/.test(t)) return "Baubegleitung";
   if (/heizung|wärmepumpe|waermepumpe|heizungstausch/.test(t)) return "Heizung";
