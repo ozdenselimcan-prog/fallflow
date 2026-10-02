@@ -5,6 +5,11 @@ import { listActiveConnections, saveConnection } from "./connections-store";
 import type { EmailProvider } from "./email";
 import { getValidTokens } from "./tokens";
 
+/** Zuletzt verarbeitete Mail-IDs je Verbindung, um keine Mail doppelt zu bearbeiten (z. B. Gmails `after:`-Suche
+ * ist nur tagesgenau und kann dieselbe Mail im nächsten Abruf erneut liefern; zusätzlich schützt das gegen
+ * überlappende Abrufe, falls zwei Cron-Läufe sich zeitlich überschneiden). */
+const SEEN_IDS_LIMIT = 300;
+
 /**
  * Holt für alle verbundenen Postfächer eines Anbieters neue Nachrichten ab und verarbeitet sie über
  * dieselbe Pipeline wie WhatsApp (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
@@ -23,8 +28,11 @@ export async function syncMailbox(provider: EmailProvider): Promise<{ connection
       const store = await getPublicStore(connection.companyId);
       if (!store) continue;
 
+      const seenIds = new Set<string>(Array.isArray(connection.metadata.seenMailIds) ? (connection.metadata.seenMailIds as string[]) : []);
       const inbound = await provider.fetchNewMessages(found.tokens, connection.lastSyncedAt);
       for (const mail of inbound) {
+        if (seenIds.has(mail.externalId)) continue;
+        seenIds.add(mail.externalId);
         const from = (mail.from.match(/<([^>]+)>/)?.[1] ?? mail.from).trim().toLowerCase();
         // Sicherheitsnetz gegen Endlosschleifen: eine Mail, die vom eigenen verbundenen Postfach kommt (z. B. eine
         // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
@@ -43,7 +51,15 @@ export async function syncMailbox(provider: EmailProvider): Promise<{ connection
           console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
         }
       }
-      await saveConnection({ companyId: connection.companyId, provider: provider.id, status: "connected", lastSyncedAt: new Date().toISOString(), lastError: "" });
+      const cappedSeenIds = [...seenIds].slice(-SEEN_IDS_LIMIT);
+      await saveConnection({
+        companyId: connection.companyId,
+        provider: provider.id,
+        status: "connected",
+        lastSyncedAt: new Date().toISOString(),
+        lastError: "",
+        metadata: { ...connection.metadata, seenMailIds: cappedSeenIds },
+      });
     } catch (err) {
       errors++;
       const message = err instanceof Error ? err.message : "Abruf fehlgeschlagen";
