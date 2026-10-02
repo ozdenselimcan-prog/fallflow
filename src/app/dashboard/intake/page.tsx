@@ -42,8 +42,8 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
 
   const session = await requireSession();
   const store = await getStore(session);
-  const [cases, documents, followUps, questions] = await Promise.all([store.listCases({ sort: "newest" }), store.listDocuments(), store.listFollowUps(), store.listQuestions()]);
-  const meta = buildCaseMeta(cases, questions, documents);
+  const [cases, documents, followUps, questions, company] = await Promise.all([store.listCases({ sort: "newest" }), store.listDocuments(), store.listFollowUps(), store.listQuestions(), store.getCompany()]);
+  const meta = buildCaseMeta(cases, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan });
   const nameOf = new Map(cases.map((c) => [c.id, c]));
 
   const counts = Object.fromEntries(CASE_STATUSES.map((s) => [s, cases.filter((c) => c.status === s).length])) as Record<CaseStatus, number>;

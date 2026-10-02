@@ -16,7 +16,12 @@ export const GET = publicRoute("upload-info", 60, async (_req, ctx: RouteContext
   if (!found) return apiError("Der Link ist ungültig oder abgelaufen.", 404);
   const { store, caseRecord } = found;
   const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(caseRecord.id), store.getCompany()]);
-  const checklist = buildChecklist({ questions, fields: caseRecord.fields, documents });
+  const checklist = buildChecklist({
+    questions,
+    fields: caseRecord.fields,
+    documents,
+    foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+  });
   return json({
     companyName: company.name,
     items: checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.replace("doc:", ""), label: i.label, required: i.required, done: i.done })),

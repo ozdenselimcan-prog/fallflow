@@ -24,7 +24,12 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
 
   const { store, caseRecord } = found;
   const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(caseRecord.id), store.getCompany()]);
-  const checklist = buildChecklist({ questions, fields: caseRecord.fields, documents });
+  const checklist = buildChecklist({
+    questions,
+    fields: caseRecord.fields,
+    documents,
+    foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+  });
   const items = checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.replace("doc:", ""), label: i.label, required: i.required, done: i.done }));
   const open = items.filter((i) => i.required && !i.done).length;
 

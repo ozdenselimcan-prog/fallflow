@@ -33,8 +33,8 @@ export default async function CasesPage({ searchParams }: PageProps<"/dashboard/
 
   const session = await requireSession();
   const store = await getStore(session);
-  const [cases, documents, questions] = await Promise.all([store.listCases(filters), store.listDocuments(), store.listQuestions()]);
-  const meta = buildCaseMeta(cases, questions, documents);
+  const [cases, documents, questions, company] = await Promise.all([store.listCases(filters), store.listDocuments(), store.listQuestions(), store.getCompany()]);
+  const meta = buildCaseMeta(cases, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan });
 
   return (
     <>

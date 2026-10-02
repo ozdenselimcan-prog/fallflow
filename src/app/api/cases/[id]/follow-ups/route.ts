@@ -11,8 +11,13 @@ export const POST = withSession(
     const c = await store.getCase(id);
     if (!c) return apiError("Nicht gefunden", 404);
     if (!c.fields.email && !c.fields.phone) return apiError("Für ein Follow-up fehlt eine E-Mail-Adresse oder Telefonnummer.", 400);
-    const [questions, documents] = await Promise.all([store.listQuestions(), store.listDocuments(id)]);
-    const checklist = buildChecklist({ questions, fields: c.fields, documents });
+    const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(id), store.getCompany()]);
+    const checklist = buildChecklist({
+      questions,
+      fields: c.fields,
+      documents,
+      foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    });
     if (checklist.missing.length === 0) return apiError("Es fehlt nichts – kein Follow-up nötig.", 400);
     await syncFollowUps(store, c, checklist, { force: true });
     return json({ followUps: await store.listFollowUps(id) }, 201);
