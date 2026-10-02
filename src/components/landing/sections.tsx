@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { DemoWorkbench } from "@/components/chat/demo-workbench";
+import { MailFlowAnimation } from "@/components/landing/mail-flow-animation";
 import { buttonStyles } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { faqs } from "@/lib/config/faq";
@@ -78,6 +79,18 @@ export function FlowSection() {
         </ol>
       </div>
     </section>
+  );
+}
+
+/** Läuft automatisch ab (Mail rein → KI antwortet → Vorlage wird verschickt → vollständig) – als
+ * selbsterklärendes "Kurzvideo" ohne echte Videodatei, direkt unter dem Hero. */
+export function MailFlowSection() {
+  return (
+    <Section title="So sieht ein echter Fall aus – in Echtzeit." intro="Eine Mail kommt rein. Der Assistent fragt nach, was fehlt, verschickt bei Bedarf eine passende Vorlage und meldet den Fall erst, wenn wirklich alles da ist.">
+      <div className="mx-auto max-w-xl">
+        <MailFlowAnimation />
+      </div>
+    </Section>
   );
 }
 

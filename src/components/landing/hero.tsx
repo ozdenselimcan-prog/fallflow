@@ -14,7 +14,9 @@ const checklist = [
 
 export function Hero() {
   return (
-    <section id="produkt" className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
+    <section id="produkt" className="relative overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[32rem] bg-[radial-gradient(60%_60%_at_50%_0%,var(--color-accent-soft),transparent)]" />
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
       <div>
         <Badge tone="accent" className="mb-5">
           AI Intake &amp; Operations für Energieberater
@@ -79,6 +81,7 @@ export function Hero() {
             </Link>
           </div>
         </div>
+      </div>
       </div>
     </section>
   );

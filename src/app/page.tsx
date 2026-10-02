@@ -8,6 +8,7 @@ import {
   FeaturesSection,
   FinalCta,
   FlowSection,
+  MailFlowSection,
   NoCrmSection,
   PricingSection,
   ProblemSection,
@@ -20,6 +21,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <MailFlowSection />
         <FlowSection />
         <ProblemSection />
         <SolutionSection />
