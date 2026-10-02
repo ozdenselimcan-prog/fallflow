@@ -1,13 +1,16 @@
 import { z } from "zod";
 import { apiError, json, publicRoute } from "@/lib/api";
+import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { findUploadContext } from "@/lib/data";
 import { DOCUMENT_KINDS } from "@/lib/data/types";
+import { extractPdfText } from "@/lib/documents/pdf-text";
 import { ALLOWED_TYPES, MAX_UPLOAD_BYTES, sanitizeFileName, saveFile, sniffMime, storageAvailable } from "@/lib/documents/storage";
 import { refreshCase, registerUpload } from "@/lib/intake/case-ops";
 import { buildChecklist } from "@/lib/intake/checklist";
 import { rateLimit } from "@/lib/rate-limit";
 
 const MAX_DOCS_PER_CASE = 30;
+const TEMPLATE_PREFIX = "template:";
 
 /** Öffentlicher Upload-Link des Kunden: liefert nur, was die Upload-Seite braucht (keine personenbezogenen Falldaten). */
 export const GET = publicRoute("upload-info", 60, async (_req, ctx: RouteContext<"/api/upload/[token]">) => {
@@ -15,16 +18,25 @@ export const GET = publicRoute("upload-info", 60, async (_req, ctx: RouteContext
   const found = await findUploadContext(token);
   if (!found) return apiError("Der Link ist ungültig oder abgelaufen.", 404);
   const { store, caseRecord } = found;
-  const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(caseRecord.id), store.getCompany()]);
+  const [questions, documents, company, templateDocs, templates] = await Promise.all([
+    store.listQuestions(),
+    store.listDocuments(caseRecord.id),
+    store.getCompany(),
+    store.listTemplateDocuments(caseRecord.id),
+    store.listDocumentTemplates(),
+  ]);
+  const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
+  const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status }));
   const checklist = buildChecklist({
     questions,
     fields: caseRecord.fields,
     documents,
     foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    templateSends,
   });
   return json({
     companyName: company.name,
-    items: checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.replace("doc:", ""), label: i.label, required: i.required, done: i.done })),
+    items: checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.startsWith("doc:") ? i.key.replace("doc:", "") : i.key, label: i.label, required: i.required, done: i.done })),
     uploadsAvailable: storageAvailable(),
   });
 });
@@ -49,9 +61,9 @@ export const POST = publicRoute("upload", 20, async (req, ctx: RouteContext<"/ap
   } catch {
     return apiError("Ungültige Anfrage", 400);
   }
-  const kind = z.enum(DOCUMENT_KINDS).safeParse(form.get("kind"));
+  const rawKind = form.get("kind");
   const file = form.get("file");
-  if (!kind.success || !(file instanceof File)) return apiError("Bitte wählen Sie eine Datei aus.", 400);
+  if (typeof rawKind !== "string" || !(file instanceof File)) return apiError("Bitte wählen Sie eine Datei aus.", 400);
   if (file.size === 0) return apiError("Die Datei ist leer.", 400);
   if (file.size > MAX_UPLOAD_BYTES) return apiError("Die Datei ist zu groß (maximal 10 MB).", 413);
 
@@ -60,6 +72,28 @@ export const POST = publicRoute("upload", 20, async (req, ctx: RouteContext<"/ap
   if (!mime) return apiError("Nur PDF, JPG, PNG oder WebP sind erlaubt.", 415);
 
   const { store, caseRecord } = found;
+
+  // Ausgefüllte Büro-Vorlage (z. B. Vollmacht) zurück – eigener Weg, keine feste DocumentKind: die KI
+  // prüft den Textinhalt kurz (rein informativ, blockiert den Eingang nicht) und markiert den Rückläufer als erhalten.
+  if (rawKind.startsWith(TEMPLATE_PREFIX)) {
+    const templateDocId = rawKind.slice(TEMPLATE_PREFIX.length);
+    const pending = (await store.listTemplateDocuments(caseRecord.id)).find((t) => t.id === templateDocId && t.status === "sent");
+    if (!pending) return apiError("Diese Vorlage wurde nicht angefordert oder liegt bereits vor.", 404);
+
+    const storagePath = await saveFile({ companyId: caseRecord.companyId, caseId: caseRecord.id, bytes, mime });
+    const text = mime === "application/pdf" ? await extractPdfText(bytes.slice()) : "";
+    const templates = await store.listDocumentTemplates();
+    const title = templates.find((t) => t.id === pending.templateId)?.title ?? "Vorlage";
+    const { note } = text ? await verifyFilledTemplate(title, text) : { note: "" };
+
+    await store.saveTemplateDocument({ id: pending.id, caseId: caseRecord.id, templateId: pending.templateId, status: "received", storagePath, aiNote: note, receivedAt: new Date().toISOString() });
+    await store.addEvent(caseRecord.id, "document", note ? `Vorlage zurückerhalten: ${title} (${note})` : `Vorlage zurückerhalten: ${title}`);
+    const { checklist } = await refreshCase(store, caseRecord.id, { hint: "edit" });
+    return json({ ok: true, kind: rawKind, percent: checklist.percent }, 201);
+  }
+
+  const kind = z.enum(DOCUMENT_KINDS).safeParse(rawKind);
+  if (!kind.success) return apiError("Unbekannte Dokumentart.", 400);
   if ((await store.listDocuments(caseRecord.id)).length >= MAX_DOCS_PER_CASE) return apiError("Es wurden bereits zu viele Dateien hochgeladen.", 409);
 
   const storagePath = await saveFile({ companyId: caseRecord.companyId, caseId: caseRecord.id, bytes, mime });

@@ -80,7 +80,20 @@ export interface Checklist {
   dataComplete: boolean;
 }
 
-export function buildChecklist(input: { questions: Question[]; fields: Record<string, string>; documents: CaseDocument[]; foerderOverrides?: FoerderDocumentOverrides }): Checklist {
+export interface TemplateSendInfo {
+  id: string;
+  title: string;
+  status: "sent" | "received";
+}
+
+export function buildChecklist(input: {
+  questions: Question[];
+  fields: Record<string, string>;
+  documents: CaseDocument[];
+  foerderOverrides?: FoerderDocumentOverrides;
+  /** Vom Büro an diesen Fall gesendete PDF-Vorlagen – fließen als Pflichtdokumente ein, bis sie ausgefüllt zurück sind. */
+  templateSends?: TemplateSendInfo[];
+}): Checklist {
   const { fields, documents } = input;
   const items: ChecklistItem[] = [];
 
@@ -93,6 +106,9 @@ export function buildChecklist(input: { questions: Question[]; fields: Record<st
     const done = documents.some((d) => d.kind === req.kind && d.status === "received");
     const requested = done || documents.some((d) => d.kind === req.kind && d.status === "requested");
     items.push({ key: `doc:${req.kind}`, label: req.label, kind: "document", required: req.required, done, requested });
+  }
+  for (const t of input.templateSends ?? []) {
+    items.push({ key: `template:${t.id}`, label: t.title, kind: "document", required: true, done: t.status === "received", requested: true });
   }
 
   const required = items.filter((i) => i.required);

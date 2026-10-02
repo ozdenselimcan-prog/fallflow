@@ -205,6 +205,20 @@ export interface DocumentTemplate {
   createdAt: string;
 }
 
+/** Rückweg einer Büro-PDF-Vorlage: 'sent' = an den Kunden geschickt, 'received' = ausgefüllt zurück. */
+export interface TemplateDocument {
+  id: string;
+  companyId: string;
+  caseId: string;
+  templateId: string;
+  status: "sent" | "received";
+  storagePath: string;
+  /** Kurzer KI-Hinweis, ob das zurückgeschickte Dokument ausgefüllt wirkt (rein informativ, blockiert nichts). */
+  aiNote: string;
+  createdAt: string;
+  receivedAt: string | null;
+}
+
 export type ChannelKind = "website" | "gmail" | "microsoft" | "whatsapp";
 export interface Channel {
   kind: ChannelKind;

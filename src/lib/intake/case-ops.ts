@@ -112,7 +112,14 @@ const PREPARED = ["COMPLETE", "READY_FOR_REVIEW", "CONVERTED"];
  * Wird nach jeder Änderung aufgerufen (Chat-Nachricht, Upload, Bearbeitung, Notiz).
  */
 export async function refreshCase(store: Store, caseId: string, opts: RefreshOptions = {}): Promise<RefreshResult> {
-  const [current, questions, settings, company] = await Promise.all([store.getCase(caseId), store.listQuestions(), store.getAssistant(), store.getCompany()]);
+  const [current, questions, settings, company, templateDocs, templates] = await Promise.all([
+    store.getCase(caseId),
+    store.listQuestions(),
+    store.getAssistant(),
+    store.getCompany(),
+    store.listTemplateDocuments(caseId),
+    store.listDocumentTemplates(),
+  ]);
   if (!current) throw new Error("Fall nicht gefunden");
 
   let c = current;
@@ -120,18 +127,22 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   const derived = deriveFields(c.fields);
   const fields = { ...c.fields, ...derived };
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
-  let checklist = buildChecklist({ questions, fields, documents, foerderOverrides });
+  const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
+  const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status }));
+  let checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends });
 
   let requestedNow: DocumentKind[] = [];
   let uploadLink: string | null = null;
   if (opts.autoRequestDocs && settings.autoFollowUp && checklist.dataComplete && checklist.unrequestedDocuments.length > 0) {
-    const kinds = checklist.unrequestedDocuments.map((i) => i.key.replace("doc:", "") as DocumentKind);
-    const res = await requestDocuments(store, c, kinds);
-    requestedNow = res.requested;
-    uploadLink = res.url;
-    documents = await store.listDocuments(caseId);
-    checklist = buildChecklist({ questions, fields, documents, foerderOverrides });
-    c = (await store.getCase(caseId)) ?? c;
+    const kinds = checklist.unrequestedDocuments.filter((i) => i.key.startsWith("doc:")).map((i) => i.key.replace("doc:", "") as DocumentKind);
+    if (kinds.length) {
+      const res = await requestDocuments(store, c, kinds);
+      requestedNow = res.requested;
+      uploadLink = res.url;
+      documents = await store.listDocuments(caseId);
+      checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends });
+      c = (await store.getCase(caseId)) ?? c;
+    }
   }
 
   const previous = c.status;
@@ -180,8 +191,25 @@ export async function syncFollowUps(store: Store, c: CaseRecord, checklist: Chec
   let kind: "document" | "info";
   if (onlyDocsMissing) {
     const token = await ensureUploadToken(store, c);
-    const kinds = checklist.missing.map((i) => i.key.replace("doc:", "") as DocumentKind);
-    message = documentRequestMessage({ name: c.fields.name, kinds, url: uploadUrl(token), reminder: true });
+    // Klassische Dokumentarten und zurückerwartete Büro-Vorlagen ("template:…", kein fester DocumentKind)
+    // getrennt behandeln – letztere haben keinen Eintrag in den Dokumentart-Textbausteinen.
+    const docMissing = checklist.missing.filter((i) => i.key.startsWith("doc:"));
+    const templateMissing = checklist.missing.filter((i) => i.key.startsWith("template:"));
+    const parts: string[] = [];
+    if (docMissing.length) {
+      const kinds = docMissing.map((i) => i.key.replace("doc:", "") as DocumentKind);
+      parts.push(documentRequestMessage({ name: c.fields.name, kinds, url: uploadUrl(token), reminder: true }));
+    }
+    if (templateMissing.length) {
+      const list = templateMissing.map((i) => i.label).join(", ");
+      const greetingLine = c.fields.name?.trim() ? `Guten Tag ${c.fields.name.trim()},` : "Guten Tag,";
+      parts.push(
+        docMissing.length
+          ? `Außerdem fehlt uns noch die ausgefüllte Vorlage: ${list}.`
+          : `${greetingLine}\n\nuns fehlt noch die ausgefüllte Vorlage: ${list}. Sie können sie hier hochladen: ${uploadUrl(token)}\n\nVielen Dank!`,
+      );
+    }
+    message = parts.join("\n\n");
     kind = "document";
   } else {
     message = infoReminderMessage({ name: c.fields.name, missing: checklist.missing.map((i) => i.label) });

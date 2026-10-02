@@ -27,7 +27,8 @@ export const POST = withSession(
       documents,
       foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
     });
-    const kinds: DocumentKind[] = body.data.kinds ?? checklist.missing.filter((i) => i.kind === "document").map((i) => i.key.replace("doc:", "") as DocumentKind);
+    // Nur klassische Dokumentarten – Vorlagen-Rückläufer ("template:…") laufen über die Büro-Vorlagen-Funktion, nicht hier.
+    const kinds: DocumentKind[] = body.data.kinds ?? checklist.missing.filter((i) => i.kind === "document" && i.key.startsWith("doc:")).map((i) => i.key.replace("doc:", "") as DocumentKind);
     if (kinds.length === 0) return apiError("Es fehlen keine Dokumente.", 400);
 
     const { url } = await requestDocuments(store, c, kinds);

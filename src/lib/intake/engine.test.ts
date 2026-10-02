@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { nextPending } from "@/lib/ai/conversation";
 import { createMemoryStore } from "@/lib/data/memory";
 import type { Store } from "@/lib/data/store";
-import { confirmAppointment } from "./case-ops";
+import { confirmAppointment, refreshCase } from "./case-ops";
 import { processIntakeMessage, type IntakeTurn } from "./engine";
 
 /**
@@ -107,10 +107,16 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     store = freshStore();
   });
 
-  it("schickt einen Download-Link mit, sobald die passende Leistung erkannt ist", async () => {
+  it("schickt Download- UND Upload-Link mit, sobald die passende Leistung erkannt ist", async () => {
     const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
-    expect(first.replies.join(" ")).toContain(`/template/${template.id}`);
+    const reply = first.replies.join(" ");
+    expect(reply).toContain(`/template/${template.id}`);
+    expect(reply).toContain("/upload/");
+
+    const templateDocs = await store.listTemplateDocuments(first.sessionId);
+    expect(templateDocs).toHaveLength(1);
+    expect(templateDocs[0]).toMatchObject({ templateId: template.id, status: "sent" });
   });
 
   it("schickt keinen Link ohne passende Vorlage", async () => {
@@ -124,6 +130,25 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
     const second = await processIntakeMessage(store, { companyId: "demo", sessionId: first.sessionId, text: "Max Mustermann", source: "widget", channel: "website" });
     expect(second.replies.join(" ")).not.toContain(`/template/${template.id}`);
+  });
+
+  it("Fall wird erst 'bereit zur Prüfung', wenn die ausgefüllte Vorlage zurück ist", async () => {
+    // Fördermittelberatung verlangt standardmäßig weder Grundriss noch Energieausweis (siehe checklist.ts) –
+    // damit ist die Vorlage hier das einzige noch offene Pflichtdokument, sauber isoliert vom Rest.
+    const template = await store.saveDocumentTemplate({ service: "Fördermittelberatung", title: "EM-Vollmacht", fileName: "em-vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Fördermittelberatung.", source: "widget", channel: "website" });
+    const sessionId = first.sessionId;
+    const complete = await completeCase(store, sessionId, first);
+    expect(complete.fields.service).toBe("Fördermittelberatung");
+
+    // Alle Pflichtangaben liegen vor, die Vorlage aber noch nicht zurück → nicht fertig.
+    expect(complete.status).not.toBe("READY_FOR_REVIEW");
+    const [pending] = await store.listTemplateDocuments(sessionId);
+    expect(pending.status).toBe("sent");
+
+    await store.saveTemplateDocument({ id: pending.id, caseId: sessionId, templateId: template.id, status: "received", storagePath: "demo/x-filled.pdf", aiNote: "wirkt ausgefüllt", receivedAt: new Date().toISOString() });
+    const refreshed = await refreshCase(store, sessionId, { hint: "edit" });
+    expect(refreshed.caseRecord.status).toBe("READY_FOR_REVIEW");
   });
 });
 

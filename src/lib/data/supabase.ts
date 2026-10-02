@@ -14,6 +14,7 @@ import type {
   FollowUp,
   Member,
   Question,
+  TemplateDocument,
 } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -48,6 +49,18 @@ const mapDocumentTemplate = (r: Row): DocumentTemplate => ({
   fileName: r.file_name,
   storagePath: r.storage_path,
   createdAt: r.created_at,
+});
+
+const mapTemplateDocument = (r: Row): TemplateDocument => ({
+  id: r.id,
+  companyId: r.company_id,
+  caseId: r.case_id,
+  templateId: r.template_id,
+  status: r.status,
+  storagePath: r.storage_path,
+  aiNote: r.ai_note,
+  createdAt: r.created_at,
+  receivedAt: r.received_at,
 });
 
 const mapCase = (r: Row): CaseRecord => ({
@@ -484,6 +497,30 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
     async deleteDocumentTemplate(id) {
       const { error } = await db.from("document_templates").delete().eq("id", id).eq("company_id", companyId);
       fail(error, "document template delete");
+    },
+
+    async listTemplateDocuments(caseId) {
+      let q = db.from("template_documents").select("*").eq("company_id", companyId);
+      if (caseId) q = q.eq("case_id", caseId);
+      const { data, error } = await q.order("created_at");
+      fail(error, "template documents");
+      return (data ?? []).map(mapTemplateDocument);
+    },
+    async saveTemplateDocument(t) {
+      const row = {
+        company_id: companyId,
+        case_id: t.caseId,
+        template_id: t.templateId,
+        status: t.status,
+        storage_path: t.storagePath,
+        ai_note: t.aiNote,
+        received_at: t.receivedAt,
+      };
+      const { data, error } = t.id
+        ? await db.from("template_documents").update(row).eq("id", t.id).eq("company_id", companyId).select("*").single()
+        : await db.from("template_documents").insert(row).select("*").single();
+      fail(error, "template document save");
+      return mapTemplateDocument(data!);
     },
 
     async setChannelStatus(kind, status, account) {

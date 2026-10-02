@@ -106,6 +106,27 @@ describe("buildChecklist", () => {
     expect(withOverride.items.some((i) => i.key === "doc:energy_certificate")).toBe(true);
     expect(withOverride.items.some((i) => i.key === "doc:floorplan")).toBe(false);
   });
+
+  it("gesendete Vorlagen zählen als fehlendes Pflichtdokument, bis sie zurück sind", () => {
+    const sent = buildChecklist({
+      questions,
+      fields: { service: "Energieberatung", name: "Max" },
+      documents: [],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "sent" }],
+    });
+    expect(sent.items.some((i) => i.key === "template:t1" && !i.done)).toBe(true);
+    expect(sent.missing.some((i) => i.key === "template:t1")).toBe(true);
+    // Vorlagen gelten sofort als "angefordert" (das Buero hat sie ja schon geschickt) – tauchen nicht als unrequested auf.
+    expect(sent.unrequestedDocuments.some((i) => i.key === "template:t1")).toBe(false);
+
+    const received = buildChecklist({
+      questions,
+      fields: { service: "Energieberatung", name: "Max" },
+      documents: [],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "received" }],
+    });
+    expect(received.missing.some((i) => i.key === "template:t1")).toBe(false);
+  });
 });
 
 describe("deriveStatus", () => {
@@ -128,6 +149,24 @@ describe("deriveStatus", () => {
 
   it("vollständige Angaben, aber Dokumente nur angefordert/fehlend → COMPLETE, nicht READY_FOR_REVIEW", () => {
     expect(deriveStatus("WAITING_FOR_CUSTOMER", baseChecklist(true, false))).toBe("COMPLETE");
+  });
+
+  it("eine gesendete, aber noch nicht zurückerhaltene Vorlage blockiert READY_FOR_REVIEW genauso wie ein fehlendes Dokument", () => {
+    const withPendingTemplate = buildChecklist({
+      questions: [q({ key: "name", label: "Name" })],
+      fields: { name: "Max", service: "Energieausweis" },
+      documents: [{ id: "d1", caseId: "c1", companyId: "c1", kind: "floorplan", status: "received", fileName: "", mimeType: "", size: 0, storagePath: "", requestedAt: "", receivedAt: "" }],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "sent" }],
+    });
+    expect(deriveStatus("WAITING_FOR_CUSTOMER", withPendingTemplate)).toBe("COMPLETE");
+
+    const withReceivedTemplate = buildChecklist({
+      questions: [q({ key: "name", label: "Name" })],
+      fields: { name: "Max", service: "Energieausweis" },
+      documents: [{ id: "d1", caseId: "c1", companyId: "c1", kind: "floorplan", status: "received", fileName: "", mimeType: "", size: 0, storagePath: "", requestedAt: "", receivedAt: "" }],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "received" }],
+    });
+    expect(deriveStatus("WAITING_FOR_CUSTOMER", withReceivedTemplate)).toBe("READY_FOR_REVIEW");
   });
 
   it("unvollständig + hint 'waiting' → WAITING_FOR_CUSTOMER", () => {

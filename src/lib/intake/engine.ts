@@ -131,6 +131,25 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   if (turn.handoff) await store.addEvent(caseId, "handoff", "Kunde wünscht persönlichen Kontakt");
   if (turn.appointmentRequested) await store.addEvent(caseId, "appointment", "Kunde wünscht einen Termin");
 
+  // Büro-Vorlage (z. B. eine Vollmacht) automatisch mitschicken, sobald die passende Leistung bekannt ist – mit
+  // Download-Link (blanko) UND Upload-Link (zum Zurückschicken der ausgefüllten Version), nicht als Anhang
+  // (funktioniert so auf allen Kanälen gleich). Vor refreshCase, damit der Fall nicht in diesem Zug schon als
+  // "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht. Pro Fall nur einmal pro Vorlage.
+  const matchingTemplate = turn.fields.service ? templates.find((t) => t.service && t.service === turn.fields.service) : undefined;
+  if (matchingTemplate) {
+    const alreadySent = (await store.listTemplateDocuments(caseId)).some((td) => td.templateId === matchingTemplate.id);
+    if (!alreadySent) {
+      const caseNow = (await store.getCase(caseId))!;
+      const token = await ensureUploadToken(store, caseNow);
+      const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${matchingTemplate.id}`;
+      await store.saveTemplateDocument({ caseId, templateId: matchingTemplate.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+      replies.push(
+        `Für Ihr Anliegen („${matchingTemplate.title}“) laden Sie sich bitte das Dokument herunter (${downloadUrl}), füllen es aus und laden es anschließend hier wieder hoch: ${uploadUrl(token)}`,
+      );
+      await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${matchingTemplate.title}`);
+    }
+  }
+
   // Nachbereitung: Vollständigkeit, Status, automatische Dokumentenanforderung, Follow-ups.
   const refreshed = await refreshCase(store, caseId, {
     hint: turn.handoff ? "waiting" : "chat",
@@ -139,26 +158,16 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const { checklist } = refreshed;
 
   let upload: UploadPrompt | null = null;
-  const openDocs = checklist.items.filter((i) => i.kind === "document" && i.required && !i.done);
+  // Nur klassische (vom Kunden angeforderte) Dokumentarten – Vorlagen-Rückläufer haben keinen festen
+  // DocumentKind und laufen ausschließlich über den eigenen Upload-Seiten-Link oben.
+  const openDocs = checklist.items.filter((i) => i.kind === "document" && i.required && !i.done && i.key.startsWith("doc:"));
   if (checklist.dataComplete && openDocs.length > 0 && settings.autoReply) {
     const token = await ensureUploadToken(store, refreshed.caseRecord);
     upload = {
       url: uploadUrl(token),
-      items: checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.replace("doc:", "") as DocumentKind, label: i.label, done: i.done, required: i.required })),
+      items: checklist.items.filter((i) => i.kind === "document" && i.key.startsWith("doc:")).map((i) => ({ kind: i.key.replace("doc:", "") as DocumentKind, label: i.label, done: i.done, required: i.required })),
     };
     if (refreshed.requestedNow.length) replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
-  }
-
-  // Büro-Vorlage (z. B. eine Vollmacht) automatisch mitschicken, sobald die passende Leistung bekannt ist –
-  // als Download-Link, nicht als Anhang (funktioniert so auf allen Kanälen gleich). Pro Fall nur einmal,
-  // damit der Link nicht bei jeder weiteren Nachricht wiederholt wird.
-  const matchingTemplate = turn.fields.service ? templates.find((t) => t.service && t.service === turn.fields.service) : undefined;
-  if (matchingTemplate && refreshed.caseRecord.fields.templateSentFor !== matchingTemplate.id) {
-    const token = await ensureUploadToken(store, refreshed.caseRecord);
-    const templateUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${matchingTemplate.id}`;
-    replies.push(`Für Ihr Anliegen („${matchingTemplate.title}“) finden Sie hier das passende Dokument zum Download: ${templateUrl}`);
-    await store.updateCase(caseId, { fields: { templateSentFor: matchingTemplate.id } });
-    await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${matchingTemplate.title}`);
   }
 
   // Terminvorschlag: Sobald der Fall vollständig ist (oder der Kunde ausdrücklich einen Termin wünscht),

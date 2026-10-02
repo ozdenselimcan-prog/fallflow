@@ -1,4 +1,4 @@
-import type { CaseDocument, CaseRecord, Question } from "@/lib/data/types";
+import type { CaseDocument, CaseRecord, DocumentTemplate, Question, TemplateDocument } from "@/lib/data/types";
 import { buildChecklist, readinessOf, type FoerderDocumentOverrides, type Readiness } from "./checklist";
 
 export interface CaseMeta {
@@ -10,13 +10,26 @@ export interface CaseMeta {
 }
 
 /** Berechnet für eine Fallliste Vollständigkeit, fehlende Punkte und Readiness (eine Checkliste pro Fall). */
-export function buildCaseMeta(cases: CaseRecord[], questions: Question[], documents: CaseDocument[], foerderOverrides?: FoerderDocumentOverrides): Record<string, CaseMeta> {
+export function buildCaseMeta(
+  cases: CaseRecord[],
+  questions: Question[],
+  documents: CaseDocument[],
+  foerderOverrides?: FoerderDocumentOverrides,
+  templateDocs: TemplateDocument[] = [],
+  templates: DocumentTemplate[] = [],
+): Record<string, CaseMeta> {
   const byCase = new Map<string, CaseDocument[]>();
   for (const d of documents) byCase.set(d.caseId, [...(byCase.get(d.caseId) ?? []), d]);
+  const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
+  const templateSendsByCase = new Map<string, { id: string; title: string; status: "sent" | "received" }[]>();
+  for (const td of templateDocs) {
+    const entry = { id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status };
+    templateSendsByCase.set(td.caseId, [...(templateSendsByCase.get(td.caseId) ?? []), entry]);
+  }
   return Object.fromEntries(
     cases.map((c) => {
       const docs = byCase.get(c.id) ?? [];
-      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides });
+      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides, templateSends: templateSendsByCase.get(c.id) });
       return [
         c.id,
         {

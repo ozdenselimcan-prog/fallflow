@@ -23,14 +23,23 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
   }
 
   const { store, caseRecord } = found;
-  const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(caseRecord.id), store.getCompany()]);
+  const [questions, documents, company, templateDocs, templates] = await Promise.all([
+    store.listQuestions(),
+    store.listDocuments(caseRecord.id),
+    store.getCompany(),
+    store.listTemplateDocuments(caseRecord.id),
+    store.listDocumentTemplates(),
+  ]);
+  const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
+  const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status }));
   const checklist = buildChecklist({
     questions,
     fields: caseRecord.fields,
     documents,
     foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    templateSends,
   });
-  const items = checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.replace("doc:", ""), label: i.label, required: i.required, done: i.done }));
+  const items = checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.startsWith("doc:") ? i.key.replace("doc:", "") : i.key, label: i.label, required: i.required, done: i.done }));
   const open = items.filter((i) => i.required && !i.done).length;
 
   return (

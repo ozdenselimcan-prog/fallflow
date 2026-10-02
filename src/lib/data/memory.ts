@@ -14,7 +14,7 @@ import {
   seedQuestions,
 } from "./seed";
 import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
-import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, DocumentTemplate, FollowUp, Member, Question } from "./types";
+import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, DocumentTemplate, FollowUp, Member, Question, TemplateDocument } from "./types";
 
 interface MemoryDb {
   company: Company;
@@ -28,6 +28,7 @@ interface MemoryDb {
   appointments: Appointment[];
   members: Member[];
   documentTemplates: DocumentTemplate[];
+  templateDocuments: TemplateDocument[];
 }
 
 const g = globalThis as unknown as { __fallflowDb?: MemoryDb };
@@ -45,6 +46,7 @@ function db(): MemoryDb {
     appointments: seedAppointments(),
     members: seedMembers(),
     documentTemplates: [],
+    templateDocuments: [],
   };
   return g.__fallflowDb;
 }
@@ -274,6 +276,24 @@ export function createMemoryStore(): Store {
     },
     async deleteDocumentTemplate(id) {
       db().documentTemplates = db().documentTemplates.filter((t) => t.id !== id);
+    },
+
+    async listTemplateDocuments(caseId) {
+      const all = db().templateDocuments;
+      return caseId ? all.filter((t) => t.caseId === caseId) : all;
+    },
+    async saveTemplateDocument(t) {
+      const d = db();
+      if (t.id) {
+        const existing = d.templateDocuments.find((x) => x.id === t.id);
+        if (existing) {
+          Object.assign(existing, t);
+          return existing;
+        }
+      }
+      const created: TemplateDocument = { ...t, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
+      d.templateDocuments.push(created);
+      return created;
     },
 
     async setChannelStatus(kind, status, account) {

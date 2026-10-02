@@ -22,6 +22,7 @@ import type {
   Question,
   Role,
   Subscription,
+  TemplateDocument,
 } from "./types";
 
 export interface CasePatch {
@@ -93,6 +94,10 @@ export interface Store {
   listDocumentTemplates(): Promise<DocumentTemplate[]>;
   saveDocumentTemplate(t: Omit<DocumentTemplate, "id" | "companyId" | "createdAt"> & { id?: string }): Promise<DocumentTemplate>;
   deleteDocumentTemplate(id: string): Promise<void>;
+
+  /** Ohne caseId: alle Vorlagen-Rückläufer des Büros. */
+  listTemplateDocuments(caseId?: string): Promise<TemplateDocument[]>;
+  saveTemplateDocument(t: Omit<TemplateDocument, "id" | "companyId" | "createdAt"> & { id?: string }): Promise<TemplateDocument>;
 
   listChannels(): Promise<Channel[]>;
   /** Kanal-Status für die UI setzen (verbunden/getrennt + sichtbarer Account-Name, z. B. E-Mail-Adresse). Keine Tokens. */
