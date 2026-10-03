@@ -1,111 +1,102 @@
-import { IntegrationNotReadyError, stripHtml, type EmailProvider, type InboundEmail, type ProviderTokens } from "./email";
+import { ImapFlow } from "imapflow";
+import { simpleParser } from "mailparser";
+import nodemailer from "nodemailer";
+import { stripHtml, type InboundEmail, type MailSyncProvider, type ProviderTokens } from "./email";
 
-const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send", "openid", "email"];
-const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const API = "https://gmail.googleapis.com/gmail/v1/users/me";
+/**
+ * Generische E-Mail-Verbindung per IMAP (Abruf) und SMTP (Versand) mit den eigenen Zugangsdaten des
+ * Büros – kein OAuth, keine Google-/Microsoft-App-Überprüfung nötig. Funktioniert mit jedem Anbieter,
+ * der IMAP/SMTP anbietet (Gmail per App-Passwort, Outlook, GMX, Web.de, IONOS, Strato, eigene Domain …).
+ * Der Provider-Name "gmail" ist nur noch der interne Bezeichner (DB-Spalte, Route) aus der Zeit, als es
+ * ausschließlich Gmail-OAuth war – nach außen heißt das Label jetzt einfach "E-Mail".
+ */
 
-async function googleFetch(path: string, tokens: ProviderTokens, init: RequestInit = {}) {
-  const res = await fetch(`${API}${path}`, { ...init, headers: { ...init.headers, Authorization: `Bearer ${tokens.accessToken}` } });
-  if (!res.ok) throw new Error(`Gmail-API antwortete mit HTTP ${res.status}`);
-  return res.json();
+export interface ImapSmtpCredentials {
+  email: string;
+  password: string;
+  imapHost: string;
+  imapPort: number;
+  smtpHost: string;
+  smtpPort: number;
 }
 
-const b64url = (s: string) => Buffer.from(s, "utf8").toString("base64url");
-const decodeB64url = (s: string) => Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-
-function headerValue(headers: { name: string; value: string }[] | undefined, name: string) {
-  return headers?.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+function parseCreds(tokens: ProviderTokens): ImapSmtpCredentials {
+  return JSON.parse(tokens.accessToken) as ImapSmtpCredentials;
 }
 
-export interface GmailPart {
-  mimeType?: string;
-  body?: { data?: string };
-  parts?: GmailPart[];
+export function encodeCredentials(creds: ImapSmtpCredentials): string {
+  return JSON.stringify(creds);
 }
 
-/** Sucht im MIME-Body rekursiv nach dem ersten text/plain-Teil (Fallback: text/html ohne Tags). */
-export function extractBody(payload: GmailPart | undefined): string {
-  if (!payload) return "";
-  const stack: GmailPart[] = [payload];
-  let html = "";
-  while (stack.length) {
-    const p = stack.shift()!;
-    if (p.mimeType === "text/plain" && p.body?.data) return decodeB64url(p.body.data);
-    if (p.mimeType === "text/html" && p.body?.data && !html) html = decodeB64url(p.body.data);
-    if (p.parts) stack.push(...p.parts);
+async function withImapClient<T>(creds: ImapSmtpCredentials, fn: (client: ImapFlow) => Promise<T>): Promise<T> {
+  const client = new ImapFlow({
+    host: creds.imapHost,
+    port: creds.imapPort,
+    secure: creds.imapPort !== 143,
+    auth: { user: creds.email, pass: creds.password },
+    logger: false,
+  });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    await client.logout().catch(() => client.close());
   }
-  return stripHtml(html);
 }
 
-export const gmailProvider: EmailProvider = {
+function smtpTransport(creds: ImapSmtpCredentials) {
+  return nodemailer.createTransport({
+    host: creds.smtpHost,
+    port: creds.smtpPort,
+    secure: creds.smtpPort === 465,
+    auth: { user: creds.email, pass: creds.password },
+  });
+}
+
+export const gmailProvider: MailSyncProvider = {
   id: "gmail",
-  label: "Google Gmail",
-  missingConfig: () => ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"].filter((k) => !process.env[k]),
-  getAuthUrl(state, redirectUri) {
-    const params = new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope: SCOPES.join(" "),
-      access_type: "offline",
-      prompt: "consent",
-      state,
-    });
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  },
-  async exchangeCode(code, redirectUri) {
-    const res = await fetch(TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ code, client_id: process.env.GOOGLE_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "", redirect_uri: redirectUri, grant_type: "authorization_code" }),
-    });
-    if (!res.ok) throw new IntegrationNotReadyError(`Google-Token-Austausch fehlgeschlagen (HTTP ${res.status}).`);
-    const body = (await res.json()) as { access_token: string; refresh_token?: string; expires_in: number; id_token?: string };
-    if (!body.refresh_token) {
-      throw new IntegrationNotReadyError("Google hat keinen Refresh-Token geliefert. Bitte die Verbindung in den Google-Kontoeinstellungen entfernen und erneut verbinden.");
-    }
-    const profile = await googleFetch("/profile", { accessToken: body.access_token, refreshToken: null, expiresAt: null });
-    return { account: (profile as { emailAddress?: string }).emailAddress ?? "", accessToken: body.access_token, refreshToken: body.refresh_token, expiresIn: body.expires_in };
-  },
-  async refreshTokens(refreshToken) {
-    const res = await fetch(TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ refresh_token: refreshToken, client_id: process.env.GOOGLE_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "", grant_type: "refresh_token" }),
-    });
-    if (!res.ok) throw new Error(`Google-Token-Erneuerung fehlgeschlagen (HTTP ${res.status}).`);
-    const body = (await res.json()) as { access_token: string; expires_in: number };
-    return { accessToken: body.access_token, refreshToken: null, expiresIn: body.expires_in };
-  },
+  label: "E-Mail",
+  // Kein globales App-Secret nötig (jedes Büro bringt seine eigenen Zugangsdaten mit), daher immer "konfiguriert".
+  missingConfig: () => [],
+
   async testConnection(tokens) {
-    await googleFetch("/profile", tokens);
+    const creds = parseCreds(tokens);
+    await withImapClient(creds, async (client) => {
+      await client.mailboxOpen("INBOX");
+    });
+    await smtpTransport(creds).verify();
   },
+
   async fetchNewMessages(tokens, sinceIso) {
-    const afterSeconds = Math.floor(new Date(sinceIso ?? Date.now() - 86_400_000).getTime() / 1000);
-    // Nur der Posteingang, keine gesendeten/entworfenen/als Spam markierten Mails – sonst würden eigene Antworten erneut als Kundenanfrage einlaufen.
-    const list = (await googleFetch(`/messages?q=${encodeURIComponent(`in:inbox after:${afterSeconds} -label:CHAT -label:SPAM`)}&maxResults=20`, tokens)) as { messages?: { id: string }[] };
-    const out: InboundEmail[] = [];
-    for (const m of list.messages ?? []) {
-      const full = (await googleFetch(`/messages/${m.id}?format=full`, tokens)) as {
-        id: string;
-        internalDate?: string;
-        payload?: GmailPart & { headers?: { name: string; value: string }[] };
-      };
-      const headers = full.payload?.headers;
-      // Automatische Mails (Newsletter, Abwesenheitsnotizen, Massenmails) sind keine Kundenanfragen.
-      if (headerValue(headers, "List-Unsubscribe") || headerValue(headers, "Auto-Submitted").toLowerCase().startsWith("auto-") || headerValue(headers, "Precedence").toLowerCase() === "bulk") continue;
-      out.push({
-        externalId: full.id,
-        from: headerValue(headers, "From"),
-        subject: headerValue(headers, "Subject"),
-        body: extractBody(full.payload).slice(0, 4000),
-        receivedAt: full.internalDate ? new Date(Number(full.internalDate)).toISOString() : new Date().toISOString(),
-      });
-    }
-    return out;
+    const creds = parseCreds(tokens);
+    const since = new Date(sinceIso ?? Date.now() - 86_400_000);
+    return withImapClient(creds, async (client) => {
+      const lock = await client.getMailboxLock("INBOX");
+      const out: InboundEmail[] = [];
+      try {
+        const uids = await client.search({ since }, { uid: true });
+        const recent = (uids || []).slice(-20);
+        if (!recent.length) return out;
+        for await (const msg of client.fetch(recent, { source: true, uid: true }, { uid: true })) {
+          if (!msg.source) continue;
+          const parsed = await simpleParser(msg.source);
+          out.push({
+            externalId: String(msg.uid),
+            from: parsed.from?.text ?? "",
+            subject: parsed.subject ?? "",
+            body: (parsed.text ?? stripHtml(typeof parsed.html === "string" ? parsed.html : "")).slice(0, 4000),
+            receivedAt: (parsed.date ?? new Date()).toISOString(),
+          });
+        }
+      } finally {
+        lock.release();
+      }
+      return out;
+    });
   },
+
   async sendReply(tokens, to, subject, body) {
-    const raw = [`To: ${to}`, `Subject: ${subject}`, "Content-Type: text/plain; charset=UTF-8", "", body].join("\r\n");
-    await googleFetch("/messages/send", tokens, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ raw: b64url(raw) }) });
+    const creds = parseCreds(tokens);
+    await smtpTransport(creds).sendMail({ from: creds.email, to, subject, text: body });
   },
 };

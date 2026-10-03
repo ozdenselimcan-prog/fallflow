@@ -2,7 +2,7 @@ import { isCustomerInquiry } from "@/lib/ai/classify";
 import { getPublicStore } from "@/lib/data";
 import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
-import type { EmailProvider } from "./email";
+import type { MailSyncProvider } from "./email";
 import { getValidTokens } from "./tokens";
 
 /** Zuletzt verarbeitete Mail-IDs je Verbindung, um keine Mail doppelt zu bearbeiten (z. B. Gmails `after:`-Suche
@@ -15,7 +15,7 @@ const SEEN_IDS_LIMIT = 300;
  * dieselbe Pipeline wie der Website-Chat (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
  * (kein Push-Webhook für Gmail/Microsoft in dieser Version).
  */
-export async function syncMailbox(provider: EmailProvider): Promise<{ connections: number; messages: number; skipped: number; errors: number }> {
+export async function syncMailbox(provider: MailSyncProvider): Promise<{ connections: number; messages: number; skipped: number; errors: number }> {
   const connections = await listActiveConnections(provider.id);
   let messages = 0;
   let skipped = 0;

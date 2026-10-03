@@ -42,21 +42,27 @@ export const stripHtml = (html: string) =>
     .trim();
 
 /**
- * Adapter-Schnittstelle für E-Mail-Postfächer. FallFlow hat pro Anbieter genau eine App-Identität
- * (GOOGLE_CLIENT_ID/SECRET bzw. MICROSOFT_CLIENT_ID/SECRET als Vercel-Variablen). Die Zugangsdaten
- * jedes einzelnen Kunden-Postfachs werden separat pro Büro in `connections` gespeichert (siehe
- * connections-store.ts) und hier als ProviderTokens hereingereicht – nie global, nie im Client.
+ * Minimale Schnittstelle, die der Mail-Abruf (mail-sync.ts) für JEDEN Anbieter braucht, egal ob er per
+ * OAuth (Microsoft) oder per IMAP/SMTP-Zugangsdaten (generisches "E-Mail", siehe gmail.ts) verbindet.
+ * `ProviderTokens.accessToken` ist bei OAuth ein Bearer-Token, bei IMAP/SMTP ein JSON-String mit den
+ * verschlüsselt gespeicherten Zugangsdaten (Passwort, Host/Port) – jeder Provider interpretiert es selbst.
  */
-export interface EmailProvider {
+export interface MailSyncProvider {
   readonly id: "gmail" | "microsoft";
   readonly label: string;
-  /** Environment Variables der FallFlow-App-Identität, die fehlen (leer = konfiguriert). */
+  /** Environment Variables der FallFlow-App-Identität, die fehlen (leer = konfiguriert). Bei IMAP/SMTP immer leer. */
   missingConfig(): string[];
-  getAuthUrl(state: string, redirectUri: string): string;
-  exchangeCode(code: string, redirectUri: string): Promise<ExchangeResult>;
-  refreshTokens(refreshToken: string): Promise<RefreshedTokens>;
+  /** Nur bei OAuth-Anbietern vorhanden. */
+  refreshTokens?(refreshToken: string): Promise<RefreshedTokens>;
   /** Leichter Aufruf, um zu prüfen, ob die gespeicherten Zugangsdaten noch funktionieren. Wirft bei Fehler. */
   testConnection(tokens: ProviderTokens): Promise<void>;
   fetchNewMessages(tokens: ProviderTokens, sinceIso: string | null): Promise<InboundEmail[]>;
   sendReply(tokens: ProviderTokens, to: string, subject: string, body: string): Promise<void>;
+}
+
+/** Vollständiger OAuth-Adapter (FallFlow hat pro Anbieter eine App-Identität als Vercel-Variable). */
+export interface EmailProvider extends MailSyncProvider {
+  getAuthUrl(state: string, redirectUri: string): string;
+  exchangeCode(code: string, redirectUri: string): Promise<ExchangeResult>;
+  refreshTokens(refreshToken: string): Promise<RefreshedTokens>;
 }

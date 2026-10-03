@@ -1,19 +1,20 @@
-import type { EmailProvider, ProviderTokens } from "./email";
+import type { MailSyncProvider, ProviderTokens } from "./email";
 import { getConnection, saveConnection, type Connection } from "./connections-store";
 
 const REFRESH_MARGIN_MS = 5 * 60_000;
 
 /**
  * Liefert für ein Büro gültige, entschlüsselte Zugangsdaten eines E-Mail-Anbieters. Erneuert den
- * Access Token automatisch, wenn er abgelaufen oder bald abläuft, und schreibt das Ergebnis zurück.
- * Gibt null zurück, wenn keine (funktionierende) Verbindung besteht.
+ * Access Token automatisch, wenn er abgelaufen oder bald abläuft (nur bei OAuth-Anbietern, die
+ * `refreshTokens` implementieren), und schreibt das Ergebnis zurück. Gibt null zurück, wenn keine
+ * (funktionierende) Verbindung besteht.
  */
-export async function getValidTokens(provider: EmailProvider, companyId: string): Promise<{ tokens: ProviderTokens; connection: Connection } | null> {
+export async function getValidTokens(provider: MailSyncProvider, companyId: string): Promise<{ tokens: ProviderTokens; connection: Connection } | null> {
   const connection = await getConnection(companyId, provider.id);
   if (!connection || connection.status !== "connected" || !connection.accessToken) return null;
 
   const expiresAt = connection.expiresAt ? Date.parse(connection.expiresAt) : 0;
-  if (!connection.refreshToken || Date.now() < expiresAt - REFRESH_MARGIN_MS) {
+  if (!provider.refreshTokens || !connection.refreshToken || Date.now() < expiresAt - REFRESH_MARGIN_MS) {
     return { tokens: { accessToken: connection.accessToken, refreshToken: connection.refreshToken, expiresAt: connection.expiresAt }, connection };
   }
 
