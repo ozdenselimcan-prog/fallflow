@@ -12,14 +12,14 @@ export const plans: Plan[] = [
   {
     id: "starter",
     name: "Starter",
-    priceEur: 29,
+    priceEur: 99,
     caseLimit: 100,
     features: ["AI Intake mit Website-Chat", "100 Fälle/Monat", "Fallakte mit Completeness Score", "Sicherer Dokumenten-Upload"],
   },
   {
     id: "pro",
     name: "Pro",
-    priceEur: 59,
+    priceEur: 149,
     caseLimit: 500,
     highlighted: true,
     features: ["500 Fälle/Monat", "Zentrale Inbox", "Automatische Follow-ups", "Mehrere Mitarbeiter", "Individuelle Fragen"],
@@ -27,7 +27,7 @@ export const plans: Plan[] = [
   {
     id: "business",
     name: "Business",
-    priceEur: 99,
+    priceEur: 199,
     caseLimit: null,
     features: ["Unbegrenzte Fälle", "Mehrere Kanäle", "Individuelle Workflows", "Prioritätssupport"],
   },
