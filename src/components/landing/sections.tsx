@@ -12,7 +12,6 @@ import {
   Inbox,
   Mail,
   MessageCircleQuestion,
-  MessageSquare,
   Repeat,
   ScatterChart,
   Sparkles,
@@ -33,9 +32,9 @@ type Icon = ComponentType<{ className?: string }>;
 
 function Section({ id, title, intro, children, tinted }: { id?: string; title: string; intro?: string; children: ReactNode; tinted?: boolean }) {
   return (
-    <section id={id} className={cn("scroll-mt-16 py-16 sm:py-20", tinted && "border-y border-border bg-card/60")}>
+    <section id={id} className={cn("scroll-mt-16 py-16 sm:py-20", tinted && "border-y border-border bg-muted/60")}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="max-w-3xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{title}</h2>
+        <h2 className="max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">{title}</h2>
         {intro && <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">{intro}</p>}
         <div className="mt-10">{children}</div>
       </div>
@@ -44,7 +43,7 @@ function Section({ id, title, intro, children, tinted }: { id?: string; title: s
 }
 
 const flow = [
-  { title: "Kundenanfrage", text: "Website-Chat, E-Mail, WhatsApp oder Anruf" },
+  { title: "Kundenanfrage", text: "Website-Chat, E-Mail oder Anruf" },
   { title: "KI-Qualifizierung", text: "Bekannte Angaben werden erkannt" },
   { title: "Fehlende Daten", text: "Nur relevante Fragen werden gestellt" },
   { title: "Dokumente", text: "Grundriss & Energieausweis per sicherem Upload" },
@@ -55,7 +54,7 @@ const flow = [
 /** Der Ablauf von der Anfrage bis zum fertigen Beratungsfall (Desktop horizontal, mobil vertikal). */
 export function FlowSection() {
   return (
-    <section aria-labelledby="flow-title" className="border-y border-border bg-card/60 py-12 sm:py-14">
+    <section aria-labelledby="flow-title" className="border-y border-border bg-muted/60 py-12 sm:py-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <h2 id="flow-title" className="text-sm font-semibold tracking-wider text-muted-foreground">
           SO ENTSTEHT AUS EINER ANFRAGE EIN FERTIGER FALL
@@ -63,7 +62,7 @@ export function FlowSection() {
         <ol className="mt-6 grid gap-3 lg:grid-cols-6 lg:gap-2">
           {flow.map((step, i) => (
             <li key={step.title} className="relative">
-              <div className={cn("h-full rounded-2xl border p-4", i === flow.length - 1 ? "border-accent bg-accent-soft" : "border-border bg-card")}>
+              <div className={cn("h-full rounded-lg border p-4", i === flow.length - 1 ? "border-accent bg-accent-soft" : "border-border bg-card")}>
                 <span className="font-mono text-xs font-semibold text-accent">{String(i + 1).padStart(2, "0")}</span>
                 <h3 className="mt-1.5 text-sm font-semibold">{step.title}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{step.text}</p>
@@ -167,10 +166,9 @@ const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = 
   { icon: FileText, title: "Fallakte", text: "Kunde, Gebäude, Anliegen, Dokumente, Kommunikation und Zusammenfassung an einem Ort." },
   { icon: FileUp, title: "Dokumenten-Upload", text: "Sicherer Link zum Hochladen von Grundriss, Energieausweis und Fotos – privat gespeichert." },
   { icon: BellRing, title: "Automatische Follow-ups", text: "Wenn der Kunde nicht liefert, wird nachgefasst – sichtbar im Dashboard." },
-  { icon: Inbox, title: "Zentrale Inbox", text: "Website, E-Mail, WhatsApp und Telefonnotizen – automatisch dem richtigen Fall zugeordnet." },
+  { icon: Inbox, title: "Zentrale Inbox", text: "Website, E-Mail und Telefonnotizen – automatisch dem richtigen Fall zugeordnet." },
   { icon: Globe, title: "Website-Chat", text: "Ein Script-Tag genügt, um das Widget in Ihre bestehende Website einzubinden." },
   { icon: Mail, title: "E-Mail-Anbindung", text: "Gmail und Microsoft 365 sind als Adapter vorbereitet.", soon: true },
-  { icon: MessageSquare, title: "WhatsApp Business", text: "Adapter und Simulation sind vorhanden; produktive Anbindung mit Ihren Zugangsdaten.", soon: true },
   { icon: CalendarCheck, title: "Terminübergabe", text: "Vorbereitete Fälle lassen sich direkt mit einem Terminvorschlag weitergeben." },
   { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },
 ];
@@ -204,7 +202,7 @@ export function NoCrmSection() {
   return (
     <section className="py-16 sm:py-20">
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-        <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Kein CRM. Kein ERP. Kein Allzweck-Chatbot.</h2>
+        <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Kein CRM. Kein ERP. Kein Allzweck-Chatbot.</h2>
         <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
           FallFlow versucht nicht, Ihre Beratungssoftware zu ersetzen. Es übernimmt genau den Teil zwischen erster Kundenanfrage und fertigem Beratungsfall – und übergibt dann.
         </p>
@@ -283,7 +281,7 @@ export function FaqSection() {
     <Section id="faq" tinted title="Häufige Fragen">
       <div className="max-w-3xl space-y-3">
         {faqs.map((f) => (
-          <details key={f.q} className="group rounded-2xl border border-border bg-card px-5 py-4 open:shadow-sm">
+          <details key={f.q} className="group rounded-lg border border-border bg-card px-5 py-4">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium [&::-webkit-details-marker]:hidden">
               {f.q}
               <span className="text-xl leading-none text-muted-foreground transition-transform group-open:rotate-45">+</span>
@@ -299,10 +297,10 @@ export function FaqSection() {
 export function FinalCta() {
   return (
     <section className="py-16 sm:py-24">
-      <div className="mx-auto max-w-4xl rounded-3xl bg-foreground px-6 py-14 text-center text-background sm:px-12">
-        <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Verwandeln Sie Ihre nächste Kundenanfrage in einen fertigen Beratungsfall.</h2>
+      <div className="mx-auto max-w-4xl rounded-lg bg-black px-6 py-14 text-center text-white sm:px-12">
+        <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Verwandeln Sie Ihre nächste Kundenanfrage in einen fertigen Beratungsfall.</h2>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/signup" className={buttonStyles({ size: "lg" })}>
+          <Link href="/signup" className={buttonStyles({ size: "lg", className: "bg-white text-black hover:bg-white" })}>
             Kostenlos starten
           </Link>
           <Link href="/demo" className={buttonStyles({ variant: "secondary", size: "lg" })}>

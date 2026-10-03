@@ -14,18 +14,20 @@ const checklist = [
 
 export function Hero() {
   return (
-    <section id="produkt" className="relative overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-[32rem] bg-[radial-gradient(60%_60%_at_50%_0%,var(--color-accent-soft),transparent)]" />
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
-      <div>
-        <Badge tone="accent" className="mb-5">
+    <section id="produkt" className="hero-grid-bg relative overflow-hidden">
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
+      <div className="flex flex-col items-center">
+        <span className="mb-5 inline-flex items-center rounded-full border border-black/15 px-4 py-2 text-[13px] font-semibold text-[#4b5563]">
           AI Intake &amp; Operations für Energieberater
-        </Badge>
-        <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-[3.4rem] lg:leading-[1.08]">Aus jeder Kundenanfrage einen fertigen Beratungsfall.</h1>
-        <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
+        </span>
+        <h1 className="text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[4rem] lg:leading-[1.1]">
+          Aus jeder Kundenanfrage
+          <span className="block text-muted-foreground">einen fertigen Beratungsfall.</span>
+        </h1>
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
           FallFlow sammelt automatisch die fehlenden Informationen, fordert Dokumente an und bereitet neue Kundenfälle für Energieberater vor.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
           <Link href="/demo" className={buttonStyles({ size: "lg" })}>
             Demo ansehen <ArrowRight className="size-4" />
           </Link>
@@ -33,11 +35,11 @@ export function Hero() {
             Kostenlos starten
           </Link>
         </div>
-        <p className="mt-4 text-sm text-muted-foreground">Kein weiteres CRM: Ihre bestehende Website und Ihre gewohnten Abläufe bleiben erhalten.</p>
+        <p className="mt-4 text-xs text-muted-foreground">Kein weiteres CRM: Ihre bestehende Website und Ihre gewohnten Abläufe bleiben erhalten.</p>
       </div>
 
-      <div className="relative" aria-label="Vorschau einer Fallakte">
-        <div className="rounded-3xl border border-border bg-card p-2 shadow-xl shadow-black/5">
+      <div className="relative w-full max-w-xl text-left" aria-label="Vorschau einer Fallakte">
+        <div className="rounded-lg border border-border bg-card p-2 shadow-[0_8px_28px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
             <span className="size-2.5 rounded-full bg-border" />
             <span className="size-2.5 rounded-full bg-border" />

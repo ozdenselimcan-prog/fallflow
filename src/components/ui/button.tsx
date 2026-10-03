@@ -3,8 +3,8 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const variants = {
-  primary: "bg-accent text-white hover:bg-accent-hover shadow-sm",
-  secondary: "bg-card text-foreground border border-border hover:bg-muted",
+  primary: "bg-accent text-white hover:bg-accent-hover",
+  secondary: "bg-muted-foreground text-white hover:opacity-90",
   ghost: "text-foreground hover:bg-muted",
   danger: "bg-danger text-white hover:opacity-90",
 } as const;
@@ -19,7 +19,7 @@ interface StyleOpts {
 /** Klassen auch für Links nutzbar: <Link className={buttonStyles({ variant: "primary" })}>. */
 export const buttonStyles = ({ variant = "primary", size = "md", className }: StyleOpts = {}) =>
   cn(
-    "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-full font-bold transition-all active:scale-[0.98] hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50",
     variants[variant],
     sizes[size],
     className,
