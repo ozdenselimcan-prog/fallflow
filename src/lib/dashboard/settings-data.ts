@@ -12,14 +12,7 @@ import { listConnections, toStatus } from "@/lib/integrations/connections-store"
  * hat eine eigene Seite (/dashboard/assistant) statt eines Reiters hier.
  */
 export async function loadSettingsData(session: Session, store: Store) {
-  const [company, connections, channels, subscription, documentTemplates, serviceMessages] = await Promise.all([
-    store.getCompany(),
-    listConnections(session.companyId),
-    store.listChannels(),
-    store.getSubscription(),
-    store.listDocumentTemplates(),
-    store.listServiceMessages(),
-  ]);
+  const [company, connections, channels, subscription] = await Promise.all([store.getCompany(), listConnections(session.companyId), store.listChannels(), store.getSubscription()]);
 
   const byProvider = new Map(connections.map((c) => [c.provider, toStatus(c)]));
   const website = channels.find((c) => c.kind === "website")?.status === "connected";
@@ -36,8 +29,6 @@ export async function loadSettingsData(session: Session, store: Store) {
       foerderFloorplan: company.foerderFloorplan,
       contactFormUrl: company.contactFormUrl,
     },
-    documentTemplates: documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude })),
-    serviceMessages: serviceMessages.map((m) => ({ service: m.service, body: m.body })),
     connections: {
       appUrl: siteConfig.appUrl,
       companyId: session.companyId,

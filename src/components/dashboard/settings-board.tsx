@@ -1,13 +1,12 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, FileText } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import type { Plan } from "@/lib/config/pricing";
 import { ConnectionsPanel } from "@/components/dashboard/connections-panel";
-import { DocumentTemplatesPanel } from "@/components/dashboard/document-templates-panel";
-import { ServiceMessagesPanel } from "@/components/dashboard/service-messages-panel";
 import { CompanyForm, ProfileForm } from "@/components/dashboard/settings-forms";
-import { Button } from "@/components/ui/button";
+import { Button, buttonStyles } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
 import { Notice } from "@/components/ui/states";
 import { cn, formatDate } from "@/lib/utils";
@@ -80,11 +79,15 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
         {tab === "company" && (
           <div className="space-y-4">
             <CompanyForm initial={data.company} canEdit={data.connections.canManage} />
-            <DocumentTemplatesPanel initial={data.documentTemplates} canEdit={data.connections.canManage} />
-            <div>
-              <h2 className="mb-3 font-semibold">Nachrichtentexte je Leistung</h2>
-              <ServiceMessagesPanel services={data.company.services} initialMessages={data.serviceMessages} initialTemplates={data.documentTemplates} canEdit={data.connections.canManage} />
-            </div>
+            <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
+              <div>
+                <h2 className="font-semibold">PDF-Vorlagen & Nachrichtentexte</h2>
+                <p className="text-sm text-muted-foreground">Werden jetzt beim KI-Assistenten gepflegt, zusammen mit den Fragen.</p>
+              </div>
+              <Link href="/dashboard/assistant/templates" className={buttonStyles({ variant: "secondary" })}>
+                <FileText className="size-4" /> Vorlagen & Nachrichten
+              </Link>
+            </Card>
           </div>
         )}
 
