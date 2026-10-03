@@ -101,6 +101,13 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const pendingBefore = nextPending(questions, startFields)?.key ?? null;
   const turn: TurnResult = applyTurn({ questions, settings: turnSettings, fields: startFields, text: input.text, first, extracted, documents, channel: input.channel, foerderOverrides });
 
+  // Eigener Termin-Hinweis je Leistung ersetzt die sonst feste, tonabhängige Standardformulierung
+  // ("Ein Mitarbeiter meldet sich..."), sobald der Fall für diese Leistung fertig ist.
+  if (turn.done && turn.fields.service && turn.replies.length) {
+    const note = serviceMessages.find((m) => m.service === turn.fields.service)?.appointmentNote?.trim();
+    if (note) turn.replies[turn.replies.length - 1] = note;
+  }
+
   const draft = {
     fields: turn.fields,
     customerName: turn.fields.name ?? existing?.customerName ?? "Unbekannt",

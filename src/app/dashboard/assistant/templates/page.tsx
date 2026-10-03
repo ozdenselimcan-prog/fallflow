@@ -23,7 +23,7 @@ export default async function AssistantTemplatesPage() {
       <PageHeader title="Vorlagen & Nachrichten" description="Pro Leistung: PDF-Vorlagen anhängen und den Nachrichtentext festlegen, den der Assistent dazu verschickt." />
       <ServiceMessagesPanel
         services={company.services}
-        initialMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body }))}
+        initialMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
         initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
         canEdit={canEdit}
       />

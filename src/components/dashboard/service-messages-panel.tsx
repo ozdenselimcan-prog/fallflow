@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 export interface ServiceMessageView {
   service: string;
   body: string;
+  appointmentNote?: string;
 }
 export interface ServiceTemplateView {
   id: string;
@@ -22,6 +23,7 @@ export interface ServiceTemplateView {
 }
 
 const DEFAULT_BODY = (service: string) => `Für Ihr Anliegen (${service}) benötigen wir zusätzlich die ausgefüllte Vorlage. Bitte laden Sie sich das Dokument herunter, füllen es aus und schicken es uns wieder zu.`;
+const DEFAULT_APPOINTMENT_NOTE = "Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen bezüglich eines Termins.";
 
 /** "Sonstiges" ist bereits ein regulärer Wert in SERVICES (lib/cases/fields.ts) – hier nur sichergestellt,
  * dass die Zeile immer auftaucht, auch wenn das Büro sie nicht explizit als Leistung gewählt hat. */
@@ -58,6 +60,15 @@ export function ServiceMessagesPanel({ services, initialMessages, initialTemplat
     }
     return map;
   });
+  // Leer = Standard-Formulierung (abhängig vom Ton des Assistenten) wird verwendet, kein eigener Text gespeichert.
+  const [appointmentNotes, setAppointmentNotes] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const s of rows) {
+      if (s === ALWAYS_ROW) continue;
+      map[s] = initialMessages.find((m) => m.service === s)?.appointmentNote ?? "";
+    }
+    return map;
+  });
   const [templates, setTemplates] = useState(initialTemplates);
   const [savedService, setSavedService] = useState<string | null>(null);
   const [busyRow, setBusyRow] = useState<string | null>(null);
@@ -68,7 +79,7 @@ export function ServiceMessagesPanel({ services, initialMessages, initialTemplat
     setError(null);
     setBusyRow(service);
     try {
-      await apiFetch("PUT", "/api/service-messages", { service, body: bodies[service] ?? "" });
+      await apiFetch("PUT", "/api/service-messages", { service, body: bodies[service] ?? "", appointmentNote: appointmentNotes[service] ?? "" });
       setSavedService(service);
       setTimeout(() => setSavedService((s) => (s === service ? null : s)), 2000);
     } catch (e) {
@@ -152,8 +163,21 @@ export function ServiceMessagesPanel({ services, initialMessages, initialTemplat
               </div>
 
               {!isAlways && (
-                <div>
-                  <Textarea rows={2} disabled={!canEdit} value={bodies[row] ?? ""} onChange={(e) => setBodies({ ...bodies, [row]: e.target.value })} />
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Nachricht</p>
+                    <Textarea rows={2} disabled={!canEdit} value={bodies[row] ?? ""} onChange={(e) => setBodies({ ...bodies, [row]: e.target.value })} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Termin-Hinweis, sobald der Fall vollständig ist (leer = Standardtext)</p>
+                    <Textarea
+                      rows={2}
+                      disabled={!canEdit}
+                      placeholder={DEFAULT_APPOINTMENT_NOTE}
+                      value={appointmentNotes[row] ?? ""}
+                      onChange={(e) => setAppointmentNotes({ ...appointmentNotes, [row]: e.target.value })}
+                    />
+                  </div>
                   {canEdit && (
                     <div className="mt-2 flex items-center gap-2">
                       <Button variant="secondary" size="sm" loading={busyRow === row} onClick={() => save(row)}>

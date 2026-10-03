@@ -216,6 +216,9 @@ export interface ServiceMessage {
   companyId: string;
   service: string;
   body: string;
+  /** Ersetzt die sonst feste, tonabhängige Standardformulierung ("Ein Mitarbeiter meldet sich ..."),
+   * sobald der Fall für diese Leistung vollständig ist. Leer = Standardtext verwenden. */
+  appointmentNote: string;
 }
 
 /** Rückweg einer Büro-PDF-Vorlage: 'sent' = an den Kunden geschickt, 'received' = ausgefüllt zurück. */

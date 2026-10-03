@@ -38,7 +38,7 @@ export default async function OnboardingPage() {
         widgetReceived={cases.some((c) => c.source === "widget")}
         connections={{ gmail: byProvider.get("gmail") ?? null, microsoft: byProvider.get("microsoft") ?? null }}
         documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
-        serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body }))}
+        serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
       />
     </main>
   );

@@ -306,9 +306,10 @@ export function createMemoryStore(): Store {
       const existing = d.serviceMessages.find((x) => x.service === m.service);
       if (existing) {
         existing.body = m.body;
+        if (m.appointmentNote !== undefined) existing.appointmentNote = m.appointmentNote;
         return existing;
       }
-      const created: ServiceMessage = { id: uid(), companyId: DEMO_COMPANY_ID, service: m.service, body: m.body };
+      const created: ServiceMessage = { id: uid(), companyId: DEMO_COMPANY_ID, service: m.service, body: m.body, appointmentNote: m.appointmentNote ?? "" };
       d.serviceMessages.push(created);
       return created;
     },

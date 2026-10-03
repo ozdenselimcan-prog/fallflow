@@ -2,7 +2,7 @@ import { z } from "zod";
 import { json, parseBody, withSession } from "@/lib/api";
 import { SERVICES } from "@/lib/cases/fields";
 
-const saveSchema = z.object({ service: z.enum(SERVICES), body: z.string().max(2000) });
+const saveSchema = z.object({ service: z.enum(SERVICES), body: z.string().max(2000), appointmentNote: z.string().max(500).optional() });
 
 export const GET = withSession(async (_req, { store }) => json({ serviceMessages: await store.listServiceMessages() }));
 

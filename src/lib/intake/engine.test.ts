@@ -182,6 +182,28 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
   });
 });
 
+describe("processIntakeMessage – eigener Termin-Hinweis je Leistung", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = freshStore();
+  });
+
+  it("ersetzt die Standard-Formulierung durch den eigenen Text, sobald der Fall für diese Leistung fertig ist", async () => {
+    await store.saveServiceMessage({ service: "Energieberatung", body: "", appointmentNote: "Unser Energieberater Herr Schmidt meldet sich binnen 24h bei Ihnen für einen Termin." });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    const complete = await completeCase(store, first.sessionId, first);
+    const combined = complete.replies.join(" | ");
+    expect(combined).toContain("Unser Energieberater Herr Schmidt meldet sich binnen 24h bei Ihnen für einen Termin.");
+    expect(combined).not.toContain("Ein Mitarbeiter meldet sich bei Ihnen");
+  });
+
+  it("nutzt die normale Standard-Formulierung, wenn kein eigener Termin-Hinweis gepflegt ist", async () => {
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    const complete = await completeCase(store, first.sessionId, first);
+    expect(complete.replies.join(" | ")).toContain("Ein Mitarbeiter meldet sich bei Ihnen");
+  });
+});
+
 describe("confirmAppointment", () => {
   let store: Store;
   beforeEach(() => {
