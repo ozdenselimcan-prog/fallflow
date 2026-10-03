@@ -81,12 +81,10 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
           <div className="space-y-4">
             <CompanyForm initial={data.company} canEdit={data.connections.canManage} />
             <DocumentTemplatesPanel initial={data.documentTemplates} canEdit={data.connections.canManage} />
-            {data.company.services.length > 0 && (
-              <div>
-                <h2 className="mb-3 font-semibold">Nachrichtentexte je Leistung</h2>
-                <ServiceMessagesPanel services={data.company.services} initialMessages={data.serviceMessages} initialTemplates={data.documentTemplates} canEdit={data.connections.canManage} />
-              </div>
-            )}
+            <div>
+              <h2 className="mb-3 font-semibold">Nachrichtentexte je Leistung</h2>
+              <ServiceMessagesPanel services={data.company.services} initialMessages={data.serviceMessages} initialTemplates={data.documentTemplates} canEdit={data.connections.canManage} />
+            </div>
           </div>
         )}
 

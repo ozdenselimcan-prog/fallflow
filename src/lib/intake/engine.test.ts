@@ -138,6 +138,17 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     expect(second.replies.join(" ")).not.toContain("/template/");
   });
 
+  it("schickt mehrere Vorlagen für dieselbe Leistung gemeinsam mit (z. B. zwei verschiedene Formulare)", async () => {
+    const t1 = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht", fileName: "vollmacht.pdf", storagePath: "demo/templates/a.pdf" });
+    const t2 = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Datenerfassungsblatt", fileName: "datenblatt.pdf", storagePath: "demo/templates/b.pdf" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    const sentIds = (await store.listTemplateDocuments(first.sessionId)).map((t) => t.templateId).sort();
+    expect(sentIds).toEqual([t1.id, t2.id].sort());
+    const reply = first.replies.join(" ");
+    expect(reply).toContain(`/template/${t1.id}`);
+    expect(reply).toContain(`/template/${t2.id}`);
+  });
+
   it("schickt keinen Link ohne passende Vorlage", async () => {
     await store.saveDocumentTemplate({ service: "iSFP", title: "Vollmacht iSFP", fileName: "vollmacht-isfp.pdf", storagePath: "demo/templates/y.pdf" });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });

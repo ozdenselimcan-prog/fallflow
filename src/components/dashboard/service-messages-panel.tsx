@@ -26,10 +26,23 @@ const DEFAULT_BODY = (service: string) => `Für Ihr Anliegen (${service}) benöt
  * sobald die KI die Leistung bei einer Kundenanfrage erkennt – und direkt hier die passende PDF-Vorlage
  * hochladen/ändern, ohne zwischen Schritten wechseln zu müssen.
  */
+/** Zusätzlich zu den gewählten Leistungen immer verfügbar: die KI landet hier, wenn sie beim Kunden
+ * nicht eindeutig erkennen kann (oder der Kunde selbst so angibt), welche Leistung gewünscht ist.
+ * "Sonstiges" ist bereits ein regulärer Wert in SERVICES (lib/cases/fields.ts) – hier nur sichergestellt,
+ * dass die Zeile immer in der Liste auftaucht, auch wenn das Büro sie nicht explizit als Leistung gewählt hat. */
+const FALLBACK_SERVICE = "Sonstiges";
+
 export function ServiceMessagesPanel({ services, initialMessages, initialTemplates, canEdit }: { services: string[]; initialMessages: ServiceMessageView[]; initialTemplates: ServiceTemplateView[]; canEdit: boolean }) {
+  const rows = [...services, ...(services.includes(FALLBACK_SERVICE) ? [] : [FALLBACK_SERVICE])];
   const [bodies, setBodies] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
-    for (const s of services) map[s] = initialMessages.find((m) => m.service === s)?.body ?? DEFAULT_BODY(s);
+    for (const s of rows) {
+      map[s] =
+        initialMessages.find((m) => m.service === s)?.body ??
+        (s === FALLBACK_SERVICE
+          ? "Vielen Dank für Ihre Anfrage! Damit wir Ihnen die richtige Vorlage zuordnen können, benötigen wir noch die ausgefüllten Unterlagen. Bitte laden Sie sich das Dokument herunter, füllen es aus und schicken es uns wieder zu."
+          : DEFAULT_BODY(s));
+    }
     return map;
   });
   const [templates, setTemplates] = useState(initialTemplates);
@@ -63,7 +76,9 @@ export function ServiceMessagesPanel({ services, initialMessages, initialTemplat
       if (!res.ok || !data.template) throw new Error(data.error ?? "Hochladen fehlgeschlagen");
       // KI-Vorschlag kann abweichen – hier ist die Leistung aus dem Kontext bereits bekannt, also fest zuweisen.
       await apiFetch("PUT", `/api/document-templates/${data.template.id}`, { service });
-      setTemplates((prev) => [...prev.filter((t) => t.service !== service), { ...data.template!, service }]);
+      // Mehrere Vorlagen pro Leistung sind erlaubt (z. B. zwei verschiedene Formulare für dieselbe Leistung) –
+      // die neue kommt dazu, bestehende bleiben.
+      setTemplates((prev) => [...prev, { ...data.template!, service }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Hochladen fehlgeschlagen");
     } finally {
@@ -77,21 +92,24 @@ export function ServiceMessagesPanel({ services, initialMessages, initialTemplat
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   };
 
-  if (services.length === 0) {
+  if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">Wählen Sie zuerst mindestens eine Leistung aus.</p>;
   }
 
   return (
     <div className="space-y-4">
       {error && <Notice tone="error">{error}</Notice>}
-      {services.map((service) => {
-        const template = templates.find((t) => t.service === service);
+      {rows.map((service) => {
+        const serviceTemplates = templates.filter((t) => t.service === service);
         return (
           <Card key={service} className="p-4">
             <h3 className="font-semibold">{service}</h3>
-            <div className="mt-2.5">
-              {template ? (
-                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+            {service === FALLBACK_SERVICE && (
+              <p className="mt-0.5 text-xs text-muted-foreground">Greift, wenn die KI nicht eindeutig erkennt, welche Leistung der Kunde möchte.</p>
+            )}
+            <div className="mt-2.5 space-y-2">
+              {serviceTemplates.map((template) => (
+                <div key={template.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{template.title}</span>
                   {canEdit && (
@@ -100,27 +118,26 @@ export function ServiceMessagesPanel({ services, initialMessages, initialTemplat
                     </Button>
                   )}
                 </div>
-              ) : (
-                canEdit && (
-                  <div>
-                    <input
-                      ref={(el) => {
-                        fileInputs.current[service] = el;
-                      }}
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        if (file) void uploadTemplate(service, file);
-                      }}
-                    />
-                    <Button variant="secondary" size="sm" loading={busyService === service} onClick={() => fileInputs.current[service]?.click()}>
-                      <Upload className="size-3.5" /> PDF-Vorlage hinzufügen (optional)
-                    </Button>
-                  </div>
-                )
+              ))}
+              {canEdit && (
+                <div>
+                  <input
+                    ref={(el) => {
+                      fileInputs.current[service] = el;
+                    }}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) void uploadTemplate(service, file);
+                    }}
+                  />
+                  <Button variant="secondary" size="sm" loading={busyService === service} onClick={() => fileInputs.current[service]?.click()}>
+                    <Upload className="size-3.5" /> {serviceTemplates.length ? "Weitere PDF-Vorlage hinzufügen" : "PDF-Vorlage hinzufügen (optional)"}
+                  </Button>
+                </div>
               )}
             </div>
             <div className="mt-3">
