@@ -44,3 +44,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Rohdateien fuer Marken-Assets (verarbeitete Version liegt in public/brand/)
+fallflow.profilbild/
