@@ -117,9 +117,6 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
             <Field label="Adresse">
               <Input value={company.address} onChange={(e) => setCompany({ ...company, address: e.target.value })} maxLength={300} />
             </Field>
-            <Field label="Haben Sie ein eigenes Kontaktformular für Kunden? (optional)" hint="Falls ja, Link einfügen – der Assistent schickt ihn Kunden bei jeder neuen Anfrage zuerst mit, zusätzlich zu den eigenen Fragen.">
-              <Input type="url" placeholder="https://" value={company.contactFormUrl} onChange={(e) => setCompany({ ...company, contactFormUrl: e.target.value })} maxLength={300} />
-            </Field>
           </div>
         )}
 
