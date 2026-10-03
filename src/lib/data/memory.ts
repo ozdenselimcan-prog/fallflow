@@ -320,9 +320,7 @@ export function createMemoryStore(): Store {
     },
     async listChannels() {
       const overrides = (db() as unknown as { channelOverrides?: Partial<Record<string, Channel>> }).channelOverrides ?? {};
-      return CHANNEL_ORDER.map(
-        (kind) => overrides[kind] ?? { kind, status: kind === "website" ? ("connected" as const) : ("disconnected" as const), account: "" },
-      );
+      return CHANNEL_ORDER.map((kind) => overrides[kind] ?? { kind, status: "disconnected" as const, account: "" });
     },
     async getSubscription() {
       return { plan: "pro", status: "trialing", currentPeriodEnd: null, stripeCustomerId: null };

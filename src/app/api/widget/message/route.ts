@@ -15,6 +15,9 @@ export const POST = publicRoute("widget-message", 40, async (req) => {
   if (!store) return apiError("Unbekannte Company", 404);
   try {
     const turn = await processIntakeMessage(store, { companyId: body.data.companyId, sessionId: body.data.sessionId, text: body.data.text, source: "widget", channel: "website" });
+    // Erste echte Widget-Anfrage dieses Falls: Kanal "Website" gilt erst jetzt als wirklich eingebunden,
+    // nicht schon ab Signup (vorher stand faelschlich "verbunden", obwohl das Skript nirgends eingebaut war).
+    if (turn.created) await store.setChannelStatus("website", "connected");
     return json({
       sessionId: turn.sessionId,
       replies: turn.replies,
