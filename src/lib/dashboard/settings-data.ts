@@ -36,7 +36,7 @@ export async function loadSettingsData(session: Session, store: Store) {
       foerderFloorplan: company.foerderFloorplan,
       contactFormUrl: company.contactFormUrl,
     },
-    documentTemplates: documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName })),
+    documentTemplates: documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude })),
     serviceMessages: serviceMessages.map((m) => ({ service: m.service, body: m.body })),
     connections: {
       appUrl: siteConfig.appUrl,

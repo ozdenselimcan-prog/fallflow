@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Trash2, Upload } from "lucide-react";
+import { FileText, Mail, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,12 +8,14 @@ import { Select } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { SERVICES } from "@/lib/cases/fields";
 import { apiFetch, useMutation } from "@/lib/use-api";
+import { cn } from "@/lib/utils";
 
 export interface DocumentTemplateView {
   id: string;
   service: string;
   title: string;
   fileName: string;
+  alwaysInclude: boolean;
 }
 
 /**
@@ -52,6 +54,11 @@ export function DocumentTemplatesPanel({ initial, canEdit }: { initial: Document
     await run(() => apiFetch("PUT", `/api/document-templates/${id}`, { service }), { refresh: false });
   };
 
+  const toggleAlwaysInclude = async (id: string, alwaysInclude: boolean) => {
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, alwaysInclude } : t)));
+    await run(() => apiFetch("PUT", `/api/document-templates/${id}`, { alwaysInclude }), { refresh: false });
+  };
+
   const remove = async (id: string) => {
     const ok = await run(() => apiFetch("DELETE", `/api/document-templates/${id}`), { refresh: false });
     if (ok) setTemplates((prev) => prev.filter((t) => t.id !== id));
@@ -73,7 +80,7 @@ export function DocumentTemplatesPanel({ initial, canEdit }: { initial: Document
           <div key={t.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
             <FileText className="size-4 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1 truncate text-sm font-medium">{t.title}</span>
-            <Select className="!h-9 w-auto" value={t.service} disabled={!canEdit || pending} onChange={(e) => setService(t.id, e.target.value)}>
+            <Select className="!h-9 w-auto" value={t.service} disabled={!canEdit || pending || t.alwaysInclude} onChange={(e) => setService(t.id, e.target.value)}>
               <option value="">Leistung wählen…</option>
               {SERVICES.map((s) => (
                 <option key={s} value={s}>
@@ -81,6 +88,16 @@ export function DocumentTemplatesPanel({ initial, canEdit }: { initial: Document
                 </option>
               ))}
             </Select>
+            <Button
+              variant={t.alwaysInclude ? "primary" : "ghost"}
+              size="sm"
+              disabled={!canEdit || pending}
+              title="Diese Vorlage bei jeder Kundenanfrage mitschicken, unabhängig von der Leistung (z. B. eine Datenschutz-Einwilligung)"
+              onClick={() => toggleAlwaysInclude(t.id, !t.alwaysInclude)}
+              className={cn(!t.alwaysInclude && "text-muted-foreground")}
+            >
+              <Mail className="size-3.5" /> Bei jeder Mail dabei
+            </Button>
             {canEdit && (
               <Button variant="ghost" size="sm" disabled={pending} onClick={() => remove(t.id)}>
                 <Trash2 className="size-3.5 text-danger" />

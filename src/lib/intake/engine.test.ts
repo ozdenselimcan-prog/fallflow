@@ -119,6 +119,25 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     expect(templateDocs[0]).toMatchObject({ templateId: template.id, status: "sent" });
   });
 
+  it("schickt eine als 'bei jeder Anfrage' markierte Vorlage unabhängig von der erkannten Leistung mit", async () => {
+    const always = await store.saveDocumentTemplate({ service: "", title: "Datenschutz-Einwilligung", fileName: "datenschutz.pdf", storagePath: "demo/templates/always.pdf", alwaysInclude: true });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    expect(first.replies.join(" ")).toContain(`/template/${always.id}`);
+    const templateDocs = await store.listTemplateDocuments(first.sessionId);
+    expect(templateDocs.map((t) => t.templateId)).toContain(always.id);
+  });
+
+  it("schickt eine passende Leistungs-Vorlage UND eine 'immer dabei'-Vorlage gemeinsam, nur einmal pro Vorlage", async () => {
+    const serviceTemplate = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
+    const always = await store.saveDocumentTemplate({ service: "", title: "Datenschutz-Einwilligung", fileName: "datenschutz.pdf", storagePath: "demo/templates/always.pdf", alwaysInclude: true });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    const sentIds = (await store.listTemplateDocuments(first.sessionId)).map((t) => t.templateId).sort();
+    expect(sentIds).toEqual([always.id, serviceTemplate.id].sort());
+
+    const second = await processIntakeMessage(store, { companyId: "demo", sessionId: first.sessionId, text: "Max Mustermann", source: "widget", channel: "website" });
+    expect(second.replies.join(" ")).not.toContain("/template/");
+  });
+
   it("schickt keinen Link ohne passende Vorlage", async () => {
     await store.saveDocumentTemplate({ service: "iSFP", title: "Vollmacht iSFP", fileName: "vollmacht-isfp.pdf", storagePath: "demo/templates/y.pdf" });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });

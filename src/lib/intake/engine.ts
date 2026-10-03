@@ -137,26 +137,35 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   if (turn.handoff) await store.addEvent(caseId, "handoff", "Kunde wünscht persönlichen Kontakt");
   if (turn.appointmentRequested) await store.addEvent(caseId, "appointment", "Kunde wünscht einen Termin");
 
-  // Büro-Vorlage (z. B. eine Vollmacht) automatisch mitschicken, sobald die passende Leistung bekannt ist – mit
-  // Download-Link (blanko) UND Upload-Link (zum Zurückschicken der ausgefüllten Version), nicht als Anhang
-  // (funktioniert so auf allen Kanälen gleich). Vor refreshCase, damit der Fall nicht in diesem Zug schon als
-  // "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht. Pro Fall nur einmal pro Vorlage.
-  const matchingTemplate = turn.fields.service ? templates.find((t) => t.service && t.service === turn.fields.service) : undefined;
-  if (matchingTemplate) {
-    const alreadySent = (await store.listTemplateDocuments(caseId)).some((td) => td.templateId === matchingTemplate.id);
-    if (!alreadySent) {
+  // Büro-Vorlagen (z. B. eine Vollmacht) automatisch mitschicken – entweder weil die passende Leistung bekannt ist,
+  // oder weil die Vorlage als "bei jeder Anfrage mitschicken" markiert ist (z. B. eine Datenschutz-Einwilligung,
+  // die jeder Kunde ausfüllen muss) – mit Download-Link (blanko) UND Upload-Link (zum Zurückschicken der
+  // ausgefüllten Version), nicht als Anhang (funktioniert so auf allen Kanälen gleich). Vor refreshCase, damit
+  // der Fall nicht in diesem Zug schon als "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage
+  // aussteht. Pro Fall nur einmal pro Vorlage.
+  const matchingTemplates = [
+    ...(turn.fields.service ? templates.filter((t) => t.service && t.service === turn.fields.service) : []),
+    ...templates.filter((t) => t.alwaysInclude),
+  ];
+  const uniqueTemplates = [...new Map(matchingTemplates.map((t) => [t.id, t])).values()];
+  if (uniqueTemplates.length) {
+    const sentIds = new Set((await store.listTemplateDocuments(caseId)).map((td) => td.templateId));
+    const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
+    if (pending.length) {
       const caseNow = (await store.getCase(caseId))!;
       const token = await ensureUploadToken(store, caseNow);
-      const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${matchingTemplate.id}`;
-      await store.saveTemplateDocument({ caseId, templateId: matchingTemplate.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
-      // Büro-eigener Nachrichtentext für diese Leistung (Einstellungen/Onboarding) ersetzt den Standardsatz, falls gepflegt.
-      const customMessage = serviceMessages.find((m) => m.service === matchingTemplate.service)?.body.trim();
-      replies.push(
-        customMessage
-          ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}\nAusgefüllt wieder hochladen: ${uploadUrl(token)}`
-          : `Für Ihr Anliegen („${matchingTemplate.title}“) laden Sie sich bitte das Dokument herunter (${downloadUrl}), füllen es aus und laden es anschließend hier wieder hoch: ${uploadUrl(token)}`,
-      );
-      await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${matchingTemplate.title}`);
+      for (const tpl of pending) {
+        const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
+        await store.saveTemplateDocument({ caseId, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+        // Büro-eigener Nachrichtentext für diese Leistung (Einstellungen/Onboarding) ersetzt den Standardsatz, falls gepflegt.
+        const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
+        replies.push(
+          customMessage
+            ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}\nAusgefüllt wieder hochladen: ${uploadUrl(token)}`
+            : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter (${downloadUrl}), füllen es aus und laden es anschließend hier wieder hoch: ${uploadUrl(token)}`,
+        );
+        await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
+      }
     }
   }
 

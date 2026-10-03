@@ -204,6 +204,9 @@ export interface DocumentTemplate {
   fileName: string;
   storagePath: string;
   createdAt: string;
+  /** true = wird bei jeder neuen Anfrage mitgeschickt, unabhängig von der erkannten Leistung (z. B. eine
+   * Datenschutz-Einwilligung, die jeder Kunde ausfüllen muss). */
+  alwaysInclude: boolean;
 }
 
 /** Individuell editierbarer Nachrichtentext pro Leistung – wird zusätzlich zu den Vorlagen-Links verschickt,

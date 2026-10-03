@@ -93,7 +93,7 @@ export interface Store {
   removeMember(id: string): Promise<void>;
 
   listDocumentTemplates(): Promise<DocumentTemplate[]>;
-  saveDocumentTemplate(t: Omit<DocumentTemplate, "id" | "companyId" | "createdAt"> & { id?: string }): Promise<DocumentTemplate>;
+  saveDocumentTemplate(t: Omit<DocumentTemplate, "id" | "companyId" | "createdAt" | "alwaysInclude"> & { id?: string; alwaysInclude?: boolean }): Promise<DocumentTemplate>;
   deleteDocumentTemplate(id: string): Promise<void>;
 
   /** Ohne caseId: alle Vorlagen-Rückläufer des Büros. */
