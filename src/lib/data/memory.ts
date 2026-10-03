@@ -14,7 +14,7 @@ import {
   seedQuestions,
 } from "./seed";
 import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
-import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, DocumentTemplate, FollowUp, Member, Question, TemplateDocument } from "./types";
+import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, DocumentTemplate, FollowUp, Member, Question, ServiceMessage, TemplateDocument } from "./types";
 
 interface MemoryDb {
   company: Company;
@@ -29,6 +29,7 @@ interface MemoryDb {
   members: Member[];
   documentTemplates: DocumentTemplate[];
   templateDocuments: TemplateDocument[];
+  serviceMessages: ServiceMessage[];
 }
 
 const g = globalThis as unknown as { __fallflowDb?: MemoryDb };
@@ -47,6 +48,7 @@ function db(): MemoryDb {
     members: seedMembers(),
     documentTemplates: [],
     templateDocuments: [],
+    serviceMessages: [],
   };
   return g.__fallflowDb;
 }
@@ -293,6 +295,21 @@ export function createMemoryStore(): Store {
       }
       const created: TemplateDocument = { ...t, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
       d.templateDocuments.push(created);
+      return created;
+    },
+
+    async listServiceMessages() {
+      return db().serviceMessages;
+    },
+    async saveServiceMessage(m) {
+      const d = db();
+      const existing = d.serviceMessages.find((x) => x.service === m.service);
+      if (existing) {
+        existing.body = m.body;
+        return existing;
+      }
+      const created: ServiceMessage = { id: uid(), companyId: DEMO_COMPANY_ID, service: m.service, body: m.body };
+      d.serviceMessages.push(created);
       return created;
     },
 

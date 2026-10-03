@@ -251,7 +251,7 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
   );
 
   const text = appointmentConfirmedText(new Date(saved.startsAt));
-  const channel = c.source === "whatsapp" || (!c.fields.email && c.fields.phone) ? "whatsapp" : "email";
+  const channel = "email" as const;
   const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Beratungstermin" });
   await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
 

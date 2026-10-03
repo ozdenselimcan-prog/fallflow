@@ -46,14 +46,13 @@ interface Props {
   messages: CaseMessage[];
   canWrite: boolean;
   hasEmail: boolean;
-  hasPhone: boolean;
   title?: string;
 }
 
 /** Kommunikation eines Falls: Verlauf, Telefonnotiz (Angaben werden übernommen) und Nachricht an den Kunden. */
-export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, hasPhone, title = "Kommunikation" }: Props) {
+export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title = "Kommunikation" }: Props) {
   const { pending, error, run } = useMutation();
-  const [mode, setMode] = useState<"phone_note" | "email" | "whatsapp">("phone_note");
+  const [mode, setMode] = useState<"phone_note" | "email">("phone_note");
   const [text, setText] = useState("");
   const [info, setInfo] = useState<string | null>(null);
 
@@ -67,11 +66,11 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, hasPh
     else setInfo(res.delivered ? "Nachricht gesendet." : `Nachricht gespeichert, aber nicht versendet. ${res.reason ?? ""}`);
   }
 
-  const channelReady = mode === "phone_note" || (mode === "email" ? hasEmail : hasPhone);
+  const channelReady = mode === "phone_note" || hasEmail;
 
   return (
     <Card>
-      <CardHeader title={title} description="Website-Chat, E-Mail, WhatsApp und Telefonnotizen in einem Verlauf" />
+      <CardHeader title={title} description="Website-Chat, E-Mail und Telefonnotizen in einem Verlauf" />
       <div className="space-y-4 px-5 py-4">
         <MessageThread messages={messages} className="max-h-96" />
         {canWrite && (
@@ -83,9 +82,8 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, hasPh
               <Select id={`mode-${caseId}`} value={mode} onChange={(e) => setMode(e.target.value as typeof mode)} className="h-9 w-auto">
                 <option value="phone_note">Telefonnotiz</option>
                 <option value="email">Nachricht per E-Mail</option>
-                <option value="whatsapp">Nachricht per WhatsApp</option>
               </Select>
-              {!channelReady && <span className="text-xs text-warning">Dafür fehlt {mode === "email" ? "eine E-Mail-Adresse" : "eine Telefonnummer"} im Fall.</span>}
+              {!channelReady && <span className="text-xs text-warning">Dafür fehlt eine E-Mail-Adresse im Fall.</span>}
             </div>
             <Textarea
               value={text}

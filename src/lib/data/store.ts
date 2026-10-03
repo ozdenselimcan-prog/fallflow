@@ -21,6 +21,7 @@ import type {
   Profile,
   Question,
   Role,
+  ServiceMessage,
   Subscription,
   TemplateDocument,
 } from "./types";
@@ -99,6 +100,10 @@ export interface Store {
   listTemplateDocuments(caseId?: string): Promise<TemplateDocument[]>;
   saveTemplateDocument(t: Omit<TemplateDocument, "id" | "companyId" | "createdAt"> & { id?: string }): Promise<TemplateDocument>;
 
+  listServiceMessages(): Promise<ServiceMessage[]>;
+  /** Legt an oder aktualisiert (ein Eintrag pro Leistung) – service identifiziert, nicht id. */
+  saveServiceMessage(m: { service: string; body: string }): Promise<ServiceMessage>;
+
   listChannels(): Promise<Channel[]>;
   /** Kanal-Status für die UI setzen (verbunden/getrennt + sichtbarer Account-Name, z. B. E-Mail-Adresse). Keine Tokens. */
   setChannelStatus(kind: ChannelKind, status: Channel["status"], account?: string): Promise<void>;
@@ -111,7 +116,7 @@ export interface ProfileStore {
   updateProfile(userId: string, patch: { firstName: string; lastName: string }): Promise<void>;
 }
 
-export const CHANNEL_ORDER: ChannelKind[] = ["website", "gmail", "microsoft", "whatsapp"];
+export const CHANNEL_ORDER: ChannelKind[] = ["website", "gmail", "microsoft"];
 
 /** Ein laufendes Gespräch ohne Aktivität gilt als „wartet auf Kunde“ – wird beim Lesen abgeleitet, nicht gespeichert. */
 export const withEffectiveStatus = (c: CaseRecord): CaseRecord => {
@@ -144,7 +149,7 @@ export function applyCaseFilters(list: CaseRecord[], f: CaseFilters = {}): CaseR
 }
 
 const berlinDay = (d: Date | string) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
-const AUTO_SOURCES: CaseRecord["source"][] = ["widget", "email", "whatsapp"];
+const AUTO_SOURCES: CaseRecord["source"][] = ["widget", "email"];
 
 export function computeStats(cases: CaseRecord[], appointments: Appointment[]): DashboardStats {
   const today = berlinDay(new Date());

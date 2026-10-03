@@ -1,4 +1,4 @@
-import { Globe, Mail, MessageCircle, Phone } from "lucide-react";
+import { Globe, Mail, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/card";
 import { STATUS_LABELS } from "@/lib/cases/fields";
 import type { CaseStatus, MessageChannel } from "@/lib/data/types";
@@ -40,7 +40,6 @@ export function Completeness({ value, className }: { value: number; className?: 
 const channelInfo = {
   website: { label: "Website", icon: Globe },
   email: { label: "E-Mail", icon: Mail },
-  whatsapp: { label: "WhatsApp", icon: MessageCircle },
   phone: { label: "Telefon", icon: Phone },
 } as const;
 

@@ -1,17 +1,16 @@
 "use client";
 
-import { Globe, Loader2, Mail, MessageCircle, Trash2 } from "lucide-react";
+import { Globe, Loader2, Mail, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Badge, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { apiFetch, useMutation } from "@/lib/use-api";
 import { formatDateTime } from "@/lib/utils";
 import { WidgetSnippet } from "./widget-snippet";
 
 export interface ConnectionView {
-  provider: "gmail" | "microsoft" | "whatsapp";
+  provider: "gmail" | "microsoft";
   status: "connected" | "error" | "disconnected";
   accountName: string;
   accountEmail: string;
@@ -22,7 +21,6 @@ export interface ConnectionView {
 const META = {
   gmail: { title: "Gmail", text: "Neue Anfragen aus Ihrem Gmail-Postfach übernehmen und beantworten.", icon: Mail },
   microsoft: { title: "Microsoft 365 / Outlook", text: "Neue Anfragen aus Ihrem Outlook-Postfach übernehmen und beantworten.", icon: Mail },
-  whatsapp: { title: "WhatsApp Business", text: "Nachrichten aus Ihrem WhatsApp-Business-Anschluss verarbeiten.", icon: MessageCircle },
 } as const;
 
 interface OAuthStatus {
@@ -108,121 +106,18 @@ function OAuthCard({ provider, connection, canManage }: { provider: "gmail" | "m
   );
 }
 
-/** WhatsApp: kein OAuth (erfordert Meta-App-Prüfung/Embedded Signup) – Büro trägt seinen eigenen Zugriffstoken ein. */
-function WhatsAppCard({ connection, canManage, appConfigured }: { connection: ConnectionView | null; canManage: boolean; appConfigured: boolean }) {
-  const { title, text, icon: Icon } = META.whatsapp;
-  const { pending, error, run } = useMutation();
-  const [open, setOpen] = useState(false);
-  const [accessToken, setAccessToken] = useState("");
-  const [phoneNumberId, setPhoneNumberId] = useState("");
-  const [wabaId, setWabaId] = useState("");
-  const [testPending, setTestPending] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const connected = connection?.status === "connected";
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const ok = await run(() => apiFetch("POST", "/api/integrations/whatsapp", { accessToken, phoneNumberId, wabaId }));
-    if (ok) {
-      setOpen(false);
-      setAccessToken("");
-    }
-  };
-
-  const disconnect = () => run(() => apiFetch("DELETE", "/api/integrations/whatsapp"));
-
-  const test = async () => {
-    setTestPending(true);
-    setNotice(null);
-    try {
-      await apiFetch("POST", "/api/integrations/whatsapp/test");
-      setNotice("Verbindung funktioniert.");
-    } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Test fehlgeschlagen.");
-    } finally {
-      setTestPending(false);
-    }
-  };
-
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-            <Icon className="size-5" />
-          </span>
-          <div>
-            <h2 className="font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{text}</p>
-            {connected && connection.accountEmail && <p className="mt-1 text-sm font-medium">{connection.accountEmail}</p>}
-            {connected && connection.lastSyncedAt && <p className="text-xs text-muted-foreground">Zuletzt geprüft: {formatDateTime(connection.lastSyncedAt)}</p>}
-            {connection?.status === "error" && connection.lastError && <p className="mt-1 text-xs text-danger">{connection.lastError}</p>}
-          </div>
-        </div>
-        <StatusBadge status={connection?.status ?? "disconnected"} />
-      </div>
-
-      {!appConfigured && <Notice tone="info" className="mt-3">WhatsApp ist bei FallFlow noch nicht konfiguriert (App-Zugangsdaten fehlen).</Notice>}
-
-      {appConfigured && (
-        <div className="mt-4 space-y-3">
-          {connected ? (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" disabled={!canManage || testPending} onClick={test}>
-                {testPending && <Loader2 className="size-3.5 animate-spin" />} Verbindung testen
-              </Button>
-              <Button variant="ghost" size="sm" disabled={!canManage || pending} onClick={disconnect}>
-                <Trash2 className="size-3.5 text-danger" /> Trennen
-              </Button>
-            </div>
-          ) : open ? (
-            <form onSubmit={submit} className="space-y-3">
-              <Field label="Zugriffstoken" hint="Meta Business Suite → WhatsApp → API-Setup → Zugriffstoken">
-                <Input value={accessToken} onChange={(e) => setAccessToken(e.target.value)} required minLength={20} type="password" autoComplete="off" />
-              </Field>
-              <Field label="Telefonnummer-ID">
-                <Input value={phoneNumberId} onChange={(e) => setPhoneNumberId(e.target.value)} required pattern="\d{5,30}" />
-              </Field>
-              <Field label="WhatsApp-Business-Account-ID (optional)">
-                <Input value={wabaId} onChange={(e) => setWabaId(e.target.value)} pattern="\d*" />
-              </Field>
-              {error && <Notice tone="error">{error}</Notice>}
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" loading={pending}>
-                  Verbinden
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                  Abbrechen
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <Button variant="secondary" size="sm" disabled={!canManage} onClick={() => setOpen(true)}>
-              WhatsApp verbinden
-            </Button>
-          )}
-        </div>
-      )}
-      {notice && <Notice tone={notice.includes("funktioniert") ? "success" : "info"} className="mt-3">{notice}</Notice>}
-    </Card>
-  );
-}
-
 interface Props {
   appUrl: string;
   companyId: string;
   canManage: boolean;
   gmail: ConnectionView | null;
   microsoft: ConnectionView | null;
-  whatsapp: ConnectionView | null;
-  whatsappAppConfigured: boolean;
   websiteConnected: boolean;
   /** Im Onboarding gibt es die Website-Karte schon als eigenen Schritt – dort ausblenden. */
   showWebsite?: boolean;
 }
 
-export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsoft, whatsapp, whatsappAppConfigured, websiteConnected, showWebsite = true }: Props) {
+export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsoft, websiteConnected, showWebsite = true }: Props) {
   return (
     <div className="space-y-4">
       {showWebsite && (
@@ -250,8 +145,6 @@ export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsof
         <OAuthCard provider="gmail" connection={gmail} canManage={canManage} />
         <OAuthCard provider="microsoft" connection={microsoft} canManage={canManage} />
       </div>
-      {/* WhatsApp-Verbindung vorerst ausgeblendet (kaum genutzt) - Code/Backend bleiben bestehen, siehe WhatsAppCard oben. */}
-      {false && <WhatsAppCard connection={whatsapp} canManage={canManage} appConfigured={whatsappAppConfigured} />}
     </div>
   );
 }

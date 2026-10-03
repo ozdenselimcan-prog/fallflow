@@ -16,7 +16,7 @@ declare
     {"status":"QUALIFYING","age":1,"source":"widget","f":{"name":"Anna Schmidt","email":"anna.schmidt@example.com","postalCode":"80999","buildingType":"Einfamilienhaus","yearBuilt":"1974","service":"Energieberatung","description":"Wir überlegen, die Fassade zu dämmen."}},
     {"status":"WAITING_FOR_CUSTOMER","age":2,"source":"email","f":{"name":"Thomas Weber","email":"t.weber@example.com","phone":"+49 151 7654321","street":"Industrieweg 4","postalCode":"85221","buildingType":"Mehrfamilienhaus","yearBuilt":"1990","livingArea":"420","heating":"Öl","service":"Heizung","description":"Ölheizung ist in die Jahre gekommen."}},
     {"status":"READY_FOR_REVIEW","age":4,"source":"widget","f":{"name":"Julia Fischer","email":"julia.fischer@example.com","phone":"+49 160 5556677","street":"Lindenallee 5","postalCode":"81675","ownerStatus":"Eigentümer","buildingType":"Einfamilienhaus","yearBuilt":"1968","livingArea":"132","heating":"Fernwärme","service":"Energieausweis","description":"Energieausweis für den Verkauf benötigt."}},
-    {"status":"NEW","age":5,"source":"whatsapp","f":{"name":"Michael Bauer","phone":"+49 172 9988776","postalCode":"83022","service":"Fördermittelberatung","description":"Welche Förderung gibt es für eine Wärmepumpe?"}}
+    {"status":"NEW","age":5,"source":"email","f":{"name":"Michael Bauer","email":"michael.bauer@example.com","postalCode":"83022","service":"Fördermittelberatung","description":"Welche Förderung gibt es für eine Wärmepumpe?"}}
   ]';
 begin
   select id into uid from auth.users where lower(email) = lower(owner_email);

@@ -231,17 +231,17 @@ const seedCases: SeedCase[] = [
     status: "QUALIFYING",
     age: { days: 0, minutes: 25 },
     idleMin: 8,
-    source: "whatsapp",
-    channel: "whatsapp",
+    source: "email",
+    channel: "email",
     fields: {
       name: "Michael Bauer",
-      phone: "+49 172 9988776",
+      email: "michael.bauer@example.com",
       postalCode: "83022",
       service: "Fördermittelberatung",
       description: "Welche Förderung gibt es für eine Wärmepumpe?",
     },
     events: [
-      { type: "received", text: "Anfrage per WhatsApp eingegangen (Demo-Simulation)" },
+      { type: "received", text: "Anfrage per E-Mail eingegangen (Demo-Simulation)" },
       { type: "question", text: "KI hat fehlende Angaben abgefragt" },
     ],
     chat: [
@@ -357,7 +357,7 @@ export function seedMessages(): CaseMessage[] {
   for (const c of seedCases) {
     const created = Date.now() - c.age.days * 86_400_000 - (c.age.hours ?? 0) * 3_600_000 - (c.age.minutes ?? 0) * 60_000;
     const at = (i: number) => new Date(created + i * 60_000).toISOString();
-    const simulated = c.channel === "whatsapp";
+    const simulated = c.channel === "email" && c.source === "email" && c.age.days === 0;
     const lines: { role: CaseMessage["role"]; content: string }[] = [
       ...(c.fields.description ? [{ role: "user" as const, content: c.fields.description }] : []),
       ...(c.chat ?? []),
@@ -370,7 +370,7 @@ export function seedMessages(): CaseMessage[] {
         content: m.content,
         createdAt: at(i),
         channel: c.channel,
-        // Simulierte WhatsApp-/E-Mail-Antworten der KI wurden nie über einen echten Kanal versendet.
+        // Simulierte E-Mail-Antworten der KI wurden nie über einen echten Kanal versendet.
         delivery: m.role === "assistant" && c.channel !== "website" ? "not_sent" : "delivered",
         simulated: simulated && c.channel !== "website",
       }),

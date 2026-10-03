@@ -24,7 +24,7 @@ import { formatDateTime, timeAgo } from "@/lib/utils";
 export const metadata: Metadata = { title: "Fallakte" };
 
 const KNOWN_KEYS = new Set([...FIELD_GROUPS.flatMap((g) => g.fields.map((f) => f.key)), "appointmentWish"]);
-const SOURCE_LABELS = { widget: "Website-Chat", email: "E-Mail", whatsapp: "WhatsApp", phone: "Telefon", manual: "Manuell angelegt", demo: "Demo" } as const;
+const SOURCE_LABELS = { widget: "Website-Chat", email: "E-Mail", phone: "Telefon", manual: "Manuell angelegt", demo: "Demo" } as const;
 
 export default async function CaseDetailPage({ params }: PageProps<"/dashboard/cases/[id]">) {
   const { id } = await params;
@@ -110,7 +110,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             canWrite={canWrite}
           />
           <PreliminaryAssessmentCard caseId={c.id} events={events} canWrite={canWrite} />
-          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email)} hasPhone={Boolean(c.fields.phone)} />
+          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email)} />
         </div>
       </div>
     </div>

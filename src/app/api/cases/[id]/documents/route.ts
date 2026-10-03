@@ -33,7 +33,7 @@ export const POST = withSession(
 
     const { url } = await requestDocuments(store, c, kinds);
     const text = documentRequestMessage({ name: c.fields.name, kinds, url });
-    const channel = c.source === "whatsapp" || (!c.fields.email && c.fields.phone) ? "whatsapp" : "email";
+    const channel = "email" as const;
     const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Unterlagen für Ihren Beratungstermin" });
     await store.addMessage(id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
     await store.addEvent(id, "document", result.delivered ? "Dokumentenanforderung an den Kunden gesendet" : "Dokumentenanforderung vorbereitet (nicht versendet)");

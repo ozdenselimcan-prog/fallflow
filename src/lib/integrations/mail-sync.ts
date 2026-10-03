@@ -12,7 +12,7 @@ const SEEN_IDS_LIMIT = 300;
 
 /**
  * Holt für alle verbundenen Postfächer eines Anbieters neue Nachrichten ab und verarbeitet sie über
- * dieselbe Pipeline wie WhatsApp (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
+ * dieselbe Pipeline wie der Website-Chat (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
  * (kein Push-Webhook für Gmail/Microsoft in dieser Version).
  */
 export async function syncMailbox(provider: EmailProvider): Promise<{ connections: number; messages: number; skipped: number; errors: number }> {

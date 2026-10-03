@@ -4,7 +4,6 @@ import { siteConfig } from "@/lib/config/site";
 import { getPlan, plans } from "@/lib/config/pricing";
 import type { Store } from "@/lib/data/store";
 import { listConnections, toStatus } from "@/lib/integrations/connections-store";
-import { appConfigured as whatsappAppConfigured } from "@/lib/integrations/whatsapp";
 
 /**
  * Lädt alle Daten für den Einstellungsbereich (Profil, Unternehmen, Verbindungen, Abrechnung) in einem
@@ -13,12 +12,13 @@ import { appConfigured as whatsappAppConfigured } from "@/lib/integrations/whats
  * hat eine eigene Seite (/dashboard/assistant) statt eines Reiters hier.
  */
 export async function loadSettingsData(session: Session, store: Store) {
-  const [company, connections, channels, subscription, documentTemplates] = await Promise.all([
+  const [company, connections, channels, subscription, documentTemplates, serviceMessages] = await Promise.all([
     store.getCompany(),
     listConnections(session.companyId),
     store.listChannels(),
     store.getSubscription(),
     store.listDocumentTemplates(),
+    store.listServiceMessages(),
   ]);
 
   const byProvider = new Map(connections.map((c) => [c.provider, toStatus(c)]));
@@ -37,14 +37,13 @@ export async function loadSettingsData(session: Session, store: Store) {
       contactFormUrl: company.contactFormUrl,
     },
     documentTemplates: documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName })),
+    serviceMessages: serviceMessages.map((m) => ({ service: m.service, body: m.body })),
     connections: {
       appUrl: siteConfig.appUrl,
       companyId: session.companyId,
       canManage: can(session.role, "company:manage"),
       gmail: byProvider.get("gmail") ?? null,
       microsoft: byProvider.get("microsoft") ?? null,
-      whatsapp: byProvider.get("whatsapp") ?? null,
-      whatsappAppConfigured: whatsappAppConfigured(),
       websiteConnected: website,
     },
     billing: {

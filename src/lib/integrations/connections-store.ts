@@ -9,7 +9,7 @@ import { decryptSecret, encryptionAvailable, encryptSecret } from "@/lib/crypto"
  * Modul nie unverschlüsselt in Richtung Client (siehe `toStatus`, das nur sichere Felder exportiert).
  */
 
-export type ConnectionProvider = "gmail" | "microsoft" | "whatsapp";
+export type ConnectionProvider = "gmail" | "microsoft";
 
 export interface Connection {
   id: string;
@@ -142,15 +142,4 @@ export async function deleteConnection(companyId: string, provider: ConnectionPr
   if (!isSupabaseConfigured()) return;
   const { error } = await admin().from("connections").delete().eq("company_id", companyId).eq("provider", provider);
   if (error) throw new Error(`Verbindung konnte nicht getrennt werden: ${error.message}`);
-}
-
-/** Findet das Büro zu einer WhatsApp Phone-Number-ID (Webhook hat keinen Company-Kontext). */
-export async function findCompanyByWhatsAppPhoneId(phoneNumberId: string): Promise<Connection | null> {
-  if (!isSupabaseConfigured()) return null;
-  const { data, error } = await admin().from("connections").select("*").eq("provider", "whatsapp").eq("status", "connected").filter("metadata->>phoneNumberId", "eq", phoneNumberId).maybeSingle();
-  if (error) {
-    console.error("[connections] whatsapp lookup:", error.message);
-    return null;
-  }
-  return data ? mapRow(data) : null;
 }

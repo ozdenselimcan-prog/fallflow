@@ -1,10 +1,8 @@
 import type { MessageChannel } from "@/lib/data/types";
 import { getValidTokens } from "./tokens";
-import { getConnection } from "./connections-store";
 import { IntegrationNotReadyError } from "./email";
 import { gmailProvider } from "./gmail";
 import { microsoftProvider } from "./microsoft";
-import { sendWhatsAppMessage } from "./whatsapp";
 
 export interface DeliveryResult {
   delivered: boolean;
@@ -34,16 +32,6 @@ export async function deliverToCustomer(input: {
   if (input.channel === "phone") return { delivered: false, reason: "Telefonnotiz – kein Versand." };
 
   try {
-    if (input.channel === "whatsapp") {
-      const connection = await getConnection(input.companyId, "whatsapp");
-      if (!connection || connection.status !== "connected" || !connection.accessToken) return { delivered: false, reason: "WhatsApp ist für dieses Büro nicht verbunden." };
-      if (!input.phone) return { delivered: false, reason: "Keine Telefonnummer vorhanden." };
-      const phoneNumberId = String(connection.metadata.phoneNumberId ?? "");
-      if (!phoneNumberId) return { delivered: false, reason: "WhatsApp-Verbindung ist unvollständig konfiguriert." };
-      await sendWhatsAppMessage({ phoneNumberId, accessToken: connection.accessToken, to: input.phone, text: input.text });
-      return { delivered: true, reason: "" };
-    }
-
     for (const provider of EMAIL_PROVIDERS) {
       const found = await getValidTokens(provider, input.companyId);
       if (!found) continue;

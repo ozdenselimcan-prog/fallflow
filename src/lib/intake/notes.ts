@@ -33,11 +33,11 @@ export async function addPhoneNote(store: Store, caseId: string, text: string): 
   return { message, added };
 }
 
-/** Nachricht des Teams an den Kunden (E-Mail/WhatsApp). Wird nur als „gesendet“ markiert, wenn der Kanal wirklich versendet hat. */
+/** Nachricht des Teams an den Kunden (E-Mail). Wird nur als „gesendet“ markiert, wenn der Kanal wirklich versendet hat. */
 export async function sendTeamMessage(
   store: Store,
   caseId: string,
-  input: { channel: Extract<MessageChannel, "email" | "whatsapp">; text: string },
+  input: { channel: Extract<MessageChannel, "email">; text: string },
 ): Promise<{ message: CaseMessage; delivered: boolean; reason: string }> {
   const c = await store.getCase(caseId);
   if (!c) throw new Error("Fall nicht gefunden");

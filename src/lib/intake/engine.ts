@@ -38,7 +38,7 @@ export interface IntakeInput {
   channel: MessageChannel;
   /** true = im Simulator erzeugt, nichts wird nach außen versendet */
   simulated?: boolean;
-  /** Bekannte Absenderdaten (E-Mail-Adresse, WhatsApp-Nummer …) – gelten als beantwortet */
+  /** Bekannte Absenderdaten (E-Mail-Adresse, Telefonnummer …) – gelten als beantwortet */
   identity?: { email?: string; phone?: string; name?: string };
 }
 
@@ -71,12 +71,18 @@ export async function extractForText(text: string): Promise<Record<string, strin
 }
 
 /**
- * Verarbeitet eine Kundennachricht (Website-Chat, WhatsApp, E-Mail): erkennt bekannte Angaben, fragt nur noch
+ * Verarbeitet eine Kundennachricht (Website-Chat, E-Mail): erkennt bekannte Angaben, fragt nur noch
  * relevante fehlende Angaben ab, hält Fallakte, Status, Dokumentenanforderung und Follow-ups aktuell.
  */
 export async function processIntakeMessage(store: Store, input: IntakeInput): Promise<IntakeTurn> {
   const { companyId } = input;
-  const [questions, settings, company, templates] = await Promise.all([store.listQuestions(), store.getAssistant(), store.getCompany(), store.listDocumentTemplates()]);
+  const [questions, settings, company, templates, serviceMessages] = await Promise.all([
+    store.listQuestions(),
+    store.getAssistant(),
+    store.getCompany(),
+    store.listDocumentTemplates(),
+    store.listServiceMessages(),
+  ]);
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const existing = input.sessionId ? await store.getCase(input.sessionId) : null;
   if (input.sessionId && !existing) throw new SessionNotFoundError();
@@ -143,8 +149,12 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       const token = await ensureUploadToken(store, caseNow);
       const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${matchingTemplate.id}`;
       await store.saveTemplateDocument({ caseId, templateId: matchingTemplate.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+      // Büro-eigener Nachrichtentext für diese Leistung (Einstellungen/Onboarding) ersetzt den Standardsatz, falls gepflegt.
+      const customMessage = serviceMessages.find((m) => m.service === matchingTemplate.service)?.body.trim();
       replies.push(
-        `Für Ihr Anliegen („${matchingTemplate.title}“) laden Sie sich bitte das Dokument herunter (${downloadUrl}), füllen es aus und laden es anschließend hier wieder hoch: ${uploadUrl(token)}`,
+        customMessage
+          ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}\nAusgefüllt wieder hochladen: ${uploadUrl(token)}`
+          : `Für Ihr Anliegen („${matchingTemplate.title}“) laden Sie sich bitte das Dokument herunter (${downloadUrl}), füllen es aus und laden es anschließend hier wieder hoch: ${uploadUrl(token)}`,
       );
       await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${matchingTemplate.title}`);
     }
@@ -250,7 +260,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   let delivered = true;
   let deliveryNote = "";
-  // Website-Chat: jede Antwort eine eigene Sprechblase. E-Mail/WhatsApp: alles in EINER Nachricht senden –
+  // Website-Chat: jede Antwort eine eigene Sprechblase. E-Mail: alles in EINER Nachricht senden –
   // sonst bekäme der Kunde für einen einzigen Gesprächszug mehrere einzelne E-Mails.
   const outgoing = isInteractive(input.channel) ? replies : replies.length ? [replies.join("\n\n")] : [];
   for (const reply of outgoing) {
@@ -280,7 +290,6 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 function eventForSource(source: CaseSource, simulated?: boolean) {
   const suffix = simulated ? " (Simulation)" : "";
   if (source === "email") return `Anfrage per E-Mail eingegangen${suffix}`;
-  if (source === "whatsapp") return `Anfrage per WhatsApp eingegangen${suffix}`;
   return `Anfrage über den Website-Chat eingegangen${suffix}`;
 }
 

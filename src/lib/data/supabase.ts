@@ -14,6 +14,7 @@ import type {
   FollowUp,
   Member,
   Question,
+  ServiceMessage,
   TemplateDocument,
 } from "./types";
 
@@ -61,6 +62,13 @@ const mapTemplateDocument = (r: Row): TemplateDocument => ({
   aiNote: r.ai_note,
   createdAt: r.created_at,
   receivedAt: r.received_at,
+});
+
+const mapServiceMessage = (r: Row): ServiceMessage => ({
+  id: r.id,
+  companyId: r.company_id,
+  service: r.service,
+  body: r.body,
 });
 
 const mapCase = (r: Row): CaseRecord => ({
@@ -523,6 +531,18 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       return mapTemplateDocument(data!);
     },
 
+    async listServiceMessages(): Promise<ServiceMessage[]> {
+      const { data, error } = await db.from("service_messages").select("*").eq("company_id", companyId);
+      fail(error, "service messages");
+      return (data ?? []).map(mapServiceMessage);
+    },
+    async saveServiceMessage(m) {
+      const row = { company_id: companyId, service: m.service, body: m.body, updated_at: new Date().toISOString() };
+      const { data, error } = await db.from("service_messages").upsert(row, { onConflict: "company_id,service" }).select("*").single();
+      fail(error, "service message save");
+      return mapServiceMessage(data!);
+    },
+
     async setChannelStatus(kind, status, account) {
       const { error } = await db.from("channels").upsert({ company_id: companyId, kind, status, account: account ?? "" }, { onConflict: "company_id,kind" });
       fail(error, "channel status");
@@ -533,7 +553,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       const rows = data ?? [];
       return CHANNEL_ORDER.map((kind) => {
         const r = rows.find((x) => x.kind === kind);
-        return { kind, status: r?.status ?? (kind === "whatsapp" ? "coming_soon" : "disconnected"), account: r?.account ?? "" };
+        return { kind, status: r?.status ?? "disconnected", account: r?.account ?? "" };
       });
     },
     async getSubscription() {

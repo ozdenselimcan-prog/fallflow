@@ -8,6 +8,7 @@ import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
 import { DocumentTemplatesPanel, type DocumentTemplateView } from "@/components/dashboard/document-templates-panel";
+import { ServiceMessagesPanel, type ServiceMessageView } from "@/components/dashboard/service-messages-panel";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
 import { SERVICES, WEEKDAY_LABELS } from "@/lib/cases/fields";
 import { apiFetch, useMutation } from "@/lib/use-api";
@@ -20,8 +21,9 @@ interface Props {
   initial: { name: string; website: string; phone: string; address: string; services: string[]; contactFormUrl: string };
   fieldOptions: { key: string; label: string; active: boolean }[];
   widgetReceived: boolean;
-  connections: { gmail: ConnectionView | null; microsoft: ConnectionView | null; whatsapp: ConnectionView | null; whatsappAppConfigured: boolean };
+  connections: { gmail: ConnectionView | null; microsoft: ConnectionView | null };
   documentTemplates: DocumentTemplateView[];
+  serviceMessages: ServiceMessageView[];
 }
 
 interface Availability {
@@ -36,9 +38,9 @@ const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotS
 /** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "PDF-Vorlagen", "Erfassungsfelder", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
+const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "PDF-Vorlagen", "E-Mail-Texte", "Erfassungsfelder", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections, documentTemplates }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections, documentTemplates, serviceMessages }: Props) {
   const [step, setStep] = useState(0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address, contactFormUrl: initial.contactFormUrl });
   const [services, setServices] = useState<string[]>(initial.services);
@@ -144,6 +146,16 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
 
         {step === 4 && (
           <div className="space-y-4">
+            <h1 className="text-2xl font-semibold tracking-tight">Wie sollen die Mails zu Ihren Vorlagen aussehen?</h1>
+            <p className="text-sm text-muted-foreground">
+              Für jede Leistung können Sie den Text selbst schreiben, den der Assistent zusammen mit der PDF-Vorlage verschickt – inklusive einer eigenen PDF-Vorlage direkt hier, falls Sie vorhin keine hochgeladen haben.
+            </p>
+            <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit />
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Welche Informationen benötigen Sie?</h1>
             <p className="text-sm text-muted-foreground">Deaktivierte Angaben fragt der Assistent nicht ab. Pflichtangaben und Reihenfolge passen Sie später im Frage-Flow an.</p>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -154,7 +166,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Wann können Sie Termine anbieten?</h1>
             <p className="text-sm text-muted-foreground">
@@ -203,7 +215,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
           </div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Website verbinden</h1>
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
@@ -222,7 +234,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
           </div>
         )}
 
-        {step === 7 && (
+        {step === 8 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">E-Mail verbinden</h1>
             <p className="text-sm text-muted-foreground">
@@ -234,8 +246,6 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
               canManage
               gmail={connections.gmail}
               microsoft={connections.microsoft}
-              whatsapp={connections.whatsapp}
-              whatsappAppConfigured={connections.whatsappAppConfigured}
               websiteConnected={false}
               showWebsite={false}
             />

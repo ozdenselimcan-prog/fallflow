@@ -16,23 +16,22 @@ interface SimResult {
 }
 
 const EXAMPLES = {
-  whatsapp: { sender: "+49 172 9988776", text: "Hallo, das Haus ist von 1975 und wird mit Gas geheizt. Ich bin Eigentümer." },
   email: { sender: "lena.hoffmann@example.com", text: "Guten Tag, unser Einfamilienhaus hat ca. 140 m² und wurde 1992 gebaut." },
 } as const;
 
 /**
  * Simulator für eingehende Nachrichten. Läuft durch die echte Verarbeitung (Kunde erkennen → Fall zuordnen → KI reagiert),
- * ist aber klar als Simulation gekennzeichnet – es wird nichts über WhatsApp oder E-Mail gesendet oder empfangen.
+ * ist aber klar als Simulation gekennzeichnet – es wird nichts per E-Mail gesendet oder empfangen.
  */
 export function InboxSimulator() {
   const { pending, error, run } = useMutation();
   const [open, setOpen] = useState(false);
-  const [channel, setChannel] = useState<"whatsapp" | "email">("whatsapp");
-  const [sender, setSender] = useState<string>(EXAMPLES.whatsapp.sender);
-  const [text, setText] = useState<string>(EXAMPLES.whatsapp.text);
+  const [channel, setChannel] = useState<"email">("email");
+  const [sender, setSender] = useState<string>(EXAMPLES.email.sender);
+  const [text, setText] = useState<string>(EXAMPLES.email.text);
   const [result, setResult] = useState<SimResult | null>(null);
 
-  const pick = (c: "whatsapp" | "email") => {
+  const pick = (c: "email") => {
     setChannel(c);
     setSender(EXAMPLES[c].sender);
     setText(EXAMPLES[c].text);
@@ -54,15 +53,14 @@ export function InboxSimulator() {
           }}
         >
           <Notice tone="info">
-            <strong>Simulation.</strong> Die Nachricht durchläuft die echte Verarbeitung, es wird aber nichts über WhatsApp oder E-Mail gesendet oder empfangen. Kanäle ohne Zugangsdaten bleiben „nicht verbunden“.
+            <strong>Simulation.</strong> Die Nachricht durchläuft die echte Verarbeitung, es wird aber nichts per E-Mail gesendet oder empfangen. Kanäle ohne Zugangsdaten bleiben „nicht verbunden“.
           </Notice>
           <Field label="Kanal">
-            <Select value={channel} onChange={(e) => pick(e.target.value as "whatsapp" | "email")}>
-              <option value="whatsapp">WhatsApp</option>
+            <Select value={channel} onChange={(e) => pick(e.target.value as "email")}>
               <option value="email">E-Mail</option>
             </Select>
           </Field>
-          <Field label={channel === "whatsapp" ? "Absender (Telefonnummer)" : "Absender (E-Mail-Adresse)"} hint="Passt der Absender zu einem bestehenden Fall, wird die Nachricht diesem Fall zugeordnet.">
+          <Field label={"Absender (E-Mail-Adresse)"} hint="Passt der Absender zu einem bestehenden Fall, wird die Nachricht diesem Fall zugeordnet.">
             <Input value={sender} onChange={(e) => setSender(e.target.value)} required maxLength={120} />
           </Field>
           <Field label="Nachricht">

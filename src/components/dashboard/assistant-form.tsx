@@ -37,7 +37,7 @@ export function AssistantForm({ initial, canEdit }: { initial: AssistantSettings
 
   return (
     <Card>
-      <CardHeader title="Einstellungen" description="Diese Angaben gelten für Website-Chat, E-Mail, WhatsApp und Vorschau." />
+      <CardHeader title="Einstellungen" description="Diese Angaben gelten für Website-Chat, E-Mail und Vorschau." />
       <form
         className="space-y-5 p-5"
         onSubmit={async (e) => {

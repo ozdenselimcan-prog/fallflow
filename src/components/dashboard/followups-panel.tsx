@@ -71,7 +71,7 @@ export function FollowUpsPanel({ caseId, followUps, canWrite, canPlan }: Props) 
           </div>
         ))}
         <p className="text-xs text-muted-foreground">
-          Follow-ups werden nur über einen verbundenen Kanal automatisch versendet. Solange E-Mail/WhatsApp nicht verbunden sind, erscheinen fällige Nachrichten hier zum manuellen Versand.
+          Follow-ups werden nur über einen verbundenen Kanal automatisch versendet. Solange kein E-Mail-Postfach verbunden ist, erscheinen fällige Nachrichten hier zum manuellen Versand.
         </p>
       </div>
     </Card>

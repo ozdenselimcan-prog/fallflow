@@ -166,7 +166,7 @@ export function quickRepliesFor(q: Question): string[] {
 }
 
 /**
- * Nicht-interaktive Kanäle (E-Mail, WhatsApp) fragen alle fehlenden Angaben in einer Nachricht ab, statt
+ * Nicht-interaktive Kanäle (E-Mail) fragen alle fehlenden Angaben in einer Nachricht ab, statt
  * eine nach der anderen – sonst müsste der Kunde für jede einzelne Angabe eine neue Mail schreiben.
  * Der Website-Chat bleibt bei einer Frage nach der anderen, das passt besser zu einem laufenden Gespräch.
  */

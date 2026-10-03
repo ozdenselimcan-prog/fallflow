@@ -16,7 +16,7 @@ export type QuestionType = (typeof QUESTION_TYPES)[number];
 export const TONES = ["professional", "friendly", "short"] as const;
 export type Tone = (typeof TONES)[number];
 
-export const CASE_SOURCES = ["widget", "email", "whatsapp", "phone", "manual", "demo"] as const;
+export const CASE_SOURCES = ["widget", "email", "phone", "manual", "demo"] as const;
 export type CaseSource = (typeof CASE_SOURCES)[number];
 
 export interface Company {
@@ -82,7 +82,7 @@ export interface CaseEvent {
   createdAt: string;
 }
 
-export const MESSAGE_CHANNELS = ["website", "email", "whatsapp", "phone"] as const;
+export const MESSAGE_CHANNELS = ["website", "email", "phone"] as const;
 export type MessageChannel = (typeof MESSAGE_CHANNELS)[number];
 
 /** delivered = beim Kunden angekommen (z. B. Website-Chat), not_sent = Kanal nicht verbunden, internal = interne Notiz. */
@@ -206,6 +206,15 @@ export interface DocumentTemplate {
   createdAt: string;
 }
 
+/** Individuell editierbarer Nachrichtentext pro Leistung – wird zusätzlich zu den Vorlagen-Links verschickt,
+ * sobald die KI bei einer Kundenanfrage die passende Leistung erkennt (siehe engine.ts). */
+export interface ServiceMessage {
+  id: string;
+  companyId: string;
+  service: string;
+  body: string;
+}
+
 /** Rückweg einer Büro-PDF-Vorlage: 'sent' = an den Kunden geschickt, 'received' = ausgefüllt zurück. */
 export interface TemplateDocument {
   id: string;
@@ -220,7 +229,7 @@ export interface TemplateDocument {
   receivedAt: string | null;
 }
 
-export type ChannelKind = "website" | "gmail" | "microsoft" | "whatsapp";
+export type ChannelKind = "website" | "gmail" | "microsoft";
 export interface Channel {
   kind: ChannelKind;
   status: "connected" | "disconnected" | "coming_soon";

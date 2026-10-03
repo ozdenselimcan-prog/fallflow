@@ -18,7 +18,7 @@ export interface InboundResult {
 }
 
 /**
- * Zentrale Eingangsverarbeitung für WhatsApp und E-Mail:
+ * Zentrale Eingangsverarbeitung für E-Mail:
  * Nachricht → Kunde/Fall erkennen (E-Mail-Adresse bzw. Telefonnummer) → im Fall speichern → fehlende
  * Angaben erkennen → KI reagiert. Unbekannte Absender erzeugen einen neuen Fall.
  */

@@ -60,7 +60,7 @@ export default function DatenschutzPage() {
               items={[
                 "Kontaktdaten: Name, E-Mail-Adresse, Telefonnummer, Adresse",
                 "Gebäudeangaben: Gebäudetyp, Baujahr, Wohnfläche, Etagen, Heizung, Eigentümerstatus",
-                "Anliegen, Inhalt der Chat-, E-Mail-, WhatsApp-Nachrichten und Telefonnotizen",
+                "Anliegen, Inhalt der Chat- und E-Mail-Nachrichten und Telefonnotizen",
                 "Hochgeladene Dokumente (z. B. Grundriss, Energieausweis, Fotos)",
               ]}
             />
@@ -90,7 +90,7 @@ export default function DatenschutzPage() {
               ]}
             />
             <p>
-              Weitere Kanäle (Gmail, Microsoft 365/Outlook, WhatsApp Business) werden nur genutzt, wenn ein Büro sie mit seinem eigenen Konto aktiv verbindet; dann kommt der jeweilige Anbieter für dieses Büro als weiterer Empfänger hinzu. Die Zugangsdaten jedes Büros (Zugriffs- und Aktualisierungstoken) werden verschlüsselt gespeichert, sind ausschließlich diesem Büro zugeordnet und für andere Büros oder im Browser nicht einsehbar.
+              Weitere Kanäle (Gmail, Microsoft 365/Outlook) werden nur genutzt, wenn ein Büro sie mit seinem eigenen Konto aktiv verbindet; dann kommt der jeweilige Anbieter für dieses Büro als weiterer Empfänger hinzu. Die Zugangsdaten jedes Büros (Zugriffs- und Aktualisierungstoken) werden verschlüsselt gespeichert, sind ausschließlich diesem Büro zugeordnet und für andere Büros oder im Browser nicht einsehbar.
             </p>
           </Section>
 

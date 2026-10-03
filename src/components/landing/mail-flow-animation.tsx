@@ -67,8 +67,19 @@ const RESET_PAUSE_MS = 900;
 export function MailFlowAnimation() {
   const [visible, setVisible] = useState(0);
   const [done, setDone] = useState(false);
+  const [inView, setInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useRef(false);
+
+  // Nur abspielen, während das Element im sichtbaren Bereich ist (schont CPU/Akku beim Scrollen).
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.3 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     reducedMotion.current = window.matchMedia(
@@ -79,6 +90,7 @@ export function MailFlowAnimation() {
       setDone(true);
       return;
     }
+    if (!inView) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
@@ -104,7 +116,7 @@ export function MailFlowAnimation() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, []);
+  }, [inView]);
 
   useEffect(() => {
     containerRef.current?.scrollTo({
@@ -118,6 +130,7 @@ export function MailFlowAnimation() {
 
   return (
     <div
+      ref={rootRef}
       className="overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-black/5"
       role="img"
       aria-label="Animiertes Beispiel: Mail-Konversation, bei der der Assistent automatisch alle fehlenden Angaben einsammelt"

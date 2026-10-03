@@ -16,8 +16,8 @@ export const faqs = [
     a: "Kunden laden Grundriss, Energieausweis oder Fotos über einen persönlichen, zeitlich begrenzten Link hoch. Zulässig sind PDF, JPG, PNG und WebP bis 10 MB; der Dateityp wird am Inhalt geprüft. Die Dateien liegen in einem privaten Speicher und sind nur für Mitarbeiter Ihres Büros abrufbar – es gibt keine öffentlichen Datei-Links.",
   },
   {
-    q: "Wird wirklich per E-Mail oder WhatsApp nachgefasst?",
-    a: "Nur über einen tatsächlich verbundenen Kanal. Solange E-Mail oder WhatsApp nicht mit Ihren Zugangsdaten verbunden sind, zeigt FallFlow das klar als „nicht verbunden“ bzw. „Demo-Modus“ an und legt fällige Follow-ups mit fertigem Text zum manuellen Versand bereit. Es wird nie ein Versand vorgetäuscht.",
+    q: "Wird wirklich per E-Mail nachgefasst?",
+    a: "Nur über einen tatsächlich verbundenen Kanal. Solange kein E-Mail-Postfach mit Ihren Zugangsdaten verbunden ist, zeigt FallFlow das klar als „nicht verbunden“ bzw. „Demo-Modus“ an und legt fällige Follow-ups mit fertigem Text zum manuellen Versand bereit. Es wird nie ein Versand vorgetäuscht.",
   },
   {
     q: "Kann FallFlow automatisch antworten?",

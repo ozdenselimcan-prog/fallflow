@@ -43,7 +43,6 @@ Siehe [.env.example](.env.example).
 | `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | OpenAI-kompatibles Modell (optional; Extraktion und Zusammenfassung) |
 | `CRON_SECRET` | Schützt `/api/cron/follow-ups` (Vercel-Cron, siehe [vercel.json](vercel.json)) |
 | `GOOGLE_*`, `MICROSOFT_*` | E-Mail-OAuth (vorbereitet) |
-| `WHATSAPP_*` | WhatsApp Business; Empfang zusätzlich nur mit `WHATSAPP_APP_SECRET` (Signaturprüfung) und `WHATSAPP_COMPANY_ID` |
 | `STRIPE_*` | Abrechnung (vorbereitet) |
 
 ## Supabase Setup
@@ -60,15 +59,14 @@ Siehe [.env.example](.env.example).
 - `src/lib/data/` – `Store`-Interface mit `memory.ts` (Demo) und `supabase.ts` (RLS).
 - `src/lib/intake/` – `checklist.ts` (rein, auch im Browser), `engine.ts` (Kundennachricht → Fall), `case-ops.ts` (Refresh, Dokumentenanforderung, Follow-ups), `router.ts` + `identity.ts` (eingehende Nachrichten Kunde/Fall zuordnen), `follow-ups.ts`, `notes.ts`, `attention.ts`, `messages.ts`.
 - `src/lib/ai/` – Gesprächslogik, Zod-validierte Extraktion und Zusammenfassung mit regelbasiertem Fallback.
-- `src/lib/integrations/` – E-Mail-/WhatsApp-Adapter; `outbound.ts` liefert nur `delivered: true`, wenn wirklich versendet wurde.
+- `src/lib/integrations/` – E-Mail-Adapter; `outbound.ts` liefert nur `delivered: true`, wenn wirklich versendet wurde.
 - `src/lib/documents/storage.ts` – Upload-Validierung (Magic Bytes, 10 MB, PDF/JPG/PNG/WebP) und Speicher.
 
 ## Ehrlicher Integrationsstatus („keine Fake-Erfolge“)
 
 - **Website-Chat:** produktiv.
-- **E-Mail / WhatsApp:** Adapter vorhanden, Versand und Postfach-Abruf **nicht implementiert**. Ausgehende Nachrichten werden als „nicht versendet“ gespeichert und im Dashboard so gezeigt; fällige Follow-ups erscheinen mit fertigem Text zum manuellen Versand. Der Posteingang zeigt Kanäle als „nicht verbunden · Demo-Modus“.
-- **Eingang simulieren** (Posteingang): spielt eine WhatsApp-/E-Mail-Nachricht durch die echte Verarbeitung (Kunde erkennen → Fall zuordnen → KI reagiert); alles ist als **Simulation** markiert.
-- **WhatsApp-Webhook:** verarbeitet Nachrichten nur mit Signaturprüfung und `WHATSAPP_COMPANY_ID`.
+- **E-Mail:** Adapter vorhanden, Versand und Postfach-Abruf **nicht implementiert**. Ausgehende Nachrichten werden als „nicht versendet“ gespeichert und im Dashboard so gezeigt; fällige Follow-ups erscheinen mit fertigem Text zum manuellen Versand. Der Posteingang zeigt Kanäle als „nicht verbunden · Demo-Modus“.
+- **Eingang simulieren** (Posteingang): spielt eine E-Mail-Nachricht durch die echte Verarbeitung (Kunde erkennen → Fall zuordnen → KI reagiert); alles ist als **Simulation** markiert.
 - **Follow-ups:** Cron (täglich, Vercel Hobby) versendet nur über verbundene Kanäle, sonst → „manuell senden“.
 
 ## Entwicklung

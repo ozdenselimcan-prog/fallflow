@@ -10,7 +10,6 @@ import { Completeness, ReadinessBadge, StatusBadge } from "./badges";
 const SOURCE_LABELS: Record<CaseRecord["source"], string> = {
   widget: "Website",
   email: "E-Mail",
-  whatsapp: "WhatsApp",
   phone: "Telefon",
   manual: "Manuell",
   demo: "Demo",

@@ -123,11 +123,10 @@ describe("quickRepliesFor", () => {
 });
 
 describe("isInteractive", () => {
-  it("Website-Chat und kein Kanal gelten als interaktiv, E-Mail/WhatsApp nicht", () => {
+  it("Website-Chat und kein Kanal gelten als interaktiv, E-Mail nicht", () => {
     expect(isInteractive(undefined)).toBe(true);
     expect(isInteractive("website")).toBe(true);
     expect(isInteractive("email")).toBe(false);
-    expect(isInteractive("whatsapp")).toBe(false);
   });
 });
 

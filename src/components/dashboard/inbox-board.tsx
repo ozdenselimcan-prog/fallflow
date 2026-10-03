@@ -15,12 +15,11 @@ export interface InboxThread {
   customerName: string;
   status: CaseStatus;
   hasEmail: boolean;
-  hasPhone: boolean;
   /** Alle geladenen Nachrichten dieses Falls, älteste zuerst. */
   messages: CaseMessage[];
 }
 
-const CHANNEL_LABELS: Record<MessageChannel, string> = { website: "Website", email: "E-Mail", whatsapp: "WhatsApp", phone: "Telefon" };
+const CHANNEL_LABELS: Record<MessageChannel, string> = { website: "Website", email: "E-Mail", phone: "Telefon" };
 
 /**
  * Posteingang, komplett im Browser: Die erste Seitenladung holt alle Unterhaltungen einmal vom Server,
@@ -113,7 +112,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
                   Fallakte öffnen <ExternalLink className="size-3.5" aria-hidden />
                 </Link>
               </div>
-              <CommunicationPanel key={selected.caseId} caseId={selected.caseId} messages={selected.messages} canWrite={canWrite} hasEmail={selected.hasEmail} hasPhone={selected.hasPhone} title="Unterhaltung" />
+              <CommunicationPanel key={selected.caseId} caseId={selected.caseId} messages={selected.messages} canWrite={canWrite} hasEmail={selected.hasEmail} title="Unterhaltung" />
             </div>
           )}
         </div>

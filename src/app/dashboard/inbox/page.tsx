@@ -28,24 +28,23 @@ export default async function InboxPage() {
     .filter(([id]) => caseById.has(id))
     .map(([id, msgs]) => {
       const c = caseById.get(id)!;
-      return { caseId: id, customerName: c.customerName, status: c.status, hasEmail: Boolean(c.fields.email), hasPhone: Boolean(c.fields.phone), messages: [...msgs].reverse() };
+      return { caseId: id, customerName: c.customerName, status: c.status, hasEmail: Boolean(c.fields.email), messages: [...msgs].reverse() };
     })
     .sort((a, b) => (b.messages.at(-1)?.createdAt ?? "").localeCompare(a.messages.at(-1)?.createdAt ?? ""));
 
   const canWrite = can(session.role, "cases:write");
 
-  const connected = (k: "website" | "gmail" | "microsoft" | "whatsapp") => channels.find((c) => c.kind === k)?.status === "connected";
+  const connected = (k: "website" | "gmail" | "microsoft") => channels.find((c) => c.kind === k)?.status === "connected";
   const channelState: { label: string; ok: boolean; note: string }[] = [
     { label: "Website-Chat", ok: connected("website"), note: connected("website") ? "verbunden" : "nicht verbunden" },
     { label: "E-Mail", ok: connected("gmail") || connected("microsoft"), note: connected("gmail") || connected("microsoft") ? "verbunden" : "nicht verbunden · Demo-Modus" },
-    { label: "WhatsApp", ok: connected("whatsapp"), note: connected("whatsapp") ? "verbunden" : "nicht verbunden · Demo-Modus" },
     { label: "Telefon", ok: true, note: "manuelle Notizen" },
   ];
 
   return (
     <>
       <LiveRefresh active everyMs={15000} />
-      <PageHeader title="Posteingang" description="Website, E-Mail, WhatsApp und Telefonnotizen – jede Nachricht wird automatisch dem richtigen Kunden und Fall zugeordnet." action={canWrite ? <InboxSimulator /> : undefined} />
+      <PageHeader title="Posteingang" description="Website, E-Mail und Telefonnotizen – jede Nachricht wird automatisch dem richtigen Kunden und Fall zugeordnet." action={canWrite ? <InboxSimulator /> : undefined} />
 
       <ul className="mb-5 flex flex-wrap gap-2" aria-label="Kanalstatus">
         {channelState.map((c) => (

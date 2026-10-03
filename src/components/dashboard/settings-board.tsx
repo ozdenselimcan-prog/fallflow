@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Plan } from "@/lib/config/pricing";
 import { ConnectionsPanel } from "@/components/dashboard/connections-panel";
 import { DocumentTemplatesPanel } from "@/components/dashboard/document-templates-panel";
+import { ServiceMessagesPanel } from "@/components/dashboard/service-messages-panel";
 import { CompanyForm, ProfileForm } from "@/components/dashboard/settings-forms";
 import { Button } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
@@ -80,6 +81,12 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
           <div className="space-y-4">
             <CompanyForm initial={data.company} canEdit={data.connections.canManage} />
             <DocumentTemplatesPanel initial={data.documentTemplates} canEdit={data.connections.canManage} />
+            {data.company.services.length > 0 && (
+              <div>
+                <h2 className="mb-3 font-semibold">Nachrichtentexte je Leistung</h2>
+                <ServiceMessagesPanel services={data.company.services} initialMessages={data.serviceMessages} initialTemplates={data.documentTemplates} canEdit={data.connections.canManage} />
+              </div>
+            )}
           </div>
         )}
 

@@ -1,14 +1,7 @@
 import type { Store } from "@/lib/data/store";
-import type { FollowUp, MessageChannel } from "@/lib/data/types";
+import type { FollowUp } from "@/lib/data/types";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist } from "./checklist";
-
-/** Kanal für Nachfass-Nachrichten: dort, wo der Kunde sich gemeldet hat – sonst E-Mail. */
-function followUpChannel(source: string, hasEmail: boolean): Extract<MessageChannel, "email" | "whatsapp"> {
-  if (source === "whatsapp") return "whatsapp";
-  if (source === "email" || hasEmail) return "email";
-  return "whatsapp";
-}
 
 export interface DispatchSummary {
   due: number;
@@ -39,7 +32,7 @@ export async function dispatchDueFollowUps(store: Store, now = new Date()): Prom
       summary.cancelled++;
       continue;
     }
-    const channel = followUpChannel(c.source, Boolean(c.fields.email));
+    const channel = "email" as const;
     const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text: f.message, subject: "Ihre Anfrage zur Energieberatung" });
     if (result.delivered) {
       await store.saveFollowUp({ ...f, status: "sent", sentAt: now.toISOString(), note: "" });
@@ -60,7 +53,7 @@ export async function markFollowUpSentManually(store: Store, f: FollowUp) {
   const c = await store.getCase(f.caseId);
   await store.saveFollowUp({ ...f, status: "sent", sentAt: new Date().toISOString(), note: "Vom Team manuell gesendet." });
   if (c) {
-    await store.addMessage(c.id, "staff", f.message, { channel: c.fields.email ? "email" : "whatsapp", delivery: "delivered" });
+    await store.addMessage(c.id, "staff", f.message, { channel: "email", delivery: "delivered" });
     await store.addEvent(c.id, "followup", "Follow-up manuell vom Team gesendet");
   }
 }

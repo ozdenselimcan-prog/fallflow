@@ -28,7 +28,7 @@ export const caseFieldsSchema = z.record(z.string().min(1).max(60), z.string().m
 
 export const caseCreateSchema = z.object({
   fields: caseFieldsSchema,
-  source: z.enum(["manual", "email", "whatsapp", "widget", "phone"]).default("manual"),
+  source: z.enum(["manual", "email", "widget", "phone"]).default("manual"),
 });
 
 export const casePatchSchema = z.object({
@@ -124,11 +124,11 @@ export const checkoutSchema = z.object({ plan: z.enum(["starter", "pro", "busine
 export const inviteSchema = z.object({ email: z.string().trim().email("Bitte gültige E-Mail eingeben"), role: z.enum(ROLES).exclude(["OWNER"]) });
 export const roleSchema = z.object({ id: z.string(), role: z.enum(ROLES).exclude(["OWNER"]) });
 
-/** phone_note = interne Telefonnotiz; email/whatsapp = Nachricht an den Kunden über den jeweiligen Kanal */
+/** phone_note = interne Telefonnotiz; email = Nachricht an den Kunden per E-Mail */
 export const messageSchema = z.object({
   caseId: z.string().min(1).max(64),
   content: str(2000).min(1),
-  kind: z.enum(["phone_note", "email", "whatsapp"]).default("phone_note"),
+  kind: z.enum(["phone_note", "email"]).default("phone_note"),
 });
 
 export const documentRequestSchema = z.object({ kinds: z.array(z.enum(DOCUMENT_KINDS)).max(4).optional() });
@@ -136,18 +136,11 @@ export const documentRequestSchema = z.object({ kinds: z.array(z.enum(DOCUMENT_K
 export const followUpActionSchema = z.object({ action: z.enum(["cancel", "mark_sent", "plan"]) });
 
 export const simulateInboundSchema = z.object({
-  channel: z.enum(["whatsapp", "email"]),
-  /** Telefonnummer (WhatsApp) bzw. E-Mail-Adresse (E-Mail) des simulierten Absenders */
+  channel: z.enum(["email"]),
+  /** E-Mail-Adresse des simulierten Absenders */
   sender: str(120).min(3, "Absender erforderlich"),
   name: str(100).optional(),
   text: str(1500).min(1, "Nachricht erforderlich"),
-});
-
-/** WhatsApp Business Cloud API: Zugangsdaten des eigenen Meta-Anschlusses des Büros (kein OAuth, manuelle Eingabe). */
-export const whatsappConnectSchema = z.object({
-  accessToken: z.string().trim().min(20, "Bitte den vollständigen Zugriffstoken eingeben").max(2000),
-  phoneNumberId: z.string().trim().regex(/^\d{5,30}$/, "Nur Ziffern, wie in der Meta Business Suite angezeigt"),
-  wabaId: z.string().trim().regex(/^\d{0,30}$/, "Nur Ziffern").optional().default(""),
 });
 
 export const widgetSessionSchema = z.object({ companyId: z.string().uuid().or(z.literal("demo")) });

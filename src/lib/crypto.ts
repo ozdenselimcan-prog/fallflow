@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 /**
  * Verschlüsselung für Zugangsdaten, die FallFlow im Auftrag eines Kunden speichert (OAuth-Tokens,
- * WhatsApp-Zugriffstoken). AES-256-GCM mit einem Schlüssel, der ausschließlich als Environment Variable
+ * Zugriffstoken). AES-256-GCM mit einem Schlüssel, der ausschließlich als Environment Variable
  * existiert (CONNECTIONS_SECRET) – nie in der Datenbank. Ohne diesen Schlüssel bleiben Kanal-Verbindungen
  * bewusst deaktiviert (fail closed), statt Tokens unverschlüsselt abzulegen.
  */

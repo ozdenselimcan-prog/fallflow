@@ -4,7 +4,7 @@ import { routeInbound } from "@/lib/intake/router";
 import { simulateInboundSchema } from "@/lib/validation";
 
 /**
- * Simulator für den Posteingang: spielt eine eingehende WhatsApp-/E-Mail-Nachricht durch die echte Verarbeitung
+ * Simulator für den Posteingang: spielt eine eingehende E-Mail-Nachricht durch die echte Verarbeitung
  * (Kunde erkennen → Fall zuordnen → fehlende Angaben erkennen → KI antwortet). Alles ist als Simulation markiert,
  * es wird nichts an einen echten Kanal gesendet.
  */
@@ -14,7 +14,6 @@ export const POST = withSession(
     if (!body.ok) return body.res;
     const { channel, sender, name, text } = body.data;
     if (channel === "email" && !z.string().email().safeParse(sender).success) return apiError("Bitte eine gültige E-Mail-Adresse eingeben.", 400);
-    if (channel === "whatsapp" && sender.replace(/\D/g, "").length < 6) return apiError("Bitte eine gültige Telefonnummer eingeben.", 400);
 
     const { turn, matchedExisting } = await routeInbound(store, {
       companyId: session.companyId,
