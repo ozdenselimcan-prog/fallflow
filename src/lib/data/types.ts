@@ -71,7 +71,8 @@ export type CaseEventType =
   | "note"
   | "document"
   | "followup"
-  | "prepared";
+  | "prepared"
+  | "assessment";
 
 export interface CaseEvent {
   id: string;

@@ -10,6 +10,7 @@ import { CommunicationPanel } from "@/components/dashboard/communication";
 import { DocumentsPanel } from "@/components/dashboard/documents-panel";
 import { FollowUpsPanel } from "@/components/dashboard/followups-panel";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
+import { PreliminaryAssessmentCard } from "@/components/dashboard/preliminary-assessment-card";
 import { Card, CardHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
@@ -86,7 +87,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
                 <li key={e.id} className="flex gap-3">
                   <span className="mt-1.5 size-2 shrink-0 rounded-full bg-accent" />
                   <div>
-                    <p className="text-sm font-medium">{e.text}</p>
+                    <p className="text-sm font-medium">{e.type === "assessment" ? "KI-Voreinschätzung erstellt (siehe unten)" : e.text}</p>
                     <p className="text-xs text-muted-foreground">{formatDateTime(e.createdAt)}</p>
                   </div>
                 </li>
@@ -108,6 +109,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             uploadLink={currentUploadLink(c)}
             canWrite={canWrite}
           />
+          <PreliminaryAssessmentCard caseId={c.id} events={events} canWrite={canWrite} />
           <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email)} hasPhone={Boolean(c.fields.phone)} />
         </div>
       </div>
