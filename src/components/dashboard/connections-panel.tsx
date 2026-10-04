@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Loader2, Mail, Trash2 } from "lucide-react";
+import { Globe, Loader2, Lock, Mail, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Badge, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -119,6 +119,10 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
       ) : (
         canManage && (
           <div className="mt-4 space-y-3">
+            <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+              <Lock className="mt-0.5 size-3.5 shrink-0" />
+              Ihre Zugangsdaten werden verschlüsselt (AES-256) gespeichert und ausschließlich automatisiert für den Mail-Abruf und -Versand genutzt. Niemand sieht Ihr Passwort im Klartext – auch wir als Betreiber nicht.
+            </p>
             <Field label="Üblicher Anbieter (füllt Server-Felder automatisch aus)">
               <Select defaultValue="" onChange={(e) => applyPreset(e.target.value)}>
                 <option value="">Manuell eingeben…</option>
