@@ -8,6 +8,7 @@ import { CaseEditor } from "@/components/dashboard/case-editor";
 import { AiStatusCard, CompletenessCard, PreparedCard, SummaryCard } from "@/components/dashboard/case-file";
 import { CommunicationPanel } from "@/components/dashboard/communication";
 import { DocumentsPanel } from "@/components/dashboard/documents-panel";
+import { FoerderEstimateCard } from "@/components/dashboard/foerder-estimate-card";
 import { FollowUpsPanel } from "@/components/dashboard/followups-panel";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { PreliminaryAssessmentCard } from "@/components/dashboard/preliminary-assessment-card";
@@ -110,6 +111,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             canWrite={canWrite}
           />
           <PreliminaryAssessmentCard caseId={c.id} events={events} canWrite={canWrite} />
+          <FoerderEstimateCard caseId={c.id} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} />
           <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email)} />
         </div>
       </div>
