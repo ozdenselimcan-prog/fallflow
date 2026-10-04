@@ -5,7 +5,6 @@ import { ServiceMessagesPanel } from "@/components/dashboard/service-messages-pa
 import { PageHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
-import { hasAiTools } from "@/lib/billing/limits";
 import { getStore } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Vorlagen & Nachrichten" };
@@ -13,7 +12,7 @@ export const metadata: Metadata = { title: "Vorlagen & Nachrichten" };
 export default async function AssistantTemplatesPage() {
   const session = await requireSession();
   const store = await getStore(session);
-  const [company, documentTemplates, serviceMessages, subscription] = await Promise.all([store.getCompany(), store.listDocumentTemplates(), store.listServiceMessages(), store.getSubscription()]);
+  const [company, documentTemplates, serviceMessages] = await Promise.all([store.getCompany(), store.listDocumentTemplates(), store.listServiceMessages()]);
   const canEdit = can(session.role, "company:manage");
 
   return (
@@ -27,7 +26,6 @@ export default async function AssistantTemplatesPage() {
         initialMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
         initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
         canEdit={canEdit}
-        locked={!hasAiTools(subscription.plan)}
       />
     </>
   );
