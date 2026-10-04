@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
             current_period_end: currentPeriodEnd,
             stripe_customer_id: typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null),
             stripe_subscription_id: subscriptionId,
+            cancel_at_period_end: false,
           })
           .eq("company_id", companyId);
         if (error) console.error("[stripe webhook] checkout.session.completed:", error.message);
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
             status,
             current_period_end: periodEndSeconds ? new Date(periodEndSeconds * 1000).toISOString() : null,
             stripe_subscription_id: sub.id,
+            cancel_at_period_end: event.type === "customer.subscription.deleted" ? false : sub.cancel_at_period_end,
           })
           .eq("company_id", companyId);
         if (error) console.error("[stripe webhook]", event.type, error.message);

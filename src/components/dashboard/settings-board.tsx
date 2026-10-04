@@ -8,6 +8,7 @@ import { ConnectionsPanel } from "@/components/dashboard/connections-panel";
 import { CompanyForm, ProfileForm } from "@/components/dashboard/settings-forms";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Notice } from "@/components/ui/states";
 import { cn, formatDate } from "@/lib/utils";
 import type { SettingsData } from "@/lib/dashboard/settings-data";
@@ -43,6 +44,9 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
   const { plan, upgrades, subscription, canManage: canManageBilling, stripeReady } = data.billing;
   const hasStripeCustomer = Boolean(subscription.stripeCustomerId);
 
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(subscription.cancelAtPeriodEnd);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
   async function goToStripe(path: "/api/billing/checkout" | "/api/billing/portal", body?: { plan: Plan["id"] }) {
     setBillingError(null);
     setBillingBusy(true);
@@ -53,6 +57,21 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
       window.location.href = json.url;
     } catch (err) {
       setBillingError(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
+      setBillingBusy(false);
+    }
+  }
+
+  async function setCancellation(cancel: boolean) {
+    setBillingError(null);
+    setBillingBusy(true);
+    try {
+      const res = await fetch(cancel ? "/api/billing/cancel" : "/api/billing/resume", { method: "POST" });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Aktion fehlgeschlagen");
+      setCancelAtPeriodEnd(cancel);
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : "Aktion fehlgeschlagen");
+    } finally {
       setBillingBusy(false);
     }
   }
@@ -122,6 +141,11 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                   ))}
                 </ul>
                 {subscription.currentPeriodEnd && <p className="text-sm text-muted-foreground">Aktuelle Periode bis {formatDate(subscription.currentPeriodEnd)}</p>}
+                {cancelAtPeriodEnd && (
+                  <Notice tone="info">
+                    Gekündigt{subscription.currentPeriodEnd ? ` zum ${formatDate(subscription.currentPeriodEnd)}` : ""}. Bis dahin stehen alle Funktionen weiterhin zur Verfügung.
+                  </Notice>
+                )}
                 {billingError && <p className="text-sm text-destructive">{billingError}</p>}
                 {upgrades.length > 0 && canManageBilling && (
                   <div className="space-y-2">
@@ -133,6 +157,19 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                       Auf {upgrades[0].name} upgraden
                     </Button>
                     {!stripeReady && <p className="text-xs text-muted-foreground">Die Zahlungsabwicklung (Stripe) ist vorbereitet, aber noch nicht aktiviert: STRIPE_SECRET_KEY und STRIPE_WEBHOOK_SECRET fehlen.</p>}
+                  </div>
+                )}
+                {canManageBilling && hasStripeCustomer && (
+                  <div>
+                    {cancelAtPeriodEnd ? (
+                      <Button variant="secondary" disabled={billingBusy} onClick={() => setCancellation(false)}>
+                        Kündigung zurücknehmen
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" disabled={billingBusy} onClick={() => setCancelDialogOpen(true)}>
+                        Vertrag kündigen
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -149,6 +186,28 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                 )}
               </div>
             </Card>
+
+            <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} title="Vertrag kündigen?">
+              <p className="text-sm text-muted-foreground">
+                Ihr {plan.name}-Plan wird zum Ende der aktuellen Abrechnungsperiode{subscription.currentPeriodEnd ? ` (${formatDate(subscription.currentPeriodEnd)})` : ""} gekündigt. Bis dahin
+                können Sie FallFlow weiterhin uneingeschränkt nutzen. Die Kündigung lässt sich bis dahin jederzeit zurücknehmen.
+              </p>
+              <div className="mt-5 flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setCancelDialogOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={billingBusy}
+                  onClick={async () => {
+                    await setCancellation(true);
+                    setCancelDialogOpen(false);
+                  }}
+                >
+                  Jetzt kündigen
+                </Button>
+              </div>
+            </Dialog>
           </div>
         )}
       </div>

@@ -247,6 +247,8 @@ export interface Subscription {
   status: "trialing" | "active" | "past_due" | "canceled";
   currentPeriodEnd: string | null;
   stripeCustomerId: string | null;
+  /** true = Abo laeuft bis currentPeriodEnd weiter, verlaengert sich danach aber nicht automatisch. */
+  cancelAtPeriodEnd: boolean;
 }
 
 export interface CaseFilters {

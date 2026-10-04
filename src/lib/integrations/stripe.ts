@@ -79,6 +79,16 @@ export async function createPortalSession(customerId: string) {
   return session.url;
 }
 
+/** Setzt/entfernt die Kuendigung zum Ende der aktuellen Periode fuer das (einzige) Abo des Kunden. */
+export async function setCancelAtPeriodEnd(customerId: string, cancel: boolean): Promise<Stripe.Subscription> {
+  const stripe = getStripeClient();
+  if (!stripe) throw new Error("Stripe ist nicht konfiguriert");
+  const subs = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 1 });
+  const sub = subs.data[0];
+  if (!sub) throw new Error("Kein Abo für diesen Kunden gefunden");
+  return stripe.subscriptions.update(sub.id, { cancel_at_period_end: cancel });
+}
+
 export function verifyStripeWebhook(raw: string, signature: string | null): Stripe.Event {
   const stripe = getStripeClient();
   const secret = process.env.STRIPE_WEBHOOK_SECRET;

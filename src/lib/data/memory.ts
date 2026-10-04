@@ -324,7 +324,7 @@ export function createMemoryStore(): Store {
       return CHANNEL_ORDER.map((kind) => overrides[kind] ?? { kind, status: "disconnected" as const, account: "" });
     },
     async getSubscription() {
-      return { plan: "pro", status: "trialing", currentPeriodEnd: null, stripeCustomerId: null };
+      return { plan: "pro", status: "trialing", currentPeriodEnd: null, stripeCustomerId: null, cancelAtPeriodEnd: false };
     },
     async getStats() {
       return computeStats(db().cases.map(withEffectiveStatus), db().appointments);
