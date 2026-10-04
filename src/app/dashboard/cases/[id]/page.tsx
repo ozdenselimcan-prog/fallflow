@@ -8,10 +8,9 @@ import { CaseEditor } from "@/components/dashboard/case-editor";
 import { AiStatusCard, CompletenessCard, PreparedCard, SummaryCard } from "@/components/dashboard/case-file";
 import { CommunicationPanel } from "@/components/dashboard/communication";
 import { DocumentsPanel } from "@/components/dashboard/documents-panel";
-import { FoerderEstimateCard } from "@/components/dashboard/foerder-estimate-card";
 import { FollowUpsPanel } from "@/components/dashboard/followups-panel";
+import { KiToolsCard } from "@/components/dashboard/ki-tools-card";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
-import { PreliminaryAssessmentCard } from "@/components/dashboard/preliminary-assessment-card";
 import { Card, CardHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
@@ -110,8 +109,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             uploadLink={currentUploadLink(c)}
             canWrite={canWrite}
           />
-          <PreliminaryAssessmentCard caseId={c.id} events={events} canWrite={canWrite} />
-          <FoerderEstimateCard caseId={c.id} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} />
+          <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} />
           <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email)} />
         </div>
       </div>
