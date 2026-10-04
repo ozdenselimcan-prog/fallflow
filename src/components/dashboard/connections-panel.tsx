@@ -37,6 +37,21 @@ const PRESETS: { label: string; imapHost: string; imapPort: number; smtpHost: st
 
 const DEFAULT_FORM = { email: "", password: "", imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465 };
 
+const APP_PASSWORD_LINKS: { host: string; label: string; url: string }[] = [
+  { host: "imap.gmail.com", label: "App-Passwort bei Google erstellen", url: "https://myaccount.google.com/apppasswords" },
+  { host: "outlook.office365.com", label: "App-Kennwort bei Microsoft erstellen", url: "https://account.live.com/proofs/AppPassword" },
+];
+
+function AppPasswordLink({ imapHost }: { imapHost: string }) {
+  const link = APP_PASSWORD_LINKS.find((l) => l.host === imapHost);
+  if (!link) return null;
+  return (
+    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-accent underline underline-offset-2">
+      {link.label} ↗
+    </a>
+  );
+}
+
 /** E-Mail per IMAP/SMTP verbinden – eigene Zugangsdaten des Büros, kein OAuth, keine "App nicht von
  * Google geprüft"-Warnung. Funktioniert mit Gmail (per App-Passwort), Outlook und praktisch jedem
  * Anbieter, der IMAP/SMTP anbietet. */
@@ -120,6 +135,9 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
               </Field>
               <Field label="Passwort" hint="Bei Gmail/Outlook: ein App-Passwort nutzen, nicht das normale Konto-Passwort (braucht 2-Faktor-Auth).">
                 <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                <div className="mt-1">
+                  <AppPasswordLink imapHost={form.imapHost} />
+                </div>
               </Field>
               <Field label="IMAP-Server (Posteingang)">
                 <Input value={form.imapHost} onChange={(e) => setForm({ ...form, imapHost: e.target.value })} placeholder="imap.ihre-domain.de" />
@@ -147,8 +165,13 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
         )
       )}
       {notice && (
-        <div className="mt-3">
+        <div className="mt-3 space-y-1.5">
           <Notice tone={notice.tone}>{notice.text}</Notice>
+          {notice.tone === "error" && (
+            <div>
+              <AppPasswordLink imapHost={form.imapHost} />
+            </div>
+          )}
         </div>
       )}
     </Card>
