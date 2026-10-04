@@ -1,4 +1,5 @@
 import { apiError, json, withSession } from "@/lib/api";
+import { AI_TOOLS_LOCKED_TEXT, planHasAiTools } from "@/lib/billing/usage";
 import { estimateFoerderung, foerderDraftText } from "@/lib/foerder/estimate";
 import { caseIdSchema } from "@/lib/validation";
 
@@ -7,6 +8,7 @@ import { caseIdSchema } from "@/lib/validation";
  * ausdrücklicher Bestätigung (über die normale Nachrichtenfunktion, POST /api/messages). */
 export const POST = withSession(
   async (_req, { store }, ctx: RouteContext<"/api/cases/[id]/foerder-estimate">) => {
+    if (!(await planHasAiTools(store))) return apiError(AI_TOOLS_LOCKED_TEXT, 403);
     const { id } = await ctx.params;
     if (!caseIdSchema.safeParse(id).success) return apiError("Nicht gefunden", 404);
     const c = await store.getCase(id);

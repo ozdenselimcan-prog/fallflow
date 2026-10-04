@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { OnboardingWizard } from "@/components/onboarding/wizard";
 import { Logo } from "@/components/ui/logo";
 import { requireSession } from "@/lib/auth/session";
+import { hasAiTools } from "@/lib/billing/limits";
 import { siteConfig } from "@/lib/config/site";
 import { getStore } from "@/lib/data";
 import { listConnections, toStatus } from "@/lib/integrations/connections-store";
@@ -14,13 +15,14 @@ const STANDARD_KEYS = ["service", "buildingType", "yearBuilt", "livingArea", "he
 export default async function OnboardingPage() {
   const session = await requireSession();
   const store = await getStore(session);
-  const [company, questions, cases, connections, documentTemplates, serviceMessages] = await Promise.all([
+  const [company, questions, cases, connections, documentTemplates, serviceMessages, subscription] = await Promise.all([
     store.getCompany(),
     store.listQuestions(),
     store.listCases(),
     listConnections(session.companyId),
     store.listDocumentTemplates(),
     store.listServiceMessages(),
+    store.getSubscription(),
   ]);
 
   const fieldOptions = STANDARD_KEYS.map((key) => questions.find((q) => q.key === key)).filter((q) => q !== undefined).map((q) => ({ key: q.key, label: q.label, active: q.active }));
@@ -39,6 +41,7 @@ export default async function OnboardingPage() {
         connections={{ gmail: byProvider.get("gmail") ?? null, microsoft: byProvider.get("microsoft") ?? null }}
         documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
         serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
+        templatesLocked={!hasAiTools(subscription.plan)}
       />
     </main>
   );

@@ -1,5 +1,7 @@
 import { isCustomerInquiry } from "@/lib/ai/classify";
+import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
+import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
 import type { MailSyncProvider } from "./email";
@@ -48,6 +50,10 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           await routeInbound(store, { companyId: connection.companyId, channel: "email", text: fullText.slice(0, 1500), sender: { email: from } });
           messages++;
         } catch (err) {
+          if (err instanceof CaseLimitReachedError) {
+            await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", CASE_LIMIT_REACHED_TEXT).catch(() => {});
+            continue;
+          }
           console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
         }
       }

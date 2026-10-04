@@ -1,4 +1,5 @@
 import { apiError, json, parseBody, parseQuery, withSession } from "@/lib/api";
+import { canCreateCase } from "@/lib/billing/usage";
 import { refreshCase } from "@/lib/intake/case-ops";
 import { caseCreateSchema, caseQuerySchema } from "@/lib/validation";
 
@@ -13,6 +14,8 @@ export const POST = withSession(
   async (req, { store }) => {
     const body = await parseBody(req, caseCreateSchema);
     if (!body.ok) return body.res;
+    const quota = await canCreateCase(store);
+    if (!quota.allowed) return apiError(`Monatliches Fall-Limit erreicht (${quota.used}/${quota.limit}). Bitte Plan upgraden, um weitere Fälle anzulegen.`, 403);
     const { fields, source } = body.data;
     const created = await store.createCase({
       fields,

@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, Microscope, PiggyBank, Ruler, Send, Sparkles, X } from "lucide-react";
+import { Check, Lock, Microscope, PiggyBank, Ruler, Send, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonStyles } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
@@ -16,6 +17,8 @@ interface Props {
   yearBuilt: string | undefined;
   hasEmail: boolean;
   canWrite: boolean;
+  /** true = Abo-Plan (Starter) hat keinen Zugriff auf diese Werkzeuge. */
+  locked?: boolean;
 }
 
 type Tab = "assessment" | "foerder" | "uvalues";
@@ -236,8 +239,25 @@ function UValuesTab({ caseId, yearBuilt, canWrite }: { caseId: string; yearBuilt
 
 /** Bündelt die drei KI-Werkzeuge einer Fallakte (Voreinschätzung, Förderschätzung, Bauteilwerte) in
  * einer Karte mit Reitern statt drei separaten, langen Karten untereinander. */
-export function KiToolsCard({ caseId, events, yearBuilt, hasEmail, canWrite }: Props) {
+export function KiToolsCard({ caseId, events, yearBuilt, hasEmail, canWrite, locked }: Props) {
   const [tab, setTab] = useState<Tab>("assessment");
+
+  if (locked) {
+    return (
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="flex items-start gap-3">
+          <Lock className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+          <div>
+            <h2 className="font-semibold">KI-Werkzeuge</h2>
+            <p className="text-sm text-muted-foreground">Voreinschätzung, Förderschätzung und Bauteilwerte sind ab dem Pro-Plan verfügbar.</p>
+          </div>
+        </div>
+        <Link href="/dashboard/settings/billing" className={buttonStyles({ variant: "secondary" })}>
+          Plan upgraden
+        </Link>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-0">

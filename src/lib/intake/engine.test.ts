@@ -3,7 +3,7 @@ import { nextPending } from "@/lib/ai/conversation";
 import { createMemoryStore } from "@/lib/data/memory";
 import type { Store } from "@/lib/data/store";
 import { confirmAppointment, refreshCase } from "./case-ops";
-import { processIntakeMessage, type IntakeTurn } from "./engine";
+import { CaseLimitReachedError, processIntakeMessage, type IntakeTurn } from "./engine";
 
 /**
  * Integrationstests über den echten In-Memory-Store (kein Supabase/KI-Key nötig – ohne AI_API_KEY
@@ -179,6 +179,32 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     await store.saveTemplateDocument({ id: pending.id, caseId: sessionId, templateId: template.id, status: "received", storagePath: "demo/x-filled.pdf", aiNote: "wirkt ausgefüllt", receivedAt: new Date().toISOString() });
     const refreshed = await refreshCase(store, sessionId, { hint: "edit" });
     expect(refreshed.caseRecord.status).toBe("READY_FOR_REVIEW");
+  });
+});
+
+describe("processIntakeMessage – monatliches Fall-Limit", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = freshStore();
+  });
+
+  it("lehnt eine neue Anfrage ab, sobald das Fall-Limit des Plans (Demo-Store: Pro, 500/Monat) erreicht ist", async () => {
+    for (let i = 0; i < 500; i++) {
+      await store.createCase({ fields: {}, source: "manual", status: "NEW", customerName: "Bestand", service: "" });
+    }
+    await expect(
+      processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" }),
+    ).rejects.toThrow(CaseLimitReachedError);
+  });
+
+  it("lässt eine bereits laufende Unterhaltung unangetastet weiterlaufen, auch wenn das Limit zwischenzeitlich erreicht wurde", async () => {
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
+    for (let i = 0; i < 500; i++) {
+      await store.createCase({ fields: {}, source: "manual", status: "NEW", customerName: "Bestand", service: "" });
+    }
+    // Folgenachricht desselben, bereits existierenden Falls darf nicht abgewiesen werden.
+    const second = await processIntakeMessage(store, { companyId: "demo", sessionId: first.sessionId, text: "Max Mustermann", source: "widget", channel: "website" });
+    expect(second.sessionId).toBe(first.sessionId);
   });
 });
 

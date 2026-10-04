@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { apiError, json, parseBody, withSession } from "@/lib/api";
+import { AI_TOOLS_LOCKED_TEXT, planHasAiTools } from "@/lib/billing/usage";
 import { SERVICES } from "@/lib/cases/fields";
 import { deleteFile } from "@/lib/documents/storage";
 
@@ -9,6 +10,7 @@ const updateSchema = z.object({ service: z.enum([...SERVICES, ""]).optional(), t
  * jeder Anfrage (unabhängig von der Leistung) mitgeschickt werden soll. */
 export const PUT = withSession(
   async (req, { store }, ctx: RouteContext<"/api/document-templates/[id]">) => {
+    if (!(await planHasAiTools(store))) return apiError(AI_TOOLS_LOCKED_TEXT, 403);
     const { id } = await ctx.params;
     const body = await parseBody(req, updateSchema);
     if (!body.ok) return body.res;

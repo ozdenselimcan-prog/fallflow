@@ -1,6 +1,7 @@
 import { extractFields } from "@/lib/ai/case-extractor";
 import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
 import { heuristicExtract } from "@/lib/ai/heuristic";
+import { canCreateCase } from "@/lib/billing/usage";
 import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib/data/types";
@@ -28,6 +29,8 @@ import {
 } from "./scheduling";
 
 export class SessionNotFoundError extends Error {}
+/** Monatliches Fall-Limit des Abo-Plans erreicht – keine neue Anfrage wird mehr als Fall angelegt. */
+export class CaseLimitReachedError extends Error {}
 
 export interface IntakeInput {
   companyId: string;
@@ -88,6 +91,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   if (input.sessionId && !existing) throw new SessionNotFoundError();
 
   const first = !existing;
+  // Monatliches Fall-Limit nur für wirklich NEUE Anfragen prüfen – ein laufender Fall wird nie
+  // abgebrochen, nur weil das Büro zwischenzeitlich sein Kontingent erreicht hat.
+  if (first && !(await canCreateCase(store)).allowed) throw new CaseLimitReachedError();
   const documents = existing ? await store.listDocuments(existing.id) : [];
   const extracted = settings.autoReply ? await extractForText(input.text) : {};
 

@@ -14,6 +14,7 @@ import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Card, CardHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
+import { hasAiTools } from "@/lib/billing/limits";
 import { FIELD_GROUPS } from "@/lib/cases/fields";
 import { getStore } from "@/lib/data";
 import { publicDocument } from "@/lib/documents/public";
@@ -32,7 +33,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const store = await getStore(session);
   // Keine dieser Abfragen hängt vom Ergebnis der anderen ab, alle brauchen nur die id – parallel statt
   // nacheinander (spart eine Datenbank-Runde beim Öffnen einer Fallakte).
-  const [c, events, messages, documents, followUps, questions, company, templateDocs, templates] = await Promise.all([
+  const [c, events, messages, documents, followUps, questions, company, templateDocs, templates, subscription] = await Promise.all([
     store.getCase(id).catch(() => null),
     store.listEvents(id),
     store.listMessages(id),
@@ -42,6 +43,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
     store.getCompany(),
     store.listTemplateDocuments(id),
     store.listDocumentTemplates(),
+    store.getSubscription(),
   ]);
   if (!c) notFound();
   const canWrite = can(session.role, "cases:write");
@@ -109,7 +111,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             uploadLink={currentUploadLink(c)}
             canWrite={canWrite}
           />
-          <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} />
+          <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} locked={!hasAiTools(subscription.plan)} />
           <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email)} />
         </div>
       </div>

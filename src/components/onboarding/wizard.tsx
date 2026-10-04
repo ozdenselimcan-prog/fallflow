@@ -23,6 +23,7 @@ interface Props {
   connections: { gmail: ConnectionView | null; microsoft: ConnectionView | null };
   documentTemplates: ServiceTemplateView[];
   serviceMessages: ServiceMessageView[];
+  templatesLocked: boolean;
 }
 
 interface Availability {
@@ -39,7 +40,7 @@ const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Vorlagen & Nachrichten", "Erfassungsfelder", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections, documentTemplates, serviceMessages }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections, documentTemplates, serviceMessages, templatesLocked }: Props) {
   const [step, setStep] = useState(0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address, contactFormUrl: initial.contactFormUrl });
   const [services, setServices] = useState<string[]>(initial.services);
@@ -136,7 +137,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
             <p className="text-sm text-muted-foreground">
               Schicken Sie Kunden bei bestimmten Leistungen ein auszufüllendes Formular (z. B. eine Vollmacht)? Hier pro Leistung hochladen und den Nachrichtentext dazu festlegen. Nutzen Sie das nicht, überspringen Sie diesen Schritt einfach.
             </p>
-            <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit />
+            <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit locked={templatesLocked} />
           </div>
         )}
 

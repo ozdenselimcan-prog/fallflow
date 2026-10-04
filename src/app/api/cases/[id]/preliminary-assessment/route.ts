@@ -1,6 +1,7 @@
 import { apiError, json, withSession } from "@/lib/api";
 import { buildPreliminaryAssessment } from "@/lib/ai/preliminary-assessment";
 import type { AiImage } from "@/lib/ai/provider";
+import { AI_TOOLS_LOCKED_TEXT, planHasAiTools } from "@/lib/billing/usage";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { readFile } from "@/lib/documents/storage";
 import { caseIdSchema } from "@/lib/validation";
@@ -11,6 +12,7 @@ const MAX_IMAGES = 4;
  * Voreinschätzung zur Gesprächsvorbereitung erstellen. Geht nie an den Kunden, nur in die interne Fallhistorie. */
 export const POST = withSession(
   async (_req, { store }, ctx: RouteContext<"/api/cases/[id]/preliminary-assessment">) => {
+    if (!(await planHasAiTools(store))) return apiError(AI_TOOLS_LOCKED_TEXT, 403);
     const { id } = await ctx.params;
     if (!caseIdSchema.safeParse(id).success) return apiError("Nicht gefunden", 404);
     const c = await store.getCase(id);

@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, FileText, Mail, Plus, X } from "lucide-react";
+import { Check, FileText, Lock, Mail, Plus, X } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonStyles } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
@@ -50,7 +51,20 @@ function PdfChip({ title, canEdit, onRemove }: { title: string; canEdit: boolean
  * Eine Zeile je Leistung (+ "Sonstiges" als Fallback, + "Bei jeder Anfrage" als Sonderzeile): PDF-Vorlagen
  * anhängen und den Nachrichtentext festlegen, den der Assistent dazu verschickt.
  */
-export function ServiceMessagesPanel({ services, initialMessages, initialTemplates, canEdit }: { services: string[]; initialMessages: ServiceMessageView[]; initialTemplates: ServiceTemplateView[]; canEdit: boolean }) {
+export function ServiceMessagesPanel({
+  services,
+  initialMessages,
+  initialTemplates,
+  canEdit,
+  locked,
+}: {
+  services: string[];
+  initialMessages: ServiceMessageView[];
+  initialTemplates: ServiceTemplateView[];
+  canEdit: boolean;
+  /** true = Abo-Plan (Starter) hat keinen Zugriff auf PDF-Vorlagen/Nachrichtentexte. */
+  locked?: boolean;
+}) {
   const rows = [...services, ...(services.includes(FALLBACK_SERVICE) ? [] : [FALLBACK_SERVICE]), ALWAYS_ROW];
   const [bodies, setBodies] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
@@ -116,6 +130,23 @@ export function ServiceMessagesPanel({ services, initialMessages, initialTemplat
     await fetch(`/api/document-templates/${id}`, { method: "DELETE" });
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   };
+
+  if (locked) {
+    return (
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="flex items-start gap-3">
+          <Lock className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+          <div>
+            <h2 className="font-semibold">PDF-Vorlagen & Nachrichtentexte</h2>
+            <p className="text-sm text-muted-foreground">Ab dem Pro-Plan verfügbar.</p>
+          </div>
+        </div>
+        <Link href="/dashboard/settings/billing" className={buttonStyles({ variant: "secondary" })}>
+          Plan upgraden
+        </Link>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-3">

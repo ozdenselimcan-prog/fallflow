@@ -1,5 +1,6 @@
 import { apiError, json, withSession } from "@/lib/api";
 import { suggestTemplateService } from "@/lib/ai/suggest-template-service";
+import { AI_TOOLS_LOCKED_TEXT, planHasAiTools } from "@/lib/billing/usage";
 import { sanitizeFileName, saveFile, sniffMime } from "@/lib/documents/storage";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 
@@ -10,6 +11,7 @@ const MAX_BYTES = 10 * 1024 * 1024;
 /** Büro lädt eine PDF-Vorlage (z. B. Vollmacht) hoch; die KI schlägt direkt die passende Leistung vor. */
 export const POST = withSession(
   async (req, { store, session }) => {
+    if (!(await planHasAiTools(store))) return apiError(AI_TOOLS_LOCKED_TEXT, 403);
     let form: FormData;
     try {
       form = await req.formData();

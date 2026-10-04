@@ -1,6 +1,7 @@
 import { apiError, json, parseBody, publicRoute } from "@/lib/api";
+import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
-import { processIntakeMessage, SessionNotFoundError } from "@/lib/intake/engine";
+import { CaseLimitReachedError, processIntakeMessage, SessionNotFoundError } from "@/lib/intake/engine";
 import { widgetMessageSchema } from "@/lib/validation";
 
 /**
@@ -28,6 +29,9 @@ export const POST = publicRoute("widget-message", 40, async (req) => {
     });
   } catch (err) {
     if (err instanceof SessionNotFoundError) return apiError("Sitzung nicht gefunden", 404);
+    if (err instanceof CaseLimitReachedError) {
+      return json({ sessionId: null, replies: [CASE_LIMIT_REACHED_TEXT], quickReplies: [], done: true, completeness: 0, upload: null });
+    }
     throw err;
   }
 });
