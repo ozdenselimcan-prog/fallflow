@@ -14,7 +14,14 @@ export const plans: Plan[] = [
     name: "Starter",
     priceEur: 99,
     caseLimit: 100,
-    features: ["Automatische Mail-/Website-Antworten", "100 Kundenanfragen/Monat", "Fallakte mit Completeness Score", "PDF-Vorlagen & Nachrichtentexte je Leistung", "Sicherer Dokumenten-Upload"],
+    features: [
+      "Automatische Mail-/Website-Antworten",
+      "100 Kundenanfragen/Monat",
+      "Fallakte mit Completeness Score",
+      "PDF-Vorlagen & Nachrichtentexte je Leistung",
+      "Sicherer Dokumenten-Upload",
+      "Monatlich kündbar",
+    ],
   },
   {
     id: "pro",
@@ -22,14 +29,20 @@ export const plans: Plan[] = [
     priceEur: 149,
     caseLimit: 500,
     highlighted: true,
-    features: ["500 Kundenanfragen/Monat", "KI-Voreinschätzung, Förder- & Bauteilwerte-Schätzung", "Zentrale Inbox & automatische Follow-ups", "Mehrere Mitarbeiter"],
+    features: [
+      "500 Kundenanfragen/Monat",
+      "KI-Voreinschätzung, Förder- & Bauteilwerte-Schätzung",
+      "Zentrale Inbox & automatische Follow-ups",
+      "Mehrere Mitarbeiter",
+      "Monatlich kündbar",
+    ],
   },
   {
     id: "business",
     name: "Business",
     priceEur: 199,
     caseLimit: null,
-    features: ["Unbegrenzte Kundenanfragen", "Alle Funktionen von Pro", "Mehrere Kanäle", "Prioritätssupport"],
+    features: ["Unbegrenzte Kundenanfragen", "Alle Funktionen von Pro", "Mehrere Kanäle", "Prioritätssupport", "Monatlich kündbar"],
   },
 ];
 
