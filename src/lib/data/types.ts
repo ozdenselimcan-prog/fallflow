@@ -235,7 +235,7 @@ export interface TemplateDocument {
   receivedAt: string | null;
 }
 
-export type ChannelKind = "website" | "gmail" | "microsoft";
+export type ChannelKind = "website" | "gmail";
 export interface Channel {
   kind: ChannelKind;
   status: "connected" | "disconnected" | "coming_soon";

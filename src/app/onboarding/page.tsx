@@ -38,7 +38,7 @@ export default async function OnboardingPage() {
         initial={{ name: company.name, website: company.website, phone: company.phone, address: company.address, services: company.services, contactFormUrl: company.contactFormUrl }}
         fieldOptions={fieldOptions}
         widgetReceived={cases.some((c) => c.source === "widget")}
-        connections={{ gmail: byProvider.get("gmail") ?? null, microsoft: byProvider.get("microsoft") ?? null }}
+        connections={{ gmail: byProvider.get("gmail") ?? null }}
         documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
         serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
         templatesLocked={!hasAiTools(subscription.plan)}

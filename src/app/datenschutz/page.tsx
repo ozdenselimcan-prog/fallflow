@@ -90,7 +90,7 @@ export default function DatenschutzPage() {
               ]}
             />
             <p>
-              Weitere Kanäle (Gmail, Microsoft 365/Outlook) werden nur genutzt, wenn ein Büro sie mit seinem eigenen Konto aktiv verbindet; dann kommt der jeweilige Anbieter für dieses Büro als weiterer Empfänger hinzu. Die Zugangsdaten jedes Büros (Zugriffs- und Aktualisierungstoken) werden verschlüsselt gespeichert, sind ausschließlich diesem Büro zugeordnet und für andere Büros oder im Browser nicht einsehbar.
+              Der E-Mail-Kanal (per IMAP/SMTP, z. B. Gmail, Outlook oder das eigene Domain-Postfach) wird nur genutzt, wenn ein Büro sein eigenes Postfach aktiv verbindet. Die Zugangsdaten jedes Büros werden verschlüsselt gespeichert, sind ausschließlich diesem Büro zugeordnet und für andere Büros oder im Browser nicht einsehbar.
             </p>
           </Section>
 

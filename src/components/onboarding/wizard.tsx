@@ -20,7 +20,7 @@ interface Props {
   initial: { name: string; website: string; phone: string; address: string; services: string[]; contactFormUrl: string };
   fieldOptions: { key: string; label: string; active: boolean }[];
   widgetReceived: boolean;
-  connections: { gmail: ConnectionView | null; microsoft: ConnectionView | null };
+  connections: { gmail: ConnectionView | null };
   documentTemplates: ServiceTemplateView[];
   serviceMessages: ServiceMessageView[];
   templatesLocked: boolean;
@@ -58,8 +58,8 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
 
   const save = () => run(() => apiFetch("POST", "/api/onboarding", { ...company, services, activeFieldKeys: active, availability }), { refresh: false });
 
-  // Vor dem letzten Schritt (Kanäle verbinden) vorab speichern: Gmail/Microsoft leiten zur
-  // Google-/Microsoft-Anmeldung weg, ohne das würden bis dahin eingegebene Angaben verloren gehen.
+  // Vor dem letzten Schritt (Kanäle verbinden) vorab speichern, damit bis dahin eingegebene Angaben
+  // nicht verloren gehen, falls der nächste Schritt die Seite verlässt (z. B. Gmail-Test).
   const next = async () => {
     if (step === STEPS.length - 2 && !saved) {
       const ok = await save();
@@ -232,7 +232,6 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
               companyId={companyId}
               canManage
               gmail={connections.gmail}
-              microsoft={connections.microsoft}
               websiteConnected={false}
               showWebsite={false}
             />

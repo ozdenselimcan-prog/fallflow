@@ -34,7 +34,6 @@ export async function loadSettingsData(session: Session, store: Store) {
       companyId: session.companyId,
       canManage: can(session.role, "company:manage"),
       gmail: byProvider.get("gmail") ?? null,
-      microsoft: byProvider.get("microsoft") ?? null,
       websiteConnected: website,
     },
     billing: {

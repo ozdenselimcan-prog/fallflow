@@ -116,7 +116,7 @@ export interface ProfileStore {
   updateProfile(userId: string, patch: { firstName: string; lastName: string }): Promise<void>;
 }
 
-export const CHANNEL_ORDER: ChannelKind[] = ["website", "gmail", "microsoft"];
+export const CHANNEL_ORDER: ChannelKind[] = ["website", "gmail"];
 
 /** Ein laufendes Gespräch ohne Aktivität gilt als „wartet auf Kunde“ – wird beim Lesen abgeleitet, nicht gespeichert. */
 export const withEffectiveStatus = (c: CaseRecord): CaseRecord => {

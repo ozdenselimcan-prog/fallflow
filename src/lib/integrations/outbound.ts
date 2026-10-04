@@ -2,7 +2,6 @@ import type { MessageChannel } from "@/lib/data/types";
 import { getValidTokens } from "./tokens";
 import { IntegrationNotReadyError } from "./email";
 import { gmailProvider } from "./gmail";
-import { microsoftProvider } from "./microsoft";
 
 export interface DeliveryResult {
   delivered: boolean;
@@ -10,7 +9,7 @@ export interface DeliveryResult {
   reason: string;
 }
 
-const EMAIL_PROVIDERS = [gmailProvider, microsoftProvider];
+const EMAIL_PROVIDERS = [gmailProvider];
 
 /**
  * Versand an Kunden über die vom jeweiligen Büro verbundenen Kanäle (siehe connections-store.ts).

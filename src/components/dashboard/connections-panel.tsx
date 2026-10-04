@@ -11,7 +11,7 @@ import { formatDateTime } from "@/lib/utils";
 import { WidgetSnippet } from "./widget-snippet";
 
 export interface ConnectionView {
-  provider: "gmail" | "microsoft";
+  provider: "gmail";
   status: "connected" | "error" | "disconnected";
   accountName: string;
   accountEmail: string;
@@ -155,88 +155,17 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
   );
 }
 
-/** Microsoft 365/Outlook: reiner OAuth-Connect-Button, führt zur Microsoft-Anmeldung. */
-function OAuthCard({ provider, connection, canManage }: { provider: "microsoft"; connection: ConnectionView | null; canManage: boolean }) {
-  const title = "Microsoft 365 / Outlook";
-  const { pending, run } = useMutation();
-  const [testPending, setTestPending] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const connect = async () => {
-    setNotice(null);
-    const res = await run(() => apiFetch<{ mode: "mock" | "live"; authUrl?: string; message?: string }>("POST", `/api/integrations/${provider}`), { refresh: false });
-    if (!res) return setNotice("Die Verbindung konnte nicht gestartet werden.");
-    if (res.mode === "live" && res.authUrl) window.location.assign(res.authUrl);
-    else setNotice(res.message ?? "Nicht konfiguriert.");
-  };
-
-  const disconnect = () => run(() => apiFetch("DELETE", `/api/integrations/${provider}`));
-
-  const test = async () => {
-    setTestPending(true);
-    setNotice(null);
-    try {
-      await apiFetch("POST", `/api/integrations/${provider}/test`);
-      setNotice("Verbindung funktioniert.");
-    } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Test fehlgeschlagen.");
-    } finally {
-      setTestPending(false);
-    }
-  };
-
-  const connected = connection?.status === "connected";
-
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-            <Mail className="size-5" />
-          </span>
-          <div>
-            <h2 className="font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">Neue Anfragen aus Ihrem Outlook-Postfach übernehmen und beantworten.</p>
-            {connected && connection.accountEmail && <p className="mt-1 text-sm font-medium">{connection.accountEmail}</p>}
-            {connected && connection.lastSyncedAt && <p className="text-xs text-muted-foreground">Zuletzt synchronisiert: {formatDateTime(connection.lastSyncedAt)}</p>}
-            {connection?.status === "error" && connection.lastError && <p className="mt-1 text-xs text-danger">{connection.lastError}</p>}
-          </div>
-        </div>
-        <StatusBadge status={connection?.status ?? "disconnected"} />
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {connected ? (
-          <>
-            <Button variant="secondary" size="sm" disabled={!canManage || testPending} onClick={test}>
-              {testPending && <Loader2 className="size-3.5 animate-spin" />} Verbindung testen
-            </Button>
-            <Button variant="ghost" size="sm" disabled={!canManage || pending} onClick={disconnect}>
-              <Trash2 className="size-3.5 text-danger" /> Trennen
-            </Button>
-          </>
-        ) : (
-          <Button variant="secondary" size="sm" disabled={!canManage} loading={pending} onClick={connect}>
-            {title} verbinden
-          </Button>
-        )}
-      </div>
-      {notice && <Notice tone={notice.includes("funktioniert") ? "success" : "info"} className="mt-3">{notice}</Notice>}
-    </Card>
-  );
-}
-
 interface Props {
   appUrl: string;
   companyId: string;
   canManage: boolean;
   gmail: ConnectionView | null;
-  microsoft: ConnectionView | null;
   websiteConnected: boolean;
   /** Im Onboarding gibt es die Website-Karte schon als eigenen Schritt – dort ausblenden. */
   showWebsite?: boolean;
 }
 
-export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsoft, websiteConnected, showWebsite = true }: Props) {
+export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, websiteConnected, showWebsite = true }: Props) {
   return (
     <div className="space-y-4">
       {showWebsite && (
@@ -260,9 +189,8 @@ export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsof
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="max-w-xl">
         <EmailCard connection={gmail} canManage={canManage} />
-        <OAuthCard provider="microsoft" connection={microsoft} canManage={canManage} />
       </div>
     </div>
   );

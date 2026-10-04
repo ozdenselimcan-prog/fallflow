@@ -2,11 +2,10 @@ import { z } from "zod";
 import { apiError, json, withSession } from "@/lib/api";
 import { saveConnection } from "@/lib/integrations/connections-store";
 import { gmailProvider } from "@/lib/integrations/gmail";
-import { microsoftProvider } from "@/lib/integrations/microsoft";
 import { getValidTokens } from "@/lib/integrations/tokens";
 
-const providerSchema = z.enum(["gmail", "microsoft"]);
-const EMAIL_PROVIDERS = { gmail: gmailProvider, microsoft: microsoftProvider } as const;
+const providerSchema = z.enum(["gmail"]);
+const EMAIL_PROVIDERS = { gmail: gmailProvider } as const;
 
 /** „Verbindung testen“: ruft den Kanal mit den gespeicherten Zugangsdaten dieses Büros einmal leicht auf. */
 export const POST = withSession(

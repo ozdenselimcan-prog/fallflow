@@ -15,7 +15,7 @@ const SEEN_IDS_LIMIT = 300;
 /**
  * Holt für alle verbundenen Postfächer eines Anbieters neue Nachrichten ab und verarbeitet sie über
  * dieselbe Pipeline wie der Website-Chat (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
- * (kein Push-Webhook für Gmail/Microsoft in dieser Version).
+ * (kein Push-Webhook für IMAP-Postfächer).
  */
 export async function syncMailbox(provider: MailSyncProvider): Promise<{ connections: number; messages: number; skipped: number; errors: number }> {
   const connections = await listActiveConnections(provider.id);

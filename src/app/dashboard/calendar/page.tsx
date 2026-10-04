@@ -14,7 +14,7 @@ export default async function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="Termine" description="Beratungstermine anlegen, verschieben und löschen. Kalender-Synchronisation (Google/Microsoft) folgt später." />
+      <PageHeader title="Termine" description="Beratungstermine anlegen, verschieben und löschen." />
       <Calendar appointments={appointments} canWrite={can(session.role, "appointments:write")} />
     </>
   );

@@ -168,7 +168,7 @@ const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = 
   { icon: BellRing, title: "Automatische Follow-ups", text: "Wenn der Kunde nicht liefert, wird nachgefasst – sichtbar im Dashboard." },
   { icon: Inbox, title: "Zentrale Inbox", text: "Website, E-Mail und Telefonnotizen – automatisch dem richtigen Fall zugeordnet." },
   { icon: Globe, title: "Website-Chat", text: "Ein Script-Tag genügt, um das Widget in Ihre bestehende Website einzubinden." },
-  { icon: Mail, title: "E-Mail-Anbindung", text: "Gmail und Microsoft 365 sind als Adapter vorbereitet.", soon: true },
+  { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook und praktisch jedem Postfach." },
   { icon: CalendarCheck, title: "Terminübergabe", text: "Vorbereitete Fälle lassen sich direkt mit einem Terminvorschlag weitergeben." },
   { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },
 ];

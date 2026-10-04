@@ -34,10 +34,10 @@ export default async function InboxPage() {
 
   const canWrite = can(session.role, "cases:write");
 
-  const connected = (k: "website" | "gmail" | "microsoft") => channels.find((c) => c.kind === k)?.status === "connected";
+  const connected = (k: "website" | "gmail") => channels.find((c) => c.kind === k)?.status === "connected";
   const channelState: { label: string; ok: boolean; note: string }[] = [
     { label: "Website-Chat", ok: connected("website"), note: connected("website") ? "verbunden" : "nicht verbunden" },
-    { label: "E-Mail", ok: connected("gmail") || connected("microsoft"), note: connected("gmail") || connected("microsoft") ? "verbunden" : "nicht verbunden · Demo-Modus" },
+    { label: "E-Mail", ok: connected("gmail"), note: connected("gmail") ? "verbunden" : "nicht verbunden · Demo-Modus" },
     { label: "Telefon", ok: true, note: "manuelle Notizen" },
   ];
 
