@@ -12,7 +12,9 @@ import {
   Inbox,
   Mail,
   MessageCircleQuestion,
+  PiggyBank,
   Repeat,
+  Ruler,
   ScatterChart,
   Sparkles,
   Workflow,
@@ -171,6 +173,10 @@ const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = 
   { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook und praktisch jedem Postfach." },
   { icon: CalendarCheck, title: "Terminübergabe", text: "Vorbereitete Fälle lassen sich direkt mit einem Terminvorschlag weitergeben." },
   { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },
+  { icon: FileText, title: "PDF-Vorlagen je Leistung", text: "Passende Vollmachten & Formulare werden automatisch per Mail mitgeschickt – inklusive eigenem Nachrichtentext." },
+  { icon: Sparkles, title: "KI-Voreinschätzung", text: "Erste fachliche Einordnung des Falls auf Basis der Fallakte – der Berater prüft und entscheidet." },
+  { icon: PiggyBank, title: "Förderschätzung (BAFA/KfW)", text: "Grobe Förderquote als Entwurf – das Büro prüft und versendet erst nach Freigabe." },
+  { icon: Ruler, title: "Bauteilwerte-Richtwerte", text: "U-Werte für Wand, Fenster & Dach nach Baualtersklasse, einzeln übernehmbar in die Fallakte." },
 ];
 
 export function FeaturesSection() {
