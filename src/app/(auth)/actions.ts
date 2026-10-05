@@ -62,7 +62,14 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
     // 7 Tage kostenlose Testphase, aber wie ein Vertrag: Zahlungsmethode wird sofort erfasst,
     // nach Ablauf bucht Stripe automatisch ab. Ohne Stripe-Konfiguration einfach ohne Testphase weiter.
     if (stripeConfigured() && data.user) {
-      const { data: member } = await db.from("company_members").select("company_id").eq("user_id", data.user.id).maybeSingle();
+      // Die company_members-Zeile wird per Datenbank-Trigger direkt nach der Registrierung angelegt; in
+      // seltenen Fällen ist sie im selben Request noch nicht sichtbar. Kurz erneut versuchen, statt den
+      // Kunden sonst ohne Fehlermeldung und ohne Stripe-Vertrag in die Testphase laufen zu lassen.
+      let member: { company_id: string } | null = null;
+      for (let attempt = 0; attempt < 4 && !member; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 400));
+        member = (await db.from("company_members").select("company_id").eq("user_id", data.user.id).maybeSingle()).data;
+      }
       if (member?.company_id) {
         let checkoutUrl: string | null = null;
         try {
