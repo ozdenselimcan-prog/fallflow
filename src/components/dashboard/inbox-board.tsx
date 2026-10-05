@@ -47,7 +47,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
   const selected = filtered.find((t) => t.caseId === selectedId) ?? filtered[0];
 
   if (threads.length === 0) {
-    return <EmptyState title="Keine Nachrichten in dieser Ansicht." description={"Sobald ein Kunde schreibt, erscheint die Unterhaltung hier.\nMit „Eingang simulieren“ können Sie den Ablauf ausprobieren."} />;
+    return <EmptyState title="Keine Nachrichten in dieser Ansicht." description="Sobald ein Kunde schreibt, erscheint die Unterhaltung hier." />;
   }
 
   return (

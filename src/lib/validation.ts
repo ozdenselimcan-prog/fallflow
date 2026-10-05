@@ -135,14 +135,6 @@ export const documentRequestSchema = z.object({ kinds: z.array(z.enum(DOCUMENT_K
 
 export const followUpActionSchema = z.object({ action: z.enum(["cancel", "mark_sent", "plan"]) });
 
-export const simulateInboundSchema = z.object({
-  channel: z.enum(["email"]),
-  /** E-Mail-Adresse des simulierten Absenders */
-  sender: str(120).min(3, "Absender erforderlich"),
-  name: str(100).optional(),
-  text: str(1500).min(1, "Nachricht erforderlich"),
-});
-
 export const widgetSessionSchema = z.object({ companyId: z.string().uuid().or(z.literal("demo")) });
 export const widgetMessageSchema = z.object({
   companyId: z.string().uuid().or(z.literal("demo")),

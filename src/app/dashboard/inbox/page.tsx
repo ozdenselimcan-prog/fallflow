@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { InboxBoard, type InboxThread } from "@/components/dashboard/inbox-board";
-import { InboxSimulator } from "@/components/dashboard/inbox-simulator";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Badge, PageHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
@@ -44,7 +43,7 @@ export default async function InboxPage() {
   return (
     <>
       <LiveRefresh active everyMs={15000} />
-      <PageHeader title="Posteingang" description="Website, E-Mail und Telefonnotizen – jede Nachricht wird automatisch dem richtigen Kunden und Fall zugeordnet." action={canWrite ? <InboxSimulator /> : undefined} />
+      <PageHeader title="Posteingang" description="Website, E-Mail und Telefonnotizen – jede Nachricht wird automatisch dem richtigen Kunden und Fall zugeordnet." />
 
       <ul className="mb-5 flex flex-wrap gap-2" aria-label="Kanalstatus">
         {channelState.map((c) => (
