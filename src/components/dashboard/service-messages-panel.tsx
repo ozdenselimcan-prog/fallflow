@@ -200,7 +200,9 @@ export function ServiceMessagesPanel({
                     <Textarea rows={2} disabled={!canEdit} value={bodies[row] ?? ""} onChange={(e) => setBodies({ ...bodies, [row]: e.target.value })} />
                   </div>
                   <div>
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">Termin-Hinweis, sobald der Fall vollständig ist (leer = Standardtext)</p>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      Abschluss-Nachricht an den Kunden, sobald alle Angaben für diese Leistung vollständig sind (leer = Standardtext)
+                    </p>
                     <Textarea
                       rows={2}
                       disabled={!canEdit}
