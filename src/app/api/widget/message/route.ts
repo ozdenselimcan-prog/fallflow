@@ -16,9 +16,11 @@ export const POST = publicRoute("widget-message", 40, async (req) => {
   if (!store) return apiError("Unbekannte Company", 404);
   try {
     const turn = await processIntakeMessage(store, { companyId: body.data.companyId, sessionId: body.data.sessionId, text: body.data.text, source: "widget", channel: "website" });
-    // Erste echte Widget-Anfrage dieses Falls: Kanal "Website" gilt erst jetzt als wirklich eingebunden,
-    // nicht schon ab Signup (vorher stand faelschlich "verbunden", obwohl das Skript nirgends eingebaut war).
-    if (turn.created) await store.setChannelStatus("website", "connected");
+    // Erste echte Widget-Anfrage dieses Falls: Kanal "Website" gilt erst jetzt als wirklich eingebunden.
+    // Nur wenn die Seite tatsächlich in einem iframe läuft (echtes Einbinden über widget.js) – ruft das
+    // Büro die Seite nur zum Testen direkt auf (z. B. der Vorschau-Link im Onboarding), bleibt der Kanal
+    // zu Recht "nicht verbunden".
+    if (turn.created && body.data.embedded) await store.setChannelStatus("website", "connected");
     return json({
       sessionId: turn.sessionId,
       replies: turn.replies,

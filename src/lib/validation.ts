@@ -140,6 +140,8 @@ export const widgetMessageSchema = z.object({
   companyId: z.string().uuid().or(z.literal("demo")),
   sessionId: z.string().uuid().nullable(),
   text: str(1500).min(1),
+  /** true = Seite läuft in einem iframe (echte Einbindung via widget.js), nicht direkt aufgerufen. */
+  embedded: z.boolean().optional(),
 });
 
 export const aiChatSchema = z.object({
