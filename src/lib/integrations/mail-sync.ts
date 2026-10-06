@@ -94,7 +94,10 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
       errors++;
       const message = err instanceof Error ? err.message : "Abruf fehlgeschlagen";
       console.error(`[${provider.id}] Abruf fehlgeschlagen für Büro ${connection.companyId}:`, message);
-      await saveConnection({ companyId: connection.companyId, provider: provider.id, lastError: message }).catch(() => {});
+      // Status auf "error" setzen (nicht nur lastError speichern): sonst zeigt die Oberfläche weiterhin
+      // "Verbunden" an, obwohl jeder Abruf fehlschlägt (z. B. veraltete Zugangsdaten von vor der
+      // IMAP-Umstellung) – das Büro bekommt den Fehler sonst nie zu sehen.
+      await saveConnection({ companyId: connection.companyId, provider: provider.id, status: "error", lastError: message }).catch(() => {});
     }
   }
   return { connections: connections.length, messages, skipped, errors };
