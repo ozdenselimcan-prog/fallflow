@@ -13,6 +13,8 @@ import { getValidTokens } from "./tokens";
  * überlappende Abrufe, falls zwei Cron-Läufe sich zeitlich überschneiden). */
 const SEEN_IDS_LIMIT = 300;
 
+const CONCURRENCY = 10;
+
 /**
  * Holt für alle verbundenen Postfächer eines Anbieters neue Nachrichten ab und verarbeitet sie über
  * dieselbe Pipeline wie der Website-Chat (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
@@ -24,12 +26,18 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
   let skipped = 0;
   let errors = 0;
 
-  for (const connection of connections) {
+  // Jede Verbindung braucht eine eigene IMAP-Verbindung – mit wachsender Buero-Anzahl waere ein rein
+  // sequentieller Durchlauf zu langsam fuers Function-Timeout. Begrenzte Parallelitaet statt alle auf einmal.
+  for (let i = 0; i < connections.length; i += CONCURRENCY) {
+    await Promise.all(connections.slice(i, i + CONCURRENCY).map(processConnection));
+  }
+
+  async function processConnection(connection: (typeof connections)[number]) {
     try {
       const found = await getValidTokens(provider, connection.companyId);
-      if (!found) continue;
+      if (!found) return;
       const store = await getPublicStore(connection.companyId);
-      if (!store) continue;
+      if (!store) return;
 
       const seenIds = new Set<string>(Array.isArray(connection.metadata.seenMailIds) ? (connection.metadata.seenMailIds as string[]) : []);
       // Nach jeder Mail sofort sichern (nicht erst am Ende aller Mails dieses Postfachs): bricht der Cron-Lauf

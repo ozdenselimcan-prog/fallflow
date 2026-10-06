@@ -21,15 +21,28 @@ export async function GET(req: NextRequest) {
   const expected = Buffer.from(`Bearer ${secret}`);
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
 
+  // Mit wachsender Buero-Anzahl waere ein rein sequentieller Durchlauf zu langsam fuers Timeout –
+  // mehrere Bueros gleichzeitig bearbeiten (begrenzte Parallelitaet, damit die DB nicht ueberlastet wird).
   const totals = { companies: 0, due: 0, sent: 0, manual: 0, cancelled: 0, purged: 0 };
-  for (const store of await listAllStores()) {
-    const r = await dispatchDueFollowUps(store);
-    totals.companies++;
-    totals.due += r.due;
-    totals.sent += r.sent;
-    totals.manual += r.manual;
-    totals.cancelled += r.cancelled;
-    totals.purged += await purgeStaleCases(store);
+  const stores = await listAllStores();
+  const CONCURRENCY = 10;
+  for (let i = 0; i < stores.length; i += CONCURRENCY) {
+    const batch = stores.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async (store) => {
+        const r = await dispatchDueFollowUps(store);
+        const purged = await purgeStaleCases(store);
+        return { ...r, purged };
+      }),
+    );
+    for (const r of results) {
+      totals.companies++;
+      totals.due += r.due;
+      totals.sent += r.sent;
+      totals.manual += r.manual;
+      totals.cancelled += r.cancelled;
+      totals.purged += r.purged;
+    }
   }
 
   // E-Mail-Postfächer haben keinen Push-Webhook – neue Nachrichten werden hier für alle Büros abgeholt.
