@@ -152,6 +152,13 @@ describe("applyTurn", () => {
     expect(res.done).toBe(false);
   });
 
+  it("erkennt die KI eine nicht angebotene Leistung aus Freitext, faellt es auf 'Sonstiges' zurueck", () => {
+    // Die Extraktion prueft gegen die globale Leistungsliste, nicht gegen die beim Buero angebotenen
+    // (QUESTIONS hat nur Energieberatung/Sanierung/Sonstiges) - "Baubegleitung" darf hier nicht durchrutschen.
+    const res = applyTurn(turn({ text: "Ich hätte gerne eine Baubegleitung", first: true, extracted: { service: "Baubegleitung" } }));
+    expect(res.fields.service).toBe("Sonstiges");
+  });
+
   it("Mitarbeiterwunsch behält bereits erkannte Angaben (Regressionstest für frueheren Bug)", () => {
     const res = applyTurn(
       turn({

@@ -214,12 +214,20 @@ const result = (input: TurnInput, fields: Record<string, string>, extra: Partial
 };
 
 /** Übernimmt erkannte Angaben, die noch nicht beantwortet sind. Gibt die neu gesetzten Schlüssel zurück. */
-function mergeExtracted(fields: Record<string, string>, extracted: Record<string, string> | undefined, opts: { allowFreeText: boolean }) {
+function mergeExtracted(fields: Record<string, string>, extracted: Record<string, string> | undefined, opts: { allowFreeText: boolean }, questions: Question[]) {
   const added: string[] = [];
   for (const [k, v] of Object.entries(extracted ?? {})) {
     if (!v || isAnswered(fields, k)) continue;
     if (FREE_TEXT_KEYS.has(k) && !opts.allowFreeText) continue;
-    fields[k] = v;
+    // Die Extraktion prüft "service" gegen die globale Leistungsliste, nicht gegen die beim Büro tatsächlich
+    // angebotenen (siehe Question.options). Bietet dieses Büro die erkannte Leistung gar nicht an, auf
+    // "Sonstiges" zurückfallen, statt eine nicht angebotene Leistung als gültig zu übernehmen.
+    let value = v;
+    if (k === "service") {
+      const serviceQ = questions.find((q) => q.key === "service");
+      if (serviceQ?.options.length && !serviceQ.options.includes(value)) value = serviceQ.options.includes("Sonstiges") ? "Sonstiges" : value;
+    }
+    fields[k] = value;
     if (!FREE_TEXT_KEYS.has(k)) added.push(k);
   }
   return added;
@@ -236,7 +244,7 @@ export function applyTurn(input: TurnInput): TurnResult {
   if (settings.humanHandoff && HANDOFF.test(text)) {
     // Auch beim Wunsch nach einem Mitarbeiter zuerst die im selben Text bereits genannten Angaben übernehmen
     // (z. B. „…und bitten um Rückruf“ am Ende einer ansonsten vollständigen Anfrage) – nichts verwerfen.
-    mergeExtracted(fields, input.extracted, { allowFreeText: Boolean(input.first) });
+    mergeExtracted(fields, input.extracted, { allowFreeText: Boolean(input.first) }, questions);
     if (input.first) fields.description ||= text.trim().slice(0, 1000);
     Object.assign(fields, deriveFields(fields));
     return result(input, fields, { replies: [p.handoff], handoff: true, done: true });
@@ -264,7 +272,7 @@ export function applyTurn(input: TurnInput): TurnResult {
   const pendingBefore = nextPending(questions, fields);
 
   if (input.first) {
-    recognized = mergeExtracted(fields, input.extracted, { allowFreeText: true });
+    recognized = mergeExtracted(fields, input.extracted, { allowFreeText: true }, questions);
     fields.description ||= text.trim().slice(0, 1000);
     Object.assign(fields, deriveFields(fields));
     if (!settings.autoFollowUp) {
@@ -287,9 +295,9 @@ export function applyTurn(input: TurnInput): TurnResult {
       fields[pendingBefore.key] = parsed.value;
       recognized.push(pendingBefore.key);
       // Längere Nachrichten enthalten oft weitere Angaben – auch diese übernehmen.
-      if (text.trim().length > 40) recognized.push(...mergeExtracted(fields, input.extracted, { allowFreeText: false }));
+      if (text.trim().length > 40) recognized.push(...mergeExtracted(fields, input.extracted, { allowFreeText: false }, questions));
     } else {
-      const gained = mergeExtracted(fields, input.extracted, { allowFreeText: false });
+      const gained = mergeExtracted(fields, input.extracted, { allowFreeText: false }, questions);
       if (gained.length === 0) {
         const asksQuestion = text.includes("?");
         const ask = missingPrompt(questions, fields, input.channel);
