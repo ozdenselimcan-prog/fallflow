@@ -200,6 +200,20 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       }
     }
   }
+  // Keine eigene PDF-Vorlage für genau diese Leistung (unabhängig von einer ggf. unabhängig mitgeschickten
+  // "immer dabei"-Vorlage oben) – trotzdem die eigene Nachricht einmalig verschicken, sobald die Leistung
+  // bekannt ist, statt sie nie zu senden, nur weil keine Vorlage zugeordnet ist (z. B. "Hydraulischer
+  // Abgleich" ohne Formular).
+  const hasServiceSpecificTemplate = turn.fields.service ? templates.some((t) => t.service === turn.fields.service) : false;
+  if (turn.fields.service && !hasServiceSpecificTemplate && turn.fields.serviceMessageSentFor !== turn.fields.service) {
+    const standaloneMessage = serviceMessages.find((m) => m.service === turn.fields.service)?.body.trim();
+    if (standaloneMessage) {
+      replies.push(standaloneMessage);
+      turn.fields.serviceMessageSentFor = turn.fields.service;
+      await store.updateCase(caseId, { fields: { serviceMessageSentFor: turn.fields.service } });
+      await store.addEvent(caseId, "document", `Nachricht automatisch an Kunden gesendet (${turn.fields.service})`);
+    }
+  }
 
   // Nachbereitung: Vollständigkeit, Status, automatische Dokumentenanforderung, Follow-ups.
   const refreshed = await refreshCase(store, caseId, {

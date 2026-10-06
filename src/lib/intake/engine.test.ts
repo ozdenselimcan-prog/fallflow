@@ -128,6 +128,15 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     expect(reply).toContain("Anhang");
   });
 
+  it("eigene Nachricht wird auch ohne jede PDF-Vorlage fuer diese Leistung verschickt (einmalig)", async () => {
+    await store.saveServiceMessage({ service: "Heizung", body: "Danke für Ihre Anfrage zum Hydraulischen Abgleich, wir melden uns." });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich möchte einen Heizung machen lassen.", source: "email", channel: "email" });
+    expect(first.replies.join(" ")).toContain("wir melden uns");
+
+    const second = await processIntakeMessage(store, { companyId: "demo", sessionId: first.sessionId, text: "Noch eine kurze Frage dazu.", source: "email", channel: "email" });
+    expect(second.replies).toHaveLength(0);
+  });
+
   it("per E-Mail wird NICHT nach fehlenden Angaben gefragt – nur die eigene Leistungs-Nachricht geht raus", async () => {
     await store.saveDocumentTemplate({ service: "iSFP", title: "iSFP-Vollmacht", fileName: "isfp.pdf", storagePath: "demo/templates/isfp.pdf" });
     await store.saveServiceMessage({ service: "iSFP", body: "Vielen Dank für Ihre Anfrage zum iSFP. Unser Team meldet sich in Kürze." });
