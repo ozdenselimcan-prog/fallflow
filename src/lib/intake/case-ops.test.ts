@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryStore } from "@/lib/data/memory";
 import type { Store } from "@/lib/data/store";
-import { receiveFilledTemplate } from "./case-ops";
+import { receiveFilledTemplate, syncServiceQuestionOptions } from "./case-ops";
 
 function freshStore(): Store {
   delete (globalThis as unknown as { __fallflowDb?: unknown }).__fallflowDb;
@@ -34,5 +34,24 @@ describe("receiveFilledTemplate", () => {
 
     const events = await store.listEvents(c.id);
     expect(events.some((e) => e.type === "document" && e.text.includes("per E-Mail zurückerhalten"))).toBe(true);
+  });
+});
+
+describe("syncServiceQuestionOptions", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = freshStore();
+  });
+
+  it("grenzt die Auswahl der 'Leistung'-Frage auf die angebotenen Leistungen ein (plus 'Sonstiges')", async () => {
+    await syncServiceQuestionOptions(store, ["Energieberatung", "iSFP"]);
+    const question = (await store.listQuestions()).find((q) => q.key === "service");
+    expect(question?.options).toEqual(["Energieberatung", "iSFP", "Sonstiges"]);
+  });
+
+  it("dupliziert 'Sonstiges' nicht, wenn es schon in den angebotenen Leistungen steht", async () => {
+    await syncServiceQuestionOptions(store, ["Energieberatung", "Sonstiges"]);
+    const question = (await store.listQuestions()).find((q) => q.key === "service");
+    expect(question?.options).toEqual(["Energieberatung", "Sonstiges"]);
   });
 });

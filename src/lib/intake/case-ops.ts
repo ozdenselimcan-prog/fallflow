@@ -30,6 +30,19 @@ const nextMorning = (days: number) => {
   return d.toISOString();
 };
 
+/**
+ * Grenzt die Auswahl der "Leistung"-Frage auf die vom Büro tatsächlich angebotenen Leistungen ein
+ * (plus "Sonstiges" als Auffangoption) – sonst sieht der Kunde im Chat Buttons für Leistungen, die
+ * dieses Büro gar nicht anbietet, und die KI würde sie trotzdem als gültig erkennen und bearbeiten.
+ * Wird bei jeder Änderung der angebotenen Leistungen (Onboarding, Einstellungen/Unternehmen) aufgerufen.
+ */
+export async function syncServiceQuestionOptions(store: Store, services: string[]): Promise<void> {
+  const question = (await store.listQuestions()).find((q) => q.key === "service");
+  if (!question) return;
+  const options = [...new Set([...services, "Sonstiges"])];
+  await store.saveQuestion({ ...question, options });
+}
+
 /** Liefert einen gültigen Upload-Token für den Fall (erzeugt/erneuert ihn bei Bedarf). */
 export async function ensureUploadToken(store: Store, c: CaseRecord): Promise<string> {
   const stillValid = c.uploadToken && c.uploadTokenExpiresAt && Date.parse(c.uploadTokenExpiresAt) > Date.now() + 86_400_000;

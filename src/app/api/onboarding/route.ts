@@ -1,4 +1,5 @@
 import { json, parseBody, withSession } from "@/lib/api";
+import { syncServiceQuestionOptions } from "@/lib/intake/case-ops";
 import { onboardingSchema } from "@/lib/validation";
 
 /** Schließt das Onboarding ab: Firmendaten, Leistungen, aktive Erfassungsfelder und Terminverfügbarkeit. */
@@ -9,6 +10,7 @@ export const POST = withSession(
     const { activeFieldKeys, availability, ...company } = body.data;
     await store.updateCompany({ ...company, onboardingCompleted: true });
     await store.setActiveQuestionKeys(activeFieldKeys);
+    await syncServiceQuestionOptions(store, company.services);
     const assistant = await store.getAssistant();
     await store.saveAssistant({ ...assistant, ...availability });
     return json({ ok: true });
