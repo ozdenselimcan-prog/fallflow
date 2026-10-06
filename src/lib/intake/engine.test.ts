@@ -128,6 +128,22 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     expect(reply).toContain("Anhang");
   });
 
+  it("per E-Mail wird NICHT nach fehlenden Angaben gefragt – nur die eigene Leistungs-Nachricht geht raus", async () => {
+    await store.saveDocumentTemplate({ service: "iSFP", title: "iSFP-Vollmacht", fileName: "isfp.pdf", storagePath: "demo/templates/isfp.pdf" });
+    await store.saveServiceMessage({ service: "iSFP", body: "Vielen Dank für Ihre Anfrage zum iSFP. Unser Team meldet sich in Kürze." });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne einen iSFP.", source: "email", channel: "email" });
+    const reply = first.replies.join(" ");
+    expect(reply).toContain("Unser Team meldet sich in Kürze");
+    expect(reply).not.toContain("Welche Art Gebäude");
+    expect(reply).not.toContain("fehlen mir noch ein paar Angaben");
+    expect(reply).not.toContain("Gerne!");
+  });
+
+  it("per E-Mail ohne passende Leistungs-Vorlage/-Nachricht wird gar keine Mail verschickt", async () => {
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Beratung, weiß aber nicht genau was.", source: "email", channel: "email" });
+    expect(first.replies).toHaveLength(0);
+  });
+
   it("schickt eine als 'bei jeder Anfrage' markierte Vorlage unabhängig von der erkannten Leistung mit", async () => {
     const always = await store.saveDocumentTemplate({ service: "", title: "Datenschutz-Einwilligung", fileName: "datenschutz.pdf", storagePath: "demo/templates/always.pdf", alwaysInclude: true });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });

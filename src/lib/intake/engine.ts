@@ -140,11 +140,17 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const priorApptStage = existing?.fields.apptStage ?? "";
   const inAppointmentFlow = priorApptStage === "ask" || priorApptStage === "proposed";
 
-  // Antworten der KI: im Website-Chat erscheinen sie sofort im Fenster, in anderen Kanälen nur bei echtem Versand.
-  const replies = inAppointmentFlow ? [] : [...turn.replies];
+  // Antworten der KI: im Website-Chat erscheinen sie sofort im Fenster und fragen aktiv fehlende Angaben ab
+  // (passt zu einem laufenden Gespräch). Bei E-Mail NICHT: dort soll laut Vorgabe nur die vom Büro selbst
+  // verfasste Leistungs-Nachricht (siehe Vorlagen-Block unten) + ggf. PDF-Anhang raus – keine automatisch
+  // generierte Rückfrage-Liste ("Welche Art Gebäude...", "Baujahr..."). Erkannte Angaben werden trotzdem
+  // ganz normal im Hintergrund in der Fallakte übernommen, nur eben nicht per Mail nachgefragt.
+  const replies = inAppointmentFlow || input.channel === "email" ? [] : [...turn.replies];
   // Eigenes Kontaktformular des Büros (falls hinterlegt): bei jeder neuen Anfrage zuerst mitschicken,
-  // zusätzlich zu den normalen Erfassungsfragen – ersetzt sie nicht.
-  if (first && company.contactFormUrl) replies.unshift(`Sie können Ihre Angaben optional auch über unser Kontaktformular einreichen: ${company.contactFormUrl}`);
+  // zusätzlich zu den normalen Erfassungsfragen – ersetzt sie nicht. Nur im Website-Chat (siehe oben).
+  if (first && company.contactFormUrl && input.channel !== "email") {
+    replies.unshift(`Sie können Ihre Angaben optional auch über unser Kontaktformular einreichen: ${company.contactFormUrl}`);
+  }
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
@@ -212,7 +218,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       url: uploadUrl(token),
       items: checklist.items.filter((i) => i.kind === "document" && i.key.startsWith("doc:")).map((i) => ({ kind: i.key.replace("doc:", "") as DocumentKind, label: i.label, done: i.done, required: i.required })),
     };
-    if (refreshed.requestedNow.length) replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
+    // Auch hier: die Textaufforderung ("Bitte senden Sie uns...") nur im Website-Chat, nicht per Mail (siehe oben).
+    if (refreshed.requestedNow.length && input.channel !== "email") replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
   }
 
   // Terminvorschlag: Sobald der Fall vollständig ist (oder der Kunde ausdrücklich einen Termin wünscht),
