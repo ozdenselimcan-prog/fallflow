@@ -53,7 +53,12 @@ describe("parseAnswer", () => {
 
   it("erkennt den Überspringen-Marker unabhängig vom Fragetyp", () => {
     expect(parseAnswer(numberQ, "weiß ich nicht")).toEqual({ ok: true, value: "—" });
-    expect(parseAnswer(choiceQ, "-")).toEqual({ ok: true, value: "—" });
+  });
+
+  it("bei der Leistung zählt 'Weiß ich nicht' als 'Sonstiges', nicht als generisches Überspringen", () => {
+    // Nur so greift die dafür vorgesehene "Sonstiges"-PDF-Vorlage statt gar keine zu schicken.
+    expect(parseAnswer(choiceQ, "-")).toEqual({ ok: true, value: "Sonstiges" });
+    expect(parseAnswer(choiceQ, "weiß ich nicht")).toEqual({ ok: true, value: "Sonstiges" });
   });
 
   it("choice: direkte und über Stichworte erkannte Treffer", () => {

@@ -119,7 +119,12 @@ type Parsed = { ok: true; value: string } | { ok: false };
 export function parseAnswer(q: Question, raw: string): Parsed {
   const text = raw.trim();
   if (!text) return { ok: false };
-  if (SKIP.test(text)) return { ok: true, value: SKIPPED };
+  if (SKIP.test(text)) {
+    // Bei der Leistung zählt "Weiß ich nicht" als "Sonstiges" (nicht als generisches Überspringen) –
+    // nur so greift die dafür vorgesehene "Sonstiges"-PDF-Vorlage statt gar keine zu schicken.
+    if (q.key === "service" && q.type === "choice" && q.options.includes("Sonstiges")) return { ok: true, value: "Sonstiges" };
+    return { ok: true, value: SKIPPED };
+  }
   const fail: Parsed = { ok: false };
   const year = new Date().getFullYear();
 
