@@ -45,6 +45,12 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (!(await throttle("signup"))) return TOO_MANY;
 
+  // Standard 7 Tage; ein individueller Testzeitraum (z. B. 14 Tage für einen einzelnen Kunden) kommt nur
+  // über den gezielt verschickten Signup-Link mit ?trial=14 (siehe signup/page.tsx), sonst bleibt es beim Standard.
+  const rawTrialDays = typeof input === "object" && input !== null ? (input as Record<string, unknown>).trialDays : undefined;
+  const trialDaysNum = Number(rawTrialDays);
+  const trialDays = Number.isInteger(trialDaysNum) && trialDaysNum >= 1 && trialDaysNum <= 30 ? trialDaysNum : 7;
+
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
     const { firstName, lastName, company, email, password, plan } = parsed.data;
@@ -78,7 +84,7 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
             planId: plan ?? "starter",
             customerEmail: email,
             existingCustomerId: null,
-            trialDays: 7,
+            trialDays,
             successUrl: `${siteConfig.appUrl}/onboarding`,
             cancelUrl: `${siteConfig.appUrl}/onboarding`,
           });
