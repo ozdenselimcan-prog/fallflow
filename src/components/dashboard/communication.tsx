@@ -4,7 +4,7 @@ import { Phone, Send } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Select, Textarea } from "@/components/ui/form";
+import { Input, Select, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import type { CaseMessage } from "@/lib/data/types";
 import { apiFetch, useMutation } from "@/lib/use-api";
@@ -54,14 +54,23 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
   const { pending, error, run } = useMutation();
   const [mode, setMode] = useState<"phone_note" | "email">("phone_note");
   const [text, setText] = useState("");
+  const [subject, setSubject] = useState("");
   const [info, setInfo] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setInfo(null);
-    const res = await run(() => apiFetch<{ added?: string[]; delivered?: boolean; reason?: string }>("POST", "/api/messages", { caseId, content: text, kind: mode }));
+    const res = await run(() =>
+      apiFetch<{ added?: string[]; delivered?: boolean; reason?: string }>("POST", "/api/messages", {
+        caseId,
+        content: text,
+        kind: mode,
+        ...(mode === "email" && subject.trim() ? { subject: subject.trim() } : {}),
+      }),
+    );
     if (!res) return;
     setText("");
+    setSubject("");
     if (mode === "phone_note") setInfo(res.added?.length ? "Notiz gespeichert. Erkannte Angaben wurden in die Fallakte übernommen." : "Notiz gespeichert.");
     else setInfo(res.delivered ? "Nachricht gesendet." : `Nachricht gespeichert, aber nicht versendet. ${res.reason ?? ""}`);
   }
@@ -85,6 +94,15 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
               </Select>
               {!channelReady && <span className="text-xs text-warning">Dafür fehlt eine E-Mail-Adresse im Fall.</span>}
             </div>
+            {mode === "email" && (
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                maxLength={200}
+                placeholder="Betreff (leer = „Ihre Anfrage zur Energieberatung“)"
+                aria-label="Betreff"
+              />
+            )}
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}

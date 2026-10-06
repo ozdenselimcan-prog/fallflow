@@ -17,13 +17,13 @@ export const POST = withSession(
   async (req, { store }) => {
     const body = await parseBody(req, messageSchema);
     if (!body.ok) return body.res;
-    const { caseId, content, kind } = body.data;
+    const { caseId, content, kind, subject } = body.data;
     if (!(await store.getCase(caseId))) return apiError("Fall nicht gefunden", 404);
     if (kind === "phone_note") {
       const { message, added } = await addPhoneNote(store, caseId, content);
       return json({ message, added }, 201);
     }
-    const { message, delivered, reason } = await sendTeamMessage(store, caseId, { channel: kind, text: content });
+    const { message, delivered, reason } = await sendTeamMessage(store, caseId, { channel: kind, text: content, subject });
     return json({ message, delivered, reason }, 201);
   },
   { permission: "cases:write" },

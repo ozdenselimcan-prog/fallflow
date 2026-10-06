@@ -37,11 +37,11 @@ export async function addPhoneNote(store: Store, caseId: string, text: string): 
 export async function sendTeamMessage(
   store: Store,
   caseId: string,
-  input: { channel: Extract<MessageChannel, "email">; text: string },
+  input: { channel: Extract<MessageChannel, "email">; text: string; subject?: string },
 ): Promise<{ message: CaseMessage; delivered: boolean; reason: string }> {
   const c = await store.getCase(caseId);
   if (!c) throw new Error("Fall nicht gefunden");
-  const result = await deliverToCustomer({ companyId: c.companyId, channel: input.channel, email: c.fields.email, phone: c.fields.phone, text: input.text });
+  const result = await deliverToCustomer({ companyId: c.companyId, channel: input.channel, email: c.fields.email, phone: c.fields.phone, text: input.text, subject: input.subject });
   const message = await store.addMessage(caseId, "staff", input.text, { channel: input.channel, delivery: result.delivered ? "delivered" : "not_sent" });
   await store.addEvent(caseId, "note", result.delivered ? "Nachricht an den Kunden gesendet" : "Nachricht gespeichert – nicht versendet (Kanal nicht verbunden)");
   return { message, delivered: result.delivered, reason: result.reason };

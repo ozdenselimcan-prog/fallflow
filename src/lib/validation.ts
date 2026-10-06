@@ -129,6 +129,8 @@ export const messageSchema = z.object({
   caseId: z.string().min(1).max(64),
   content: str(2000).min(1),
   kind: z.enum(["phone_note", "email"]).default("phone_note"),
+  /** Nur bei kind "email": eigener Betreff statt des Standardtexts. */
+  subject: str(200).optional(),
 });
 
 export const documentRequestSchema = z.object({ kinds: z.array(z.enum(DOCUMENT_KINDS)).max(4).optional() });
