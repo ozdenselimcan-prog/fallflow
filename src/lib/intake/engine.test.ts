@@ -107,16 +107,25 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     store = freshStore();
   });
 
-  it("schickt Download- UND Upload-Link mit, sobald die passende Leistung erkannt ist", async () => {
+  it("schickt im Website-Chat nur einen Download-Link mit (kein Upload-Link mehr), sobald die passende Leistung erkannt ist", async () => {
     const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
     const reply = first.replies.join(" ");
     expect(reply).toContain(`/template/${template.id}`);
-    expect(reply).toContain("/upload/");
+    expect(reply).not.toContain("wieder hoch");
 
     const templateDocs = await store.listTemplateDocuments(first.sessionId);
     expect(templateDocs).toHaveLength(1);
     expect(templateDocs[0]).toMatchObject({ templateId: template.id, status: "sent" });
+  });
+
+  it("schickt die Vorlage per E-Mail als Anhang statt als Link, ohne Upload-Hinweis", async () => {
+    await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "email", channel: "email" });
+    const reply = first.replies.join(" ");
+    expect(reply).not.toContain("/template/");
+    expect(reply).not.toContain("hochladen");
+    expect(reply).toContain("Anhang");
   });
 
   it("schickt eine als 'bei jeder Anfrage' markierte Vorlage unabhängig von der erkannten Leistung mit", async () => {
