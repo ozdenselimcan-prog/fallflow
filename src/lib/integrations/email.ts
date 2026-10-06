@@ -5,12 +5,19 @@ export class IntegrationNotReadyError extends Error {
   }
 }
 
+export interface InboundAttachment {
+  filename: string;
+  mime: string;
+  bytes: Uint8Array;
+}
+
 export interface InboundEmail {
   externalId: string;
   from: string;
   subject: string;
   body: string;
   receivedAt: string;
+  attachments: InboundAttachment[];
 }
 
 /** Für den Abruf/Versand nötige, bereits entschlüsselte Zugangsdaten dieses Büros. Bei der aktuellen
@@ -45,5 +52,5 @@ export interface MailSyncProvider {
   /** Leichter Aufruf, um zu prüfen, ob die gespeicherten Zugangsdaten noch funktionieren. Wirft bei Fehler. */
   testConnection(tokens: ProviderTokens): Promise<void>;
   fetchNewMessages(tokens: ProviderTokens, sinceIso: string | null): Promise<InboundEmail[]>;
-  sendReply(tokens: ProviderTokens, to: string, subject: string, body: string): Promise<void>;
+  sendReply(tokens: ProviderTokens, to: string, subject: string, body: string, attachments?: InboundAttachment[]): Promise<void>;
 }

@@ -1,10 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { summarizeCase } from "@/lib/ai/summary";
+import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
 import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { Appointment, CaseDocument, CaseRecord, DocumentKind } from "@/lib/data/types";
+import { extractPdfText } from "@/lib/documents/pdf-text";
+import { saveFile } from "@/lib/documents/storage";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
 import { documentRequestMessage, infoReminderMessage } from "./messages";
@@ -85,6 +88,30 @@ export async function registerUpload(
   });
   await store.addEvent(c.id, "document", `Dokument erhalten: ${DOCUMENT_LABELS[file.kind]}`);
   return saved;
+}
+
+/**
+ * Verbucht eine per E-Mail als Anhang zurückgeschickte, ausgefüllte Büro-Vorlage (z. B. Vollmacht) –
+ * der Kunde schickt sie einfach als Antwort auf unsere Mail zurück, kein Upload-Link nötig. Die KI
+ * schätzt informativ ein, ob sie ausgefüllt wirkt; das Dokument gilt trotzdem als eingegangen.
+ * Gibt false zurück, wenn gerade keine Vorlage für diesen Fall ausstand.
+ */
+export async function receiveFilledTemplate(store: Store, caseId: string, bytes: Uint8Array, fileName: string): Promise<boolean> {
+  const pending = (await store.listTemplateDocuments(caseId)).find((t) => t.status === "sent");
+  if (!pending) return false;
+  const c = await store.getCase(caseId);
+  if (!c) return false;
+
+  const storagePath = await saveFile({ companyId: c.companyId, caseId, bytes, mime: "application/pdf" });
+  const text = await extractPdfText(bytes.slice());
+  const templates = await store.listDocumentTemplates();
+  const title = templates.find((t) => t.id === pending.templateId)?.title ?? fileName;
+  const { note } = text ? await verifyFilledTemplate(title, text) : { note: "" };
+
+  await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, receivedAt: new Date().toISOString() });
+  await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
+  await refreshCase(store, caseId, { hint: "edit" });
+  return true;
 }
 
 export interface RefreshOptions {
@@ -205,8 +232,8 @@ export async function syncFollowUps(store: Store, c: CaseRecord, checklist: Chec
       const greetingLine = c.fields.name?.trim() ? `Guten Tag ${c.fields.name.trim()},` : "Guten Tag,";
       parts.push(
         docMissing.length
-          ? `Außerdem fehlt uns noch die ausgefüllte Vorlage: ${list}.`
-          : `${greetingLine}\n\nuns fehlt noch die ausgefüllte Vorlage: ${list}. Sie können sie hier hochladen: ${uploadUrl(token)}\n\nVielen Dank!`,
+          ? `Außerdem fehlt uns noch die ausgefüllte Vorlage: ${list}. Bitte einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`
+          : `${greetingLine}\n\nuns fehlt noch die ausgefüllte Vorlage: ${list}. Bitte einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.\n\nVielen Dank!`,
       );
     }
     message = parts.join("\n\n");

@@ -6,6 +6,10 @@ import { syncMailbox } from "@/lib/integrations/mail-sync";
 import { dispatchDueFollowUps } from "@/lib/intake/follow-ups";
 import { purgeStaleCases } from "@/lib/intake/retention";
 
+// Mit wachsender Buero-Anzahl dauert ein Durchlauf laenger als das Standard-Timeout erlaubt – ohne das
+// wird die Funktion mitten im Mail-Abruf abgebrochen (siehe mail-sync.ts fuer die Absicherung dagegen).
+export const maxDuration = 60;
+
 /**
  * Cron-Endpunkt (siehe vercel.json): verarbeitet fällige Follow-ups aller Büros. Geschützt durch CRON_SECRET
  * (Vercel sendet es automatisch als Bearer-Token). Ohne verbundenen Kanal werden Follow-ups auf „manuell“ gesetzt.

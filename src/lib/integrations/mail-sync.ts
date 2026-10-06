@@ -2,6 +2,7 @@ import { isCustomerInquiry } from "@/lib/ai/classify";
 import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
+import { receiveFilledTemplate } from "@/lib/intake/case-ops";
 import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
 import type { MailSyncProvider } from "./email";
@@ -31,6 +32,21 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
       if (!store) continue;
 
       const seenIds = new Set<string>(Array.isArray(connection.metadata.seenMailIds) ? (connection.metadata.seenMailIds as string[]) : []);
+      // Nach jeder Mail sofort sichern (nicht erst am Ende aller Mails dieses Postfachs): bricht der Cron-Lauf
+      // vorzeitig ab (z. B. Function-Timeout bei vielen Büros), wird eine bereits beantwortete Mail beim
+      // naechsten Lauf sonst faelschlich nochmal als neu erkannt und ein zweites Mal beantwortet.
+      const persistSeenIds = () => {
+        const cappedSeenIds = [...seenIds].slice(-SEEN_IDS_LIMIT);
+        return saveConnection({
+          companyId: connection.companyId,
+          provider: provider.id,
+          status: "connected",
+          lastSyncedAt: new Date().toISOString(),
+          lastError: "",
+          metadata: { ...connection.metadata, seenMailIds: cappedSeenIds },
+        });
+      };
+
       const inbound = await provider.fetchNewMessages(found.tokens, connection.lastSyncedAt);
       for (const mail of inbound) {
         if (seenIds.has(mail.externalId)) continue;
@@ -41,31 +57,31 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
         if (from === connection.accountEmail.trim().toLowerCase()) continue;
         if (/no.?reply|do.?not.?reply|mailer-daemon|postmaster/i.test(from)) continue;
         const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
-        // Grobe KI-Einschätzung: Newsletter, Rechnungen, interne Mails etc. lösen keinen Fall aus.
-        if (!(await isCustomerInquiry(fullText))) {
+        // Ein PDF-Anhang (z. B. die ausgefüllt zurückgeschickte Vollmacht) ist eindeutig fallrelevant, auch
+        // wenn der Mailtext selbst knapp ist ("siehe Anhang") – dann die KI-Einschätzung nicht erst fragen.
+        const hasPdfAttachment = mail.attachments.length > 0;
+        if (!hasPdfAttachment && !(await isCustomerInquiry(fullText))) {
           skipped++;
+          await persistSeenIds();
           continue;
         }
         try {
-          await routeInbound(store, { companyId: connection.companyId, channel: "email", text: fullText.slice(0, 1500), sender: { email: from } });
+          const { turn } = await routeInbound(store, { companyId: connection.companyId, channel: "email", text: fullText.slice(0, 1500), sender: { email: from } });
           messages++;
+          for (const att of mail.attachments) {
+            await receiveFilledTemplate(store, turn.sessionId, att.bytes, att.filename).catch((err) => {
+              console.error(`[${provider.id}] Vorlagen-Rückläufer konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
+            });
+          }
         } catch (err) {
           if (err instanceof CaseLimitReachedError) {
             await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", CASE_LIMIT_REACHED_TEXT).catch(() => {});
-            continue;
+          } else {
+            console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
           }
-          console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
         }
+        await persistSeenIds();
       }
-      const cappedSeenIds = [...seenIds].slice(-SEEN_IDS_LIMIT);
-      await saveConnection({
-        companyId: connection.companyId,
-        provider: provider.id,
-        status: "connected",
-        lastSyncedAt: new Date().toISOString(),
-        lastError: "",
-        metadata: { ...connection.metadata, seenMailIds: cappedSeenIds },
-      });
     } catch (err) {
       errors++;
       const message = err instanceof Error ? err.message : "Abruf fehlgeschlagen";

@@ -1,6 +1,6 @@
 import type { MessageChannel } from "@/lib/data/types";
 import { getValidTokens } from "./tokens";
-import { IntegrationNotReadyError } from "./email";
+import { IntegrationNotReadyError, type InboundAttachment } from "./email";
 import { gmailProvider } from "./gmail";
 
 export interface DeliveryResult {
@@ -25,6 +25,7 @@ export async function deliverToCustomer(input: {
   subject?: string;
   text: string;
   simulated?: boolean;
+  attachments?: InboundAttachment[];
 }): Promise<DeliveryResult> {
   if (input.channel === "website") return { delivered: true, reason: "" };
   if (input.simulated) return { delivered: false, reason: "Simulation – es wurde nichts versendet." };
@@ -35,7 +36,7 @@ export async function deliverToCustomer(input: {
       const found = await getValidTokens(provider, input.companyId);
       if (!found) continue;
       if (!input.email) return { delivered: false, reason: "Keine E-Mail-Adresse vorhanden." };
-      await provider.sendReply(found.tokens, input.email, input.subject ?? "Ihre Anfrage zur Energieberatung", input.text);
+      await provider.sendReply(found.tokens, input.email, input.subject ?? "Ihre Anfrage zur Energieberatung", input.text, input.attachments);
       return { delivered: true, reason: "" };
     }
     return { delivered: false, reason: "Für dieses Büro ist kein E-Mail-Postfach verbunden." };

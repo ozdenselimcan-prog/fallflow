@@ -5,6 +5,8 @@ import { canCreateCase } from "@/lib/billing/usage";
 import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib/data/types";
+import { readFile } from "@/lib/documents/storage";
+import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
 import { refreshCase, ensureUploadToken, uploadUrl } from "./case-ops";
@@ -152,31 +154,42 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   // Büro-Vorlagen (z. B. eine Vollmacht) automatisch mitschicken – entweder weil die passende Leistung bekannt ist,
   // oder weil die Vorlage als "bei jeder Anfrage mitschicken" markiert ist (z. B. eine Datenschutz-Einwilligung,
-  // die jeder Kunde ausfüllen muss) – mit Download-Link (blanko) UND Upload-Link (zum Zurückschicken der
-  // ausgefüllten Version), nicht als Anhang (funktioniert so auf allen Kanälen gleich). Vor refreshCase, damit
-  // der Fall nicht in diesem Zug schon als "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage
-  // aussteht. Pro Fall nur einmal pro Vorlage.
+  // die jeder Kunde ausfüllen muss). Per E-Mail als echter Anhang, den der Kunde ausgefüllt einfach als Antwort
+  // zurückschickt (siehe mail-sync.ts) – kein Upload-Link mehr. Im Website-Chat (kein Anhang möglich) weiterhin
+  // ein Download-Link zum Blanko-Formular. Vor refreshCase, damit der Fall nicht in diesem Zug schon als
+  // "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht. Pro Fall nur einmal pro Vorlage.
   const matchingTemplates = [
     ...(turn.fields.service ? templates.filter((t) => t.service && t.service === turn.fields.service) : []),
     ...templates.filter((t) => t.alwaysInclude),
   ];
   const uniqueTemplates = [...new Map(matchingTemplates.map((t) => [t.id, t])).values()];
+  const attachments: InboundAttachment[] = [];
   if (uniqueTemplates.length) {
     const sentIds = new Set((await store.listTemplateDocuments(caseId)).map((td) => td.templateId));
     const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
     if (pending.length) {
-      const caseNow = (await store.getCase(caseId))!;
-      const token = await ensureUploadToken(store, caseNow);
       for (const tpl of pending) {
-        const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
         await store.saveTemplateDocument({ caseId, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
         // Büro-eigener Nachrichtentext für diese Leistung (Einstellungen/Onboarding) ersetzt den Standardsatz, falls gepflegt.
         const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
-        replies.push(
-          customMessage
-            ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}\nAusgefüllt wieder hochladen: ${uploadUrl(token)}`
-            : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter (${downloadUrl}), füllen es aus und laden es anschließend hier wieder hoch: ${uploadUrl(token)}`,
-        );
+        if (input.channel === "email") {
+          const file = await readFile(tpl.storagePath);
+          if (file) attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
+          replies.push(
+            customMessage
+              ? `${customMessage}\n\n(Das Formular „${tpl.title}“ finden Sie im Anhang dieser E-Mail – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.)`
+              : `Für Ihr Anliegen („${tpl.title}“) finden Sie das Formular im Anhang dieser E-Mail. Bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`,
+          );
+        } else {
+          const caseNow = (await store.getCase(caseId))!;
+          const token = await ensureUploadToken(store, caseNow);
+          const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
+          replies.push(
+            customMessage
+              ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`
+              : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`,
+          );
+        }
         await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
       }
     }
@@ -286,7 +299,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // sonst bekäme der Kunde für einen einzigen Gesprächszug mehrere einzelne E-Mails.
   const outgoing = isInteractive(input.channel) ? replies : replies.length ? [replies.join("\n\n")] : [];
   for (const reply of outgoing) {
-    const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated });
+    const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated, attachments });
     if (!result.delivered) {
       delivered = false;
       deliveryNote = result.reason;

@@ -1,7 +1,9 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import nodemailer from "nodemailer";
-import { stripHtml, type InboundEmail, type MailSyncProvider, type ProviderTokens } from "./email";
+import { stripHtml, type InboundAttachment, type InboundEmail, type MailSyncProvider, type ProviderTokens } from "./email";
+
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 /**
  * Generische E-Mail-Verbindung per IMAP (Abruf) und SMTP (Versand) mit den eigenen Zugangsdaten des
@@ -80,12 +82,18 @@ export const gmailProvider: MailSyncProvider = {
         for await (const msg of client.fetch(recent, { source: true, uid: true }, { uid: true })) {
           if (!msg.source) continue;
           const parsed = await simpleParser(msg.source);
+          // Nur PDF-Anhänge in vernünftiger Größe werden übernommen (z. B. eine ausgefüllt zurückgeschickte
+          // Büro-Vorlage) – alles andere (Bilder in Signaturen, große Dateien) wird ignoriert.
+          const attachments: InboundAttachment[] = (parsed.attachments ?? [])
+            .filter((a) => a.contentType === "application/pdf" && a.content && a.content.length > 0 && a.content.length <= MAX_ATTACHMENT_BYTES)
+            .map((a) => ({ filename: a.filename || "dokument.pdf", mime: a.contentType, bytes: new Uint8Array(a.content) }));
           out.push({
             externalId: String(msg.uid),
             from: parsed.from?.text ?? "",
             subject: parsed.subject ?? "",
             body: (parsed.text ?? stripHtml(typeof parsed.html === "string" ? parsed.html : "")).slice(0, 4000),
             receivedAt: (parsed.date ?? new Date()).toISOString(),
+            attachments,
           });
         }
       } finally {
@@ -95,8 +103,14 @@ export const gmailProvider: MailSyncProvider = {
     });
   },
 
-  async sendReply(tokens, to, subject, body) {
+  async sendReply(tokens, to, subject, body, attachments) {
     const creds = parseCreds(tokens);
-    await smtpTransport(creds).sendMail({ from: creds.email, to, subject, text: body });
+    await smtpTransport(creds).sendMail({
+      from: creds.email,
+      to,
+      subject,
+      text: body,
+      attachments: attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.bytes), contentType: a.mime })),
+    });
   },
 };
