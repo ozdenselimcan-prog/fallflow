@@ -2,24 +2,34 @@ import type { Store } from "@/lib/data/store";
 import type { FollowUp } from "@/lib/data/types";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist } from "./checklist";
+import { matchServiceMaterials } from "./case-ops";
 
 export interface DispatchSummary {
   due: number;
   sent: number;
-  /** fällig, aber nicht versendbar (Kanal nicht verbunden) → Team muss selbst nachfassen */
+  /** fällig, aber nicht automatisch versendbar (Kanal nicht verbunden, oder nichts Neues zu verschicken) → Team muss selbst nachfassen */
   manual: number;
   cancelled: number;
 }
 
 /**
- * Verarbeitet fällige Follow-ups. Versendet wird nur über einen wirklich verbundenen Kanal; sonst wird das
- * Follow-up auf „manuell“ gesetzt und im Dashboard als fällig angezeigt – es wird nie ein Versand vorgetäuscht.
+ * Verarbeitet fällige Follow-ups. Es wird NIE automatisch die generische Angaben-Checkliste per Mail
+ * verschickt – stattdessen wird versucht, die vom Büro selbst verfasste Leistungs-Nachricht (+ PDF-Vorlage,
+ * siehe matchServiceMaterials) nachzuliefern, falls das beim ersten Kontakt noch nicht möglich war (z. B.
+ * weil die Leistung erst später erkannt wurde). Gibt es nichts Neues zu verschicken, gilt das Follow-up als
+ * „manuell“ fällig – das Team meldet sich dann selbst, es wird nie ein Versand vorgetäuscht.
  */
 export async function dispatchDueFollowUps(store: Store, now = new Date()): Promise<DispatchSummary> {
   const summary: DispatchSummary = { due: 0, sent: 0, manual: 0, cancelled: 0 };
   const due = (await store.listFollowUps()).filter((f) => f.status === "planned" && Date.parse(f.scheduledFor) <= now.getTime());
   if (due.length === 0) return summary;
-  const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(), store.getCompany()]);
+  const [questions, documents, company, templates, serviceMessages] = await Promise.all([
+    store.listQuestions(),
+    store.listDocuments(),
+    store.getCompany(),
+    store.listDocumentTemplates(),
+    store.listServiceMessages(),
+  ]);
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
 
   for (const f of due) {
@@ -33,10 +43,18 @@ export async function dispatchDueFollowUps(store: Store, now = new Date()): Prom
       continue;
     }
     const channel = "email" as const;
-    const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text: f.message, subject: "Ihre Anfrage zur Energieberatung" });
+    const material = await matchServiceMaterials(store, c, templates, serviceMessages, channel);
+    if (!material) {
+      await store.saveFollowUp({ ...f, status: "manual", note: "Warte auf fehlende Angaben – bitte manuell nachfassen." });
+      await store.addEvent(c.id, "followup", "Follow-up fällig – bitte manuell nachfassen");
+      summary.manual++;
+      continue;
+    }
+    const text = material.texts.join("\n\n");
+    const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, attachments: material.attachments });
     if (result.delivered) {
       await store.saveFollowUp({ ...f, status: "sent", sentAt: now.toISOString(), note: "" });
-      await store.addMessage(c.id, "assistant", f.message, { channel, delivery: "delivered" });
+      await store.addMessage(c.id, "assistant", text, { channel, delivery: "delivered" });
       await store.addEvent(c.id, "followup", "Follow-up versendet");
       summary.sent++;
     } else {

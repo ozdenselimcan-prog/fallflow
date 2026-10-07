@@ -2,14 +2,12 @@ import { extractFields } from "@/lib/ai/case-extractor";
 import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { canCreateCase } from "@/lib/billing/usage";
-import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib/data/types";
-import { readFile } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
-import { refreshCase, ensureUploadToken, uploadUrl } from "./case-ops";
+import { refreshCase, ensureUploadToken, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { chatDocumentPrompt } from "./messages";
 import {
   appointmentCancelledText,
@@ -158,62 +156,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   if (turn.handoff) await store.addEvent(caseId, "handoff", "Kunde wünscht persönlichen Kontakt");
   if (turn.appointmentRequested) await store.addEvent(caseId, "appointment", "Kunde wünscht einen Termin");
 
-  // Büro-Vorlagen (z. B. eine Vollmacht) automatisch mitschicken – entweder weil die passende Leistung bekannt ist,
-  // oder weil die Vorlage als "bei jeder Anfrage mitschicken" markiert ist (z. B. eine Datenschutz-Einwilligung,
-  // die jeder Kunde ausfüllen muss). Per E-Mail als echter Anhang, den der Kunde ausgefüllt einfach als Antwort
-  // zurückschickt (siehe mail-sync.ts) – kein Upload-Link mehr. Im Website-Chat (kein Anhang möglich) weiterhin
-  // ein Download-Link zum Blanko-Formular. Vor refreshCase, damit der Fall nicht in diesem Zug schon als
-  // "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht. Pro Fall nur einmal pro Vorlage.
-  const matchingTemplates = [
-    ...(turn.fields.service ? templates.filter((t) => t.service && t.service === turn.fields.service) : []),
-    ...templates.filter((t) => t.alwaysInclude),
-  ];
-  const uniqueTemplates = [...new Map(matchingTemplates.map((t) => [t.id, t])).values()];
-  const attachments: InboundAttachment[] = [];
-  if (uniqueTemplates.length) {
-    const sentIds = new Set((await store.listTemplateDocuments(caseId)).map((td) => td.templateId));
-    const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
-    if (pending.length) {
-      for (const tpl of pending) {
-        await store.saveTemplateDocument({ caseId, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
-        // Büro-eigener Nachrichtentext für diese Leistung (Einstellungen/Onboarding) ersetzt den Standardsatz, falls gepflegt.
-        const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
-        if (input.channel === "email") {
-          const file = await readFile(tpl.storagePath);
-          if (file) attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
-          replies.push(
-            customMessage
-              ? `${customMessage}\n\n(Das Formular „${tpl.title}“ finden Sie im Anhang dieser E-Mail – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.)`
-              : `Für Ihr Anliegen („${tpl.title}“) finden Sie das Formular im Anhang dieser E-Mail. Bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`,
-          );
-        } else {
-          const caseNow = (await store.getCase(caseId))!;
-          const token = await ensureUploadToken(store, caseNow);
-          const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
-          replies.push(
-            customMessage
-              ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`
-              : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`,
-          );
-        }
-        await store.addEvent(caseId, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
-      }
-    }
-  }
-  // Keine eigene PDF-Vorlage für genau diese Leistung (unabhängig von einer ggf. unabhängig mitgeschickten
-  // "immer dabei"-Vorlage oben) – trotzdem die eigene Nachricht einmalig verschicken, sobald die Leistung
-  // bekannt ist, statt sie nie zu senden, nur weil keine Vorlage zugeordnet ist (z. B. "Hydraulischer
-  // Abgleich" ohne Formular).
-  const hasServiceSpecificTemplate = turn.fields.service ? templates.some((t) => t.service === turn.fields.service) : false;
-  if (turn.fields.service && !hasServiceSpecificTemplate && turn.fields.serviceMessageSentFor !== turn.fields.service) {
-    const standaloneMessage = serviceMessages.find((m) => m.service === turn.fields.service)?.body.trim();
-    if (standaloneMessage) {
-      replies.push(standaloneMessage);
-      turn.fields.serviceMessageSentFor = turn.fields.service;
-      await store.updateCase(caseId, { fields: { serviceMessageSentFor: turn.fields.service } });
-      await store.addEvent(caseId, "document", `Nachricht automatisch an Kunden gesendet (${turn.fields.service})`);
-    }
-  }
+  // Büro-Vorlage(n) und/oder eigene Leistungs-Nachricht automatisch mitschicken – siehe matchServiceMaterials
+  // (gemeinsam mit den Follow-up-Erinnerungen genutzt, damit beide dieselbe, vom Büro geschriebene Nachricht
+  // verschicken statt einer automatisch generierten Angaben-Checkliste). Vor refreshCase, damit der Fall
+  // nicht in diesem Zug schon als "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht.
+  const caseNow = (await store.getCase(caseId))!;
+  const material = await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
+  const attachments: InboundAttachment[] = material?.attachments ?? [];
+  if (material) replies.push(...material.texts);
 
   // Nachbereitung: Vollständigkeit, Status, automatische Dokumentenanforderung, Follow-ups.
   const refreshed = await refreshCase(store, caseId, {

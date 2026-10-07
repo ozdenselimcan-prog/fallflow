@@ -5,9 +5,10 @@ import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
 import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
-import type { Appointment, CaseDocument, CaseRecord, DocumentKind } from "@/lib/data/types";
+import type { Appointment, CaseDocument, CaseRecord, DocumentKind, DocumentTemplate, MessageChannel, ServiceMessage } from "@/lib/data/types";
 import { extractPdfText } from "@/lib/documents/pdf-text";
-import { saveFile } from "@/lib/documents/storage";
+import { readFile, saveFile } from "@/lib/documents/storage";
+import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
 import { documentRequestMessage, infoReminderMessage } from "./messages";
@@ -41,6 +42,69 @@ export async function syncServiceQuestionOptions(store: Store, services: string[
   if (!question) return;
   const options = [...new Set([...services, "Sonstiges"])];
   await store.saveQuestion({ ...question, options });
+}
+
+/**
+ * Büro-Vorlage(n) und/oder eigene Leistungs-Nachricht für den erkannten Fall zusammenstellen und als
+ * "versendet" markieren – gemeinsam genutzt vom laufenden Gespräch (engine.ts) UND den Follow-up-
+ * Erinnerungen (follow-ups.ts), damit beide dieselbe, vom Büro selbst geschriebene Nachricht verschicken
+ * statt einer automatisch generierten Angaben-Checkliste. Gibt null zurück, wenn es nichts Neues zu
+ * verschicken gibt (z. B. schon gesendet, oder weder Vorlage noch Nachricht für diese Leistung hinterlegt).
+ */
+export async function matchServiceMaterials(
+  store: Store,
+  c: CaseRecord,
+  templates: DocumentTemplate[],
+  serviceMessages: ServiceMessage[],
+  channel: MessageChannel,
+): Promise<{ texts: string[]; attachments: InboundAttachment[] } | null> {
+  const service = c.fields.service ?? "";
+  const matchingTemplates = [...(service ? templates.filter((t) => t.service && t.service === service) : []), ...templates.filter((t) => t.alwaysInclude)];
+  const uniqueTemplates = [...new Map(matchingTemplates.map((t) => [t.id, t])).values()];
+  const texts: string[] = [];
+  const attachments: InboundAttachment[] = [];
+
+  if (uniqueTemplates.length) {
+    const sentIds = new Set((await store.listTemplateDocuments(c.id)).map((td) => td.templateId));
+    const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
+    if (!pending.length) return null;
+    for (const tpl of pending) {
+      await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+      const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
+      if (channel === "email") {
+        const file = await readFile(tpl.storagePath);
+        if (file) attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
+        texts.push(
+          customMessage
+            ? `${customMessage}\n\n(Das Formular „${tpl.title}“ finden Sie im Anhang dieser E-Mail – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.)`
+            : `Für Ihr Anliegen („${tpl.title}“) finden Sie das Formular im Anhang dieser E-Mail. Bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`,
+        );
+      } else {
+        const token = await ensureUploadToken(store, c);
+        const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
+        texts.push(
+          customMessage
+            ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`
+            : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`,
+        );
+      }
+      await store.addEvent(c.id, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
+    }
+    return { texts, attachments };
+  }
+
+  // Keine PDF-Vorlage für genau diese Leistung – trotzdem die eigene Nachricht einmalig verschicken, sobald
+  // die Leistung bekannt ist (z. B. "Hydraulischer Abgleich" ohne Formular).
+  const hasServiceSpecificTemplate = service ? templates.some((t) => t.service === service) : false;
+  if (service && !hasServiceSpecificTemplate && c.fields.serviceMessageSentFor !== service) {
+    const standaloneMessage = serviceMessages.find((m) => m.service === service)?.body.trim();
+    if (standaloneMessage) {
+      await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
+      await store.addEvent(c.id, "document", `Nachricht automatisch an Kunden gesendet (${service})`);
+      return { texts: [standaloneMessage], attachments: [] };
+    }
+  }
+  return null;
 }
 
 /** Liefert einen gültigen Upload-Token für den Fall (erzeugt/erneuert ihn bei Bedarf). */
