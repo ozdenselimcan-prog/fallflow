@@ -28,7 +28,7 @@ function Panel({ title, description, empty, children, count }: { title: string; 
 
 const CaseLink = ({ c }: { c: CaseRecord }) => (
   <Link href={`/dashboard/cases/${c.id}`} className="font-medium hover:text-accent hover:underline">
-    {c.customerName}
+    {c.customerName && c.customerName !== "Unbekannt" ? c.customerName : (c.fields.email ?? c.customerName)}
   </Link>
 );
 

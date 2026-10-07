@@ -7,6 +7,10 @@ import type { CaseMeta } from "@/lib/intake/meta";
 import { formatDate, timeAgo } from "@/lib/utils";
 import { Completeness, ReadinessBadge, StatusBadge } from "./badges";
 
+/** Solange kein Name bekannt ist (z. B. bei E-Mail-Anfragen ohne erkannten Absendernamen), die
+ * E-Mail-Adresse statt "Unbekannt" anzeigen – besser als Platzhalter. */
+const displayName = (c: Pick<CaseRecord, "customerName" | "fields">) => (c.customerName && c.customerName !== "Unbekannt" ? c.customerName : c.fields.email || c.customerName);
+
 const SOURCE_LABELS: Record<CaseRecord["source"], string> = {
   widget: "Website",
   email: "E-Mail",
@@ -60,7 +64,7 @@ export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseR
               <tr key={c.id} className="hover:bg-background/70">
                 <td className="px-4 py-3">
                   <Link href={`/dashboard/cases/${c.id}`} className="font-medium hover:text-accent hover:underline">
-                    {c.customerName}
+                    {displayName(c)}
                   </Link>
                   <p className="text-xs text-muted-foreground">{buildingLabel(c.fields)}</p>
                 </td>
@@ -92,7 +96,7 @@ export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseR
           <li key={c.id} className="rounded-2xl border border-border bg-card p-4">
             <Link href={`/dashboard/cases/${c.id}`} className="block">
               <div className="flex items-start justify-between gap-3">
-                <p className="font-medium">{c.customerName}</p>
+                <p className="font-medium">{displayName(c)}</p>
                 <StatusBadge status={c.status} />
               </div>
               <p className="mt-1 text-sm text-muted-foreground">

@@ -66,7 +66,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
 
       <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{c.customerName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{c.customerName && c.customerName !== "Unbekannt" ? c.customerName : (c.fields.email ?? c.customerName)}</h1>
           <StatusBadge status={c.status} />
           <ReadinessBadge readiness={readiness} />
         </div>
