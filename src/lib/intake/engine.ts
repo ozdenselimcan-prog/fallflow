@@ -139,11 +139,12 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const inAppointmentFlow = priorApptStage === "ask" || priorApptStage === "proposed";
 
   // Antworten der KI: im Website-Chat erscheinen sie sofort im Fenster und fragen aktiv fehlende Angaben ab
-  // (passt zu einem laufenden Gespräch). Bei E-Mail NICHT: dort soll laut Vorgabe nur die vom Büro selbst
-  // verfasste Leistungs-Nachricht (siehe Vorlagen-Block unten) + ggf. PDF-Anhang raus – keine automatisch
-  // generierte Rückfrage-Liste ("Welche Art Gebäude...", "Baujahr..."). Erkannte Angaben werden trotzdem
-  // ganz normal im Hintergrund in der Fallakte übernommen, nur eben nicht per Mail nachgefragt.
-  const replies = inAppointmentFlow || input.channel === "email" ? [] : [...turn.replies];
+  // (passt zu einem laufenden Gespräch). Bei E-Mail NICHT, solange noch etwas fehlt (turn.done = false) –
+  // dort soll laut Vorgabe nur die vom Büro selbst verfasste Leistungs-Nachricht (siehe Vorlagen-Block unten)
+  // + ggf. PDF-Anhang raus, keine automatisch generierte Rückfrage-Liste ("Welche Art Gebäude...", "Baujahr...").
+  // Sobald der Fall aber abgeschlossen ist (turn.done = true: Abschluss-Nachricht, Handoff, Terminbestätigung
+  // o. Ä.), soll genau diese Abschlussmeldung auch per Mail raus – siehe Termin-Hinweis-Override oben.
+  const replies = inAppointmentFlow || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
   // Eigenes Kontaktformular des Büros (falls hinterlegt): bei jeder neuen Anfrage zuerst mitschicken,
   // zusätzlich zu den normalen Erfassungsfragen – ersetzt sie nicht. Nur im Website-Chat (siehe oben).
   if (first && company.contactFormUrl && input.channel !== "email") {

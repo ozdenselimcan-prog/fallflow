@@ -153,6 +153,20 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     expect(first.replies).toHaveLength(0);
   });
 
+  it("per E-Mail wird die Abschluss-Nachricht verschickt, sobald der Fall vollständig ist", async () => {
+    const questions = await store.listQuestions();
+    let turn = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "email", channel: "email" });
+    const sessionId = turn.sessionId;
+    let pending = nextPending(questions, turn.fields);
+    while (pending) {
+      turn = await processIntakeMessage(store, { companyId: "demo", sessionId, text: ANSWERS[pending.key] ?? "unbekannt", source: "email", channel: "email" });
+      pending = nextPending(questions, turn.fields);
+    }
+    expect(turn.done).toBe(true);
+    expect(turn.replies.length).toBeGreaterThan(0);
+    expect(turn.replies.join(" ")).toMatch(/Mitarbeiter|melde/);
+  });
+
   it("schickt eine als 'bei jeder Anfrage' markierte Vorlage unabhängig von der erkannten Leistung mit", async () => {
     const always = await store.saveDocumentTemplate({ service: "", title: "Datenschutz-Einwilligung", fileName: "datenschutz.pdf", storagePath: "demo/templates/always.pdf", alwaysInclude: true });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "widget", channel: "website" });
