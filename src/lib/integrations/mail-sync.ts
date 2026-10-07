@@ -15,6 +15,14 @@ const SEEN_IDS_LIMIT = 300;
 
 const CONCURRENCY = 10;
 
+/** Zerlegt eine "From"-Kopfzeile ("Max Mustermann <max@example.com>") in Anzeigename und Adresse. */
+function parseFromHeader(raw: string): { email: string; name: string } {
+  const match = raw.match(/^"?([^"<]*)"?\s*<([^>]+)>$/);
+  const email = (match ? match[2] : raw).trim().toLowerCase();
+  const name = (match ? match[1] : "").trim();
+  return { email, name };
+}
+
 /**
  * Holt für alle verbundenen Postfächer eines Anbieters neue Nachrichten ab und verarbeitet sie über
  * dieselbe Pipeline wie der Website-Chat (Kunde/Fall erkennen, KI reagiert). Wird vom Cron aufgerufen
@@ -59,7 +67,7 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
       for (const mail of inbound) {
         if (seenIds.has(mail.externalId)) continue;
         seenIds.add(mail.externalId);
-        const from = (mail.from.match(/<([^>]+)>/)?.[1] ?? mail.from).trim().toLowerCase();
+        const { email: from, name: fromName } = parseFromHeader(mail.from);
         // Sicherheitsnetz gegen Endlosschleifen: eine Mail, die vom eigenen verbundenen Postfach kommt (z. B. eine
         // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
         if (from === connection.accountEmail.trim().toLowerCase()) continue;
@@ -74,7 +82,12 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           continue;
         }
         try {
-          const { turn } = await routeInbound(store, { companyId: connection.companyId, channel: "email", text: fullText.slice(0, 1500), sender: { email: from } });
+          const { turn } = await routeInbound(store, {
+            companyId: connection.companyId,
+            channel: "email",
+            text: fullText.slice(0, 1500),
+            sender: { email: from, name: fromName || undefined },
+          });
           messages++;
           for (const att of mail.attachments) {
             await receiveFilledTemplate(store, turn.sessionId, att.bytes, att.filename).catch((err) => {

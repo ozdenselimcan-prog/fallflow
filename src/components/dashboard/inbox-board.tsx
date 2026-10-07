@@ -13,11 +13,16 @@ import { cn, timeAgo } from "@/lib/utils";
 export interface InboxThread {
   caseId: string;
   customerName: string;
+  email: string;
   status: CaseStatus;
   hasEmail: boolean;
   /** Alle geladenen Nachrichten dieses Falls, älteste zuerst. */
   messages: CaseMessage[];
 }
+
+/** Solange kein Name bekannt ist (z. B. bei E-Mail-Anfragen ohne erkannten Absendernamen), die
+ * E-Mail-Adresse statt "Unbekannt" anzeigen – besser als Platzhalter. */
+const displayName = (t: Pick<InboxThread, "customerName" | "email">) => (t.customerName && t.customerName !== "Unbekannt" ? t.customerName : t.email || t.customerName);
 
 const CHANNEL_LABELS: Record<MessageChannel, string> = { website: "Website", email: "E-Mail", phone: "Telefon" };
 
@@ -88,7 +93,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
                   className={cn("block w-full px-4 py-3 text-left hover:bg-background/70", selected?.caseId === t.caseId && "bg-accent-soft/60")}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm font-medium">{t.customerName}</p>
+                    <p className="truncate text-sm font-medium">{displayName(t)}</p>
                     {t.last && <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(t.last.createdAt)}</span>}
                   </div>
                   {t.last && <p className="mt-0.5 truncate text-xs text-muted-foreground">{t.last.content}</p>}
@@ -107,7 +112,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
           {selected && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">{selected.customerName}</h2>
+                <h2 className="text-lg font-semibold">{displayName(selected)}</h2>
                 <Link href={`/dashboard/cases/${selected.caseId}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
                   Fallakte öffnen <ExternalLink className="size-3.5" aria-hidden />
                 </Link>
