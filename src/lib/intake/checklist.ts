@@ -84,6 +84,8 @@ export interface TemplateSendInfo {
   id: string;
   title: string;
   status: "sent" | "received";
+  /** KI-Einschätzung, ob die zurückgeschickte Vorlage tatsächlich ausgefüllt ist (false = zählt nicht als erledigt). */
+  filled: boolean | null;
 }
 
 export function buildChecklist(input: {
@@ -108,7 +110,7 @@ export function buildChecklist(input: {
     items.push({ key: `doc:${req.kind}`, label: req.label, kind: "document", required: req.required, done, requested });
   }
   for (const t of input.templateSends ?? []) {
-    items.push({ key: `template:${t.id}`, label: t.title, kind: "document", required: true, done: t.status === "received", requested: true });
+    items.push({ key: `template:${t.id}`, label: t.title, kind: "document", required: true, done: t.status === "received" && t.filled !== false, requested: true });
   }
 
   const required = items.filter((i) => i.required);

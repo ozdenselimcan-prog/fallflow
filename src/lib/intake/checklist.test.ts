@@ -112,7 +112,7 @@ describe("buildChecklist", () => {
       questions,
       fields: { service: "Energieberatung", name: "Max" },
       documents: [],
-      templateSends: [{ id: "t1", title: "Vollmacht", status: "sent" }],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "sent", filled: null }],
     });
     expect(sent.items.some((i) => i.key === "template:t1" && !i.done)).toBe(true);
     expect(sent.missing.some((i) => i.key === "template:t1")).toBe(true);
@@ -123,9 +123,20 @@ describe("buildChecklist", () => {
       questions,
       fields: { service: "Energieberatung", name: "Max" },
       documents: [],
-      templateSends: [{ id: "t1", title: "Vollmacht", status: "received" }],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "received", filled: true }],
     });
     expect(received.missing.some((i) => i.key === "template:t1")).toBe(false);
+  });
+
+  it("eine zurückgeschickte, aber erkennbar nicht ausgefüllte Vorlage zählt NICHT als erledigt", () => {
+    const checklist = buildChecklist({
+      questions,
+      fields: { service: "Energieberatung", name: "Max" },
+      documents: [],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "received", filled: false }],
+    });
+    expect(checklist.items.some((i) => i.key === "template:t1" && !i.done)).toBe(true);
+    expect(checklist.missing.some((i) => i.key === "template:t1")).toBe(true);
   });
 });
 
@@ -156,7 +167,7 @@ describe("deriveStatus", () => {
       questions: [q({ key: "name", label: "Name" })],
       fields: { name: "Max", service: "Energieausweis" },
       documents: [{ id: "d1", caseId: "c1", companyId: "c1", kind: "floorplan", status: "received", fileName: "", mimeType: "", size: 0, storagePath: "", requestedAt: "", receivedAt: "" }],
-      templateSends: [{ id: "t1", title: "Vollmacht", status: "sent" }],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "sent", filled: null }],
     });
     expect(deriveStatus("WAITING_FOR_CUSTOMER", withPendingTemplate)).toBe("COMPLETE");
 
@@ -164,7 +175,7 @@ describe("deriveStatus", () => {
       questions: [q({ key: "name", label: "Name" })],
       fields: { name: "Max", service: "Energieausweis" },
       documents: [{ id: "d1", caseId: "c1", companyId: "c1", kind: "floorplan", status: "received", fileName: "", mimeType: "", size: 0, storagePath: "", requestedAt: "", receivedAt: "" }],
-      templateSends: [{ id: "t1", title: "Vollmacht", status: "received" }],
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "received", filled: true }],
     });
     expect(deriveStatus("WAITING_FOR_CUSTOMER", withReceivedTemplate)).toBe("READY_FOR_REVIEW");
   });

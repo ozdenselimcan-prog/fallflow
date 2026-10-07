@@ -169,8 +169,10 @@ export async function registerUpload(
 
 /**
  * Verbucht eine per E-Mail als Anhang zurückgeschickte, ausgefüllte Büro-Vorlage (z. B. Vollmacht) –
- * der Kunde schickt sie einfach als Antwort auf unsere Mail zurück, kein Upload-Link nötig. Die KI
- * schätzt informativ ein, ob sie ausgefüllt wirkt; das Dokument gilt trotzdem als eingegangen.
+ * der Kunde schickt sie einfach als Antwort auf unsere Mail zurück, kein Upload-Link nötig. Die KI prüft,
+ * ob sie tatsächlich ausgefüllt wirkt: Wirkt sie erkennbar leer/unvollständig, zählt sie NICHT als erledigt
+ * (siehe checklist.ts) und der Kunde bekommt automatisch eine Mail mit der Bitte, sie erneut korrekt
+ * auszufüllen – inklusive der Vorlage erneut als Anhang, damit er sie nicht erst wiederfinden muss.
  * Gibt false zurück, wenn gerade keine Vorlage für diesen Fall ausstand.
  */
 export async function receiveFilledTemplate(store: Store, caseId: string, bytes: Uint8Array, fileName: string): Promise<boolean> {
@@ -182,11 +184,26 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   const storagePath = await saveFile({ companyId: c.companyId, caseId, bytes, mime: "application/pdf" });
   const text = await extractPdfText(bytes.slice());
   const templates = await store.listDocumentTemplates();
-  const title = templates.find((t) => t.id === pending.templateId)?.title ?? fileName;
-  const { note } = text ? await verifyFilledTemplate(title, text) : { note: "" };
+  const template = templates.find((t) => t.id === pending.templateId);
+  const title = template?.title ?? fileName;
+  const { filled, note } = text ? await verifyFilledTemplate(title, text) : { filled: null, note: "" };
 
-  await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, receivedAt: new Date().toISOString() });
+  await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled, receivedAt: new Date().toISOString() });
   await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
+
+  if (filled === false) {
+    const requestText = note
+      ? `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Beim Prüfen ist uns aufgefallen: ${note} Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`
+      : `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Sie wirkt noch nicht vollständig ausgefüllt. Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`;
+    const attachments: InboundAttachment[] = [];
+    if (template) {
+      const blank = await readFile(template.storagePath);
+      if (blank) attachments.push({ filename: template.fileName, mime: "application/pdf", bytes: blank.bytes });
+    }
+    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: requestText, attachments });
+    await store.addMessage(caseId, "assistant", requestText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+  }
+
   await refreshCase(store, caseId, { hint: "edit" });
   return true;
 }
@@ -232,7 +249,7 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   const fields = { ...c.fields, ...derived };
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
-  const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status }));
+  const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
   let checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends });
 
   let requestedNow: DocumentKind[] = [];

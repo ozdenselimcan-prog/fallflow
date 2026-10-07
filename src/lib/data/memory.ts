@@ -293,7 +293,7 @@ export function createMemoryStore(): Store {
           return existing;
         }
       }
-      const created: TemplateDocument = { ...t, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
+      const created: TemplateDocument = { ...t, filled: t.filled ?? null, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
       d.templateDocuments.push(created);
       return created;
     },

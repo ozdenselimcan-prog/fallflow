@@ -61,6 +61,7 @@ const mapTemplateDocument = (r: Row): TemplateDocument => ({
   status: r.status,
   storagePath: r.storage_path,
   aiNote: r.ai_note,
+  filled: r.filled ?? null,
   createdAt: r.created_at,
   receivedAt: r.received_at,
 });
@@ -518,7 +519,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       return (data ?? []).map(mapTemplateDocument);
     },
     async saveTemplateDocument(t) {
-      const row = {
+      const row: Row = {
         company_id: companyId,
         case_id: t.caseId,
         template_id: t.templateId,
@@ -527,6 +528,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         ai_note: t.aiNote,
         received_at: t.receivedAt,
       };
+      if (t.filled !== undefined) row.filled = t.filled;
       const { data, error } = t.id
         ? await db.from("template_documents").update(row).eq("id", t.id).eq("company_id", companyId).select("*").single()
         : await db.from("template_documents").insert(row).select("*").single();

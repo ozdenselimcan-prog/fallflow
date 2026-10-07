@@ -21,9 +21,9 @@ export function buildCaseMeta(
   const byCase = new Map<string, CaseDocument[]>();
   for (const d of documents) byCase.set(d.caseId, [...(byCase.get(d.caseId) ?? []), d]);
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
-  const templateSendsByCase = new Map<string, { id: string; title: string; status: "sent" | "received" }[]>();
+  const templateSendsByCase = new Map<string, { id: string; title: string; status: "sent" | "received"; filled: boolean | null }[]>();
   for (const td of templateDocs) {
-    const entry = { id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status };
+    const entry = { id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled };
     templateSendsByCase.set(td.caseId, [...(templateSendsByCase.get(td.caseId) ?? []), entry]);
   }
   return Object.fromEntries(

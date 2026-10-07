@@ -229,8 +229,11 @@ export interface TemplateDocument {
   templateId: string;
   status: "sent" | "received";
   storagePath: string;
-  /** Kurzer KI-Hinweis, ob das zurückgeschickte Dokument ausgefüllt wirkt (rein informativ, blockiert nichts). */
+  /** Kurzer KI-Hinweis, ob das zurückgeschickte Dokument ausgefüllt wirkt. */
   aiNote: string;
+  /** KI-Einschätzung, ob das Dokument tatsächlich ausgefüllt ist: true = ja, false = wirkt leer/unvollständig
+   * (zählt dann nicht als vollständig, siehe checklist.ts), null = keine KI-Einschätzung möglich (kein Key o. Ä.). */
+  filled: boolean | null;
   createdAt: string;
   receivedAt: string | null;
 }

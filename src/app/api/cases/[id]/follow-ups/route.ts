@@ -24,7 +24,7 @@ export const POST = withSession(
       fields: c.fields,
       documents,
       foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
-      templateSends: templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status })),
+      templateSends: templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled })),
     });
     if (checklist.missing.length === 0) return apiError("Es fehlt nichts – kein Follow-up nötig.", 400);
     await syncFollowUps(store, c, checklist, { force: true });

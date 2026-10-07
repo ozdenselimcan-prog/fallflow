@@ -23,7 +23,7 @@ export const GET = publicRoute("upload-info", 60, async (_req, ctx: RouteContext
     store.listDocumentTemplates(),
   ]);
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
-  const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status }));
+  const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
   const checklist = buildChecklist({
     questions,
     fields: caseRecord.fields,

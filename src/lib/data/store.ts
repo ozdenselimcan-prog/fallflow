@@ -98,7 +98,7 @@ export interface Store {
 
   /** Ohne caseId: alle Vorlagen-Rückläufer des Büros. */
   listTemplateDocuments(caseId?: string): Promise<TemplateDocument[]>;
-  saveTemplateDocument(t: Omit<TemplateDocument, "id" | "companyId" | "createdAt"> & { id?: string }): Promise<TemplateDocument>;
+  saveTemplateDocument(t: Omit<TemplateDocument, "id" | "companyId" | "createdAt" | "filled"> & { id?: string; filled?: boolean | null }): Promise<TemplateDocument>;
 
   listServiceMessages(): Promise<ServiceMessage[]>;
   /** Legt an oder aktualisiert (ein Eintrag pro Leistung) – service identifiziert, nicht id. */
