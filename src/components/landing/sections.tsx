@@ -87,7 +87,7 @@ export function FlowSection() {
  * selbsterklärendes "Kurzvideo" ohne echte Videodatei, direkt unter dem Hero. */
 export function MailFlowSection() {
   return (
-    <Section title="So sieht ein echter Fall aus – in Echtzeit." intro="Eine Mail kommt rein. Der Assistent fragt nach, was fehlt, verschickt bei Bedarf eine passende Vorlage und meldet den Fall erst, wenn wirklich alles da ist.">
+    <Section title="So sieht ein echter Fall aus – in Echtzeit." intro="Eine Mail kommt rein. Der Assistent erkennt die Leistung, schickt Ihre eigene Nachricht samt passender Vorlage als Anhang – und meldet sich erst wieder, wenn alles da ist.">
       <div className="mx-auto max-w-xl">
         <MailFlowAnimation />
       </div>

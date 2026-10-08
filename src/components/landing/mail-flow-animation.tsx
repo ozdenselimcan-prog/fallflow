@@ -12,41 +12,23 @@ const EVENTS: { bubble: Bubble; percent: number }[] = [
       from: "customer",
       text: "Hallo, ich möchte eine Einzelmaßnahme (Heizungstausch) durchführen lassen.",
     },
-    percent: 15,
+    percent: 25,
   },
   {
     bubble: {
       from: "ai",
-      text: "Vielen Dank für Ihre Anfrage! Notiert: Einzelmaßnahme – Heizungstausch. Wie groß ist die Wohnfläche und aus welchem Baujahr ist das Gebäude?",
+      text: "Vielen Dank für Ihre Anfrage zur Einzelmaßnahme! Im Anhang finden Sie die EM-Vollmacht – bitte ausfüllen und einfach als Antwort auf diese E-Mail zurückschicken.",
+      attachment: "EM-Vollmacht.pdf",
     },
-    percent: 15,
-  },
-  { bubble: { from: "customer", text: "140 m², Baujahr 1995." }, percent: 45 },
-  {
-    bubble: {
-      from: "ai",
-      text: "Danke! Es fehlen noch Ihr Name und eine Telefonnummer für Rückfragen.",
-    },
-    percent: 45,
-  },
-  {
-    bubble: { from: "customer", text: "Markus Schmidt, 0151 2345678" },
-    percent: 75,
-  },
-  {
-    bubble: {
-      from: "ai",
-      text: "Perfekt. Für die Einzelmaßnahme benötigen wir noch die ausgefüllte EM-Vollmacht – Download- und Upload-Link anbei.",
-    },
-    percent: 75,
+    percent: 50,
   },
   {
     bubble: {
       from: "customer",
-      text: "Vollmacht ausgefüllt, hier ist sie.",
+      text: "Alles klar, hier ist die ausgefüllte Vollmacht.",
       attachment: "EM-Vollmacht_ausgefuellt.pdf",
     },
-    percent: 95,
+    percent: 75,
   },
   {
     bubble: {

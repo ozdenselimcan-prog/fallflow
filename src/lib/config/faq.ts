@@ -21,7 +21,7 @@ export const faqs = [
   },
   {
     q: "Kann FallFlow automatisch antworten?",
-    a: "FallFlow stellt automatisch Rückfragen, um fehlende Angaben zu sammeln. Es gibt keine verbindliche Energie-, Förder- oder Rechtsberatung. Bei Unsicherheit oder auf Wunsch wird die Anfrage an einen Mitarbeiter übergeben. Automatische Antworten und Follow-ups lassen sich jederzeit abschalten.",
+    a: "Im Website-Chat stellt FallFlow aktiv Rückfragen, um fehlende Angaben zu sammeln. Bei E-Mails schickt es stattdessen die von Ihnen hinterlegte Nachricht je Leistung inklusive passender PDF-Vorlage – ohne automatische Rückfrage-Liste, damit es sich wie eine echte Antwort aus Ihrem Büro liest. Es gibt in beiden Fällen keine verbindliche Energie-, Förder- oder Rechtsberatung. Bei Unsicherheit oder auf Wunsch wird die Anfrage an einen Mitarbeiter übergeben. Automatische Antworten lassen sich jederzeit abschalten.",
   },
   {
     q: "Kann ich die Fragen selbst anpassen?",
