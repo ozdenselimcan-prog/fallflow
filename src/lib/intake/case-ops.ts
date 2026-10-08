@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { extractFields } from "@/lib/ai/case-extractor";
+import { mergeExtracted } from "@/lib/ai/conversation";
 import { summarizeCase } from "@/lib/ai/summary";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
@@ -175,6 +177,23 @@ export async function registerUpload(
  * auszufüllen – inklusive der Vorlage erneut als Anhang, damit er sie nicht erst wiederfinden muss.
  * Gibt false zurück, wenn gerade keine Vorlage für diesen Fall ausstand.
  */
+/** Liefert nur die Textzeilen, die in der ausgefüllten Vorlage NEU sind gegenüber der leeren Vorlage. */
+function diffNewPdfText(blankText: string, filledText: string): string {
+  const blankLines = new Set(
+    blankText
+      .split(/\r?\n/)
+      .map((l) => l.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  return filledText
+    .split(/\r?\n/)
+    .filter((l) => {
+      const norm = l.trim().toLowerCase();
+      return norm.length > 0 && !blankLines.has(norm);
+    })
+    .join("\n");
+}
+
 export async function receiveFilledTemplate(store: Store, caseId: string, bytes: Uint8Array, fileName: string): Promise<boolean> {
   const pending = (await store.listTemplateDocuments(caseId)).find((t) => t.status === "sent");
   if (!pending) return false;
@@ -208,7 +227,24 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
     return true;
   }
 
-  // Richtige, ausgefüllte Vorlage: Fall kann dadurch komplett werden – dann die Abschluss-Nachricht schicken.
+  // Richtige, ausgefüllte Vorlage: Angaben, die der Kunde neu in die Vorlage eingetragen hat, zusätzlich für
+  // offene Pflichtfragen übernehmen (z. B. Baujahr steht sowohl im Frage-Flow als auch im Formular). Dabei
+  // wird NUR der Unterschied zur leeren Vorlage betrachtet, damit vom Büro selbst vorausgefüllter Text
+  // (Briefkopf, Textbausteine …) nicht versehentlich als Kundenangabe übernommen wird.
+  if (template) {
+    const blank = await readFile(template.storagePath);
+    const blankText = blank ? await extractPdfText(blank.bytes.slice()) : "";
+    const newText = diffNewPdfText(blankText, text);
+    if (newText.trim()) {
+      const { fields: extracted } = await extractFields(newText);
+      const questions = await store.listQuestions();
+      const merged = { ...c.fields };
+      if (mergeExtracted(merged, extracted, { allowFreeText: false }, questions).length) {
+        await store.updateCase(caseId, { fields: merged, keepTimestamp: true });
+      }
+    }
+  }
+
   // receiveFilledTemplate läuft NACH der normalen Gesprächsverarbeitung (siehe mail-sync.ts), zu deren
   // Zeitpunkt die Vorlage noch als "sent" galt; die KI konnte den Fall also in diesem Zug noch nicht als
   // fertig erkennen – das muss hier nachgeholt werden, sonst bleibt die Abschluss-Nachricht ganz aus.

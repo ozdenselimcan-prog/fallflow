@@ -3,6 +3,7 @@ import { createMemoryStore } from "@/lib/data/memory";
 import type { Store } from "@/lib/data/store";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { extractPdfText } from "@/lib/documents/pdf-text";
+import { saveFile } from "@/lib/documents/storage";
 import { receiveFilledTemplate, syncServiceQuestionOptions } from "./case-ops";
 
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
@@ -120,6 +121,28 @@ describe("receiveFilledTemplate", () => {
 
     const updated = await store.getCase(c.id);
     expect(["COMPLETE", "READY_FOR_REVIEW"]).toContain(updated?.status);
+  });
+
+  it("übernimmt nur die vom Kunden neu eingetragenen Angaben aus der Vorlage, nicht den Vordruck-Text", async () => {
+    const blankPath = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1]), mime: "application/pdf" });
+    vi.mocked(extractPdfText)
+      .mockResolvedValueOnce("Vollmacht Energieberatung\nName: Max Mustermann\nBaujahr: 1998\nUnterschrift: Max Mustermann") // ausgefüllte Vorlage
+      .mockResolvedValueOnce("Vollmacht Energieberatung\nName: ______\nBaujahr: ______\nUnterschrift: ______"); // leere Vorlage
+    vi.mocked(verifyFilledTemplate).mockResolvedValueOnce({ filled: true, wrongDocument: false, note: "" });
+
+    const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht", fileName: "vollmacht.pdf", storagePath: blankPath });
+    const fields = { service: "Energieberatung", email: "kunde@example.com", name: "Falscher Name" };
+    const c = await store.createCase({ source: "email", status: "QUALIFYING", assignedTo: null, summary: "", fields, customerName: "Falscher Name", service: "Energieberatung" });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: template.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+
+    const ok = await receiveFilledTemplate(store, c.id, new Uint8Array([1, 2, 3]), "vollmacht_ausgefuellt.pdf");
+    expect(ok).toBe(true);
+
+    const updated = await store.getCase(c.id);
+    // Baujahr stand nicht im Chat, aber neu in der ausgefüllten Vorlage -> wird übernommen.
+    expect(updated?.fields.yearBuilt).toBe("1998");
+    // "name" war bereits beantwortet (Chat) -> die Vorlage darf das nicht überschreiben.
+    expect(updated?.fields.name).toBe("Falscher Name");
   });
 });
 

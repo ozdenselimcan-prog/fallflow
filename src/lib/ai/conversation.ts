@@ -216,7 +216,7 @@ const result = (input: TurnInput, fields: Record<string, string>, extra: Partial
 };
 
 /** Übernimmt erkannte Angaben, die noch nicht beantwortet sind. Gibt die neu gesetzten Schlüssel zurück. */
-function mergeExtracted(fields: Record<string, string>, extracted: Record<string, string> | undefined, opts: { allowFreeText: boolean }, questions: Question[]) {
+export function mergeExtracted(fields: Record<string, string>, extracted: Record<string, string> | undefined, opts: { allowFreeText: boolean }, questions: Question[]) {
   const added: string[] = [];
   for (const [k, v] of Object.entries(extracted ?? {})) {
     if (!v || isAnswered(fields, k)) continue;
