@@ -204,9 +204,21 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
     }
     const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: requestText, attachments });
     await store.addMessage(caseId, "assistant", requestText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+    await refreshCase(store, caseId, { hint: "edit" });
+    return true;
   }
 
-  await refreshCase(store, caseId, { hint: "edit" });
+  // Richtige, ausgefüllte Vorlage: Fall kann dadurch komplett werden – dann die Abschluss-Nachricht schicken.
+  // receiveFilledTemplate läuft NACH der normalen Gesprächsverarbeitung (siehe mail-sync.ts), zu deren
+  // Zeitpunkt die Vorlage noch als "sent" galt; die KI konnte den Fall also in diesem Zug noch nicht als
+  // fertig erkennen – das muss hier nachgeholt werden, sonst bleibt die Abschluss-Nachricht ganz aus.
+  const refreshed = await refreshCase(store, caseId, { hint: "edit" });
+  if (refreshed.becamePrepared) {
+    const serviceMessages = await store.listServiceMessages();
+    const completionText = serviceMessages.find((m) => m.service === c.fields.service)?.appointmentNote?.trim() || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";
+    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: completionText });
+    await store.addMessage(caseId, "assistant", completionText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+  }
   return true;
 }
 

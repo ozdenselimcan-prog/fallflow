@@ -88,6 +88,39 @@ describe("receiveFilledTemplate", () => {
     expect(requestText).toContain("Einzelmaßnahmen");
     expect(requestText).toContain("iSFP-Vollmacht");
   });
+
+  it("schickt die Abschluss-Nachricht, wenn die PDF die letzte fehlende Angabe war", async () => {
+    vi.mocked(extractPdfText).mockResolvedValueOnce("Vollmacht Energieberatung - Name: Max Mustermann, Datum: 03.10.2026, Unterschrift: Max Mustermann");
+    vi.mocked(verifyFilledTemplate).mockResolvedValueOnce({ filled: true, wrongDocument: false, note: "" });
+
+    await store.saveServiceMessage({ service: "Energieberatung", body: "Danke!", appointmentNote: "Vielen Dank, ein Mitarbeiter meldet sich in Kürze bei Ihnen." });
+    const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht", fileName: "vollmacht.pdf", storagePath: "demo/x.pdf" });
+    const fields = {
+      service: "Energieberatung",
+      buildingType: "Einfamilienhaus",
+      yearBuilt: "1998",
+      livingArea: "140",
+      heating: "Gas",
+      ownerStatus: "Eigentümer",
+      street: "Musterstraße 1",
+      postalCode: "80331",
+      name: "Max Mustermann",
+      email: "kunde@example.com",
+      phone: "+49 170 1234567",
+    };
+    const c = await store.createCase({ source: "email", status: "QUALIFYING", assignedTo: null, summary: "", fields, customerName: "Max Mustermann", service: "Energieberatung" });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: template.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+
+    const ok = await receiveFilledTemplate(store, c.id, new Uint8Array([1, 2, 3]), "vollmacht_ausgefuellt.pdf");
+    expect(ok).toBe(true);
+
+    const messages = await store.listMessages(c.id);
+    const completionText = messages.find((m) => m.role === "assistant")?.content ?? "";
+    expect(completionText).toContain("meldet sich in Kürze");
+
+    const updated = await store.getCase(c.id);
+    expect(["COMPLETE", "READY_FOR_REVIEW"]).toContain(updated?.status);
+  });
 });
 
 describe("syncServiceQuestionOptions", () => {
