@@ -258,7 +258,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       if (!(await resolveAndPropose(input.text, appointmentRescheduleQueuedText))) replies.push(appointmentCancelledText);
     } else if (stage === "ask") {
       if (!(await resolveAndPropose(input.text))) replies.push(availabilityNotUnderstoodText);
-    } else if (stage === "" && (turn.appointmentRequested || turn.complete)) {
+      // Die aktive "Welche Tage passen Ihnen?"-Rückfrage ist wie der Frage-Flow eine reine
+      // Website-Chat-Funktion – per E-Mail soll die KI nicht zusätzlich nach Terminwünschen fragen.
+    } else if (stage === "" && isInteractive(input.channel) && (turn.appointmentRequested || turn.complete)) {
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       replies.push(availabilityQuestion(settings.workingDays));
     }

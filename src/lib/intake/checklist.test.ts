@@ -128,6 +128,22 @@ describe("buildChecklist", () => {
     expect(received.missing.some((i) => i.key === "template:t1")).toBe(false);
   });
 
+  it("includeFields: false blendet Frage-Flow-Felder komplett aus (E-Mail-Fälle – der Frage-Flow ist reine Website-Chat-Funktion)", () => {
+    const checklist = buildChecklist({ questions, fields: {}, documents: [], includeFields: false });
+    expect(checklist.items.some((i) => i.kind === "field")).toBe(false);
+    expect(checklist.missingFields).toHaveLength(0);
+    expect(checklist.dataComplete).toBe(true);
+    // Dokumente/Vorlagen zählen weiterhin ganz normal.
+    const withTemplate = buildChecklist({
+      questions,
+      fields: {},
+      documents: [],
+      includeFields: false,
+      templateSends: [{ id: "t1", title: "Vollmacht", status: "sent", filled: null }],
+    });
+    expect(withTemplate.missing.some((i) => i.key === "template:t1")).toBe(true);
+  });
+
   it("eine zurückgeschickte, aber erkennbar nicht ausgefüllte Vorlage zählt NICHT als erledigt", () => {
     const checklist = buildChecklist({
       questions,

@@ -95,14 +95,22 @@ export function buildChecklist(input: {
   foerderOverrides?: FoerderDocumentOverrides;
   /** Vom Büro an diesen Fall gesendete PDF-Vorlagen – fließen als Pflichtdokumente ein, bis sie ausgefüllt zurück sind. */
   templateSends?: TemplateSendInfo[];
+  /**
+   * false = Frage-Flow-Felder zählen nicht zur Vollständigkeit. Der Frage-Flow ist ausschließlich eine
+   * Website-Chat-Funktion (aktive Rückfragen) – bei E-Mail-Fällen fragt die KI nichts davon ab, deshalb
+   * dürfen diese Felder dort auch nicht als "fehlend" blockieren. Default true (Website-Chat & Altfälle).
+   */
+  includeFields?: boolean;
 }): Checklist {
-  const { fields, documents } = input;
+  const { fields, documents, includeFields = true } = input;
   const items: ChecklistItem[] = [];
 
-  for (const q of [...input.questions].sort((a, b) => a.position - b.position)) {
-    if (!q.active || !isRelevant(q, fields)) continue;
-    const done = isAnswered(fields, q.key) && fields[q.key] !== SKIPPED;
-    items.push({ key: q.key, label: q.label, kind: "field", required: q.required, done });
+  if (includeFields) {
+    for (const q of [...input.questions].sort((a, b) => a.position - b.position)) {
+      if (!q.active || !isRelevant(q, fields)) continue;
+      const done = isAnswered(fields, q.key) && fields[q.key] !== SKIPPED;
+      items.push({ key: q.key, label: q.label, kind: "field", required: q.required, done });
+    }
   }
   for (const req of documentRequirements(fields, input.foerderOverrides)) {
     const done = documents.some((d) => d.kind === req.kind && d.status === "received");

@@ -200,7 +200,7 @@ function describeRecognized(keys: string[], fields: Record<string, string>, ques
 
 const result = (input: TurnInput, fields: Record<string, string>, extra: Partial<TurnResult> & { replies: string[] }): TurnResult => {
   const pending = nextPending(input.questions, fields);
-  const checklist = buildChecklist({ questions: input.questions, fields, documents: input.documents ?? [], foerderOverrides: input.foerderOverrides });
+  const checklist = buildChecklist({ questions: input.questions, fields, documents: input.documents ?? [], foerderOverrides: input.foerderOverrides, includeFields: isInteractive(input.channel) });
   return {
     fields,
     quickReplies: [],
@@ -324,7 +324,7 @@ export function applyTurn(input: TurnInput): TurnResult {
     return result(input, fields, { replies, quickReplies: ask.single ? quickRepliesFor(ask.single) : [], recognizedKeys: recognized });
   }
 
-  const complete = buildChecklist({ questions, fields, documents: input.documents ?? [] }).dataComplete;
+  const complete = buildChecklist({ questions, fields, documents: input.documents ?? [], includeFields: isInteractive(input.channel) }).dataComplete;
   replies.push(complete ? p.done : p.noFollowUp);
   return result(input, fields, {
     replies,

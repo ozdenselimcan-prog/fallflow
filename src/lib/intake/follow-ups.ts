@@ -36,7 +36,9 @@ export async function dispatchDueFollowUps(store: Store, now = new Date()): Prom
     summary.due++;
     const c = await store.getCase(f.caseId);
     const stillNeeded =
-      c && c.status !== "CONVERTED" && buildChecklist({ questions, fields: c.fields, documents: documents.filter((d) => d.caseId === c.id), foerderOverrides }).missing.length > 0;
+      c &&
+      c.status !== "CONVERTED" &&
+      buildChecklist({ questions, fields: c.fields, documents: documents.filter((d) => d.caseId === c.id), foerderOverrides, includeFields: c.source !== "email" }).missing.length > 0;
     if (!c || !stillNeeded) {
       await store.saveFollowUp({ ...f, status: "cancelled", note: "Nicht mehr nötig." });
       summary.cancelled++;

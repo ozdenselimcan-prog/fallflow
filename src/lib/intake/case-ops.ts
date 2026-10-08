@@ -300,7 +300,10 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
   const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
-  let checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends });
+  // Frage-Flow ist eine reine Website-Chat-Funktion: Bei E-Mail-Fällen fragt die KI nichts davon aktiv ab
+  // (siehe engine.ts), deshalb dürfen diese Felder dort auch nicht als "fehlend" die Vollständigkeit blockieren.
+  const includeFields = c.source !== "email";
+  let checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends, includeFields });
 
   let requestedNow: DocumentKind[] = [];
   let uploadLink: string | null = null;
@@ -311,7 +314,7 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
       requestedNow = res.requested;
       uploadLink = res.url;
       documents = await store.listDocuments(caseId);
-      checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends });
+      checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends, includeFields });
       c = (await store.getCase(caseId)) ?? c;
     }
   }

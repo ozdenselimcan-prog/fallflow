@@ -4,7 +4,7 @@ import type { Store } from "@/lib/data/store";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { saveFile } from "@/lib/documents/storage";
-import { receiveFilledTemplate, syncServiceQuestionOptions } from "./case-ops";
+import { receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
 
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
 // wird hier deterministisch gemockt, statt einen echten KI-Key fuer den Test zu brauchen.
@@ -143,6 +143,38 @@ describe("receiveFilledTemplate", () => {
     expect(updated?.fields.yearBuilt).toBe("1998");
     // "name" war bereits beantwortet (Chat) -> die Vorlage darf das nicht überschreiben.
     expect(updated?.fields.name).toBe("Falscher Name");
+  });
+});
+
+describe("refreshCase – Frage-Flow ist eine reine Website-Chat-Funktion", () => {
+  it("E-Mail-Fälle werden nicht durch offene Frage-Flow-Pflichtfelder (Name, Baujahr …) blockiert", async () => {
+    const store = freshStore();
+    const c = await store.createCase({
+      source: "email",
+      status: "QUALIFYING",
+      assignedTo: null,
+      summary: "",
+      fields: { service: "Energieberatung", email: "kunde@example.com" },
+      customerName: "Unbekannt",
+      service: "Energieberatung",
+    });
+    const { checklist } = await refreshCase(store, c.id, { hint: "chat" });
+    expect(checklist.dataComplete).toBe(true);
+  });
+
+  it("Website-Chat-Fälle bleiben weiterhin unvollständig, solange Pflichtfelder fehlen", async () => {
+    const store = freshStore();
+    const c = await store.createCase({
+      source: "widget",
+      status: "QUALIFYING",
+      assignedTo: null,
+      summary: "",
+      fields: { service: "Energieberatung" },
+      customerName: "Unbekannt",
+      service: "Energieberatung",
+    });
+    const { checklist } = await refreshCase(store, c.id, { hint: "chat" });
+    expect(checklist.dataComplete).toBe(false);
   });
 });
 

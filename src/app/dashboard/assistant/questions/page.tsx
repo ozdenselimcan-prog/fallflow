@@ -19,7 +19,10 @@ export default async function QuestionsPage() {
       <Link href="/dashboard/assistant" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> KI-Assistent
       </Link>
-      <PageHeader title="Frage-Flow" description="Der Assistent stellt die aktiven Fragen in dieser Reihenfolge, solange die Angabe noch fehlt." />
+      <PageHeader
+        title="Frage-Flow"
+        description="Der Assistent stellt die aktiven Fragen in dieser Reihenfolge, solange die Angabe noch fehlt. Gilt nur für den Website-Chat. Bei E-Mail-Anfragen stellt die KI keine Rückfragen – dort erkennt sie die gewünschte Leistung und schickt stattdessen automatisch die passende Vorlage bzw. Nachricht aus „Vorlagen & Nachrichten“."
+      />
       <QuestionBuilder questions={questions} canEdit={can(session.role, "assistant:manage")} />
     </>
   );

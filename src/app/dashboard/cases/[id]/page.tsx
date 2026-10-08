@@ -50,7 +50,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
   const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
-  const checklist = buildChecklist({ questions, fields: c.fields, documents, foerderOverrides, templateSends });
+  const checklist = buildChecklist({ questions, fields: c.fields, documents, foerderOverrides, templateSends, includeFields: c.source !== "email" });
   const readiness = readinessOf(c.status, checklist);
   const extra = questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
   const requiredKeys = questions.filter((q) => q.active && q.required).map((q) => q.key);

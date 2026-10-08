@@ -29,7 +29,7 @@ export function buildCaseMeta(
   return Object.fromEntries(
     cases.map((c) => {
       const docs = byCase.get(c.id) ?? [];
-      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides, templateSends: templateSendsByCase.get(c.id) });
+      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides, templateSends: templateSendsByCase.get(c.id), includeFields: c.source !== "email" });
       return [
         c.id,
         {
