@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import { detectBuildingType, detectHeating, detectOwnerStatus, detectService, heuristicExtract } from "./heuristic";
 
 describe("detectService", () => {
-  it("erkennt Förderanträge als Fördermittelberatung", () => {
-    expect(detectService("Ich möchte einen Förderantrag stellen")).toBe("Fördermittelberatung");
+  it("erkennt allgemeine Förderfragen als Fördermittelberatung", () => {
     expect(detectService("Wie sieht es mit KfW-Förderung aus?")).toBe("Fördermittelberatung");
     expect(detectService("Geht da was über die BAFA?")).toBe("Fördermittelberatung");
+  });
+
+  it("erkennt konkrete Förderantragstellung/-begleitung als eigene Leistung (spezifischer als die allgemeine Fördermittelberatung)", () => {
+    expect(detectService("Ich möchte einen Förderantrag stellen")).toBe("Förderantragstellung");
+    expect(detectService("Ich brauche Hilfe bei der Förderbegleitung")).toBe("Förderbegleitung");
   });
 
   it("erkennt iSFP/Sanierungsfahrplan", () => {
@@ -39,6 +43,21 @@ describe("detectService", () => {
   it("erkennt 'Heizung' trotzdem, wenn tatsächlich eine neue Heizung/ein Heizungstausch gewünscht ist", () => {
     expect(detectService("Ich möchte einen Heizungstausch.")).toBe("Heizung");
     expect(detectService("Wir brauchen eine neue Heizung.")).toBe("Heizung");
+  });
+
+  it("erkennt die neuen, spezifischeren Leistungen vor den allgemeineren Heizungs-/Energieberatung-Stichworten", () => {
+    expect(detectService("Wir brauchen eine Heizungsoptimierung.")).toBe("Heizungsoptimierung");
+    expect(detectService("Ich möchte eine Heizungsplanung für den Neubau.")).toBe("Heizungsplanung");
+    expect(detectService("Brauche eine Heizlastberechnung nach DIN EN 12831.")).toBe("Heizlastberechnung");
+    expect(detectService("Ich möchte eine Beratung zur Wärmepumpe.")).toBe("Wärmepumpenberatung");
+    expect(detectService("Ich baue neu und möchte eine Energieberatung für den Neubau.")).toBe("Neubau-Energieberatung");
+    expect(detectService("Wir brauchen eine energetische Fachplanung.")).toBe("Energetische Fachplanung");
+    expect(detectService("Brauchen wir einen GEG-Nachweis?")).toBe("GEG-Nachweise");
+    expect(detectService("Wir brauchen ein Lüftungskonzept.")).toBe("Lüftungskonzept");
+    expect(detectService("Es geht um eine Wärmebrückenberechnung.")).toBe("Wärmebrückenberechnung");
+    expect(detectService("Ich interessiere mich für eine Photovoltaikberatung.")).toBe("Photovoltaikberatung");
+    expect(detectService("Wir hätten gerne eine Thermografie unseres Hauses.")).toBe("Thermografie");
+    expect(detectService("Wir brauchen einen Nachweis zum sommerlichen Wärmeschutz.")).toBe("Sommerlicher Wärmeschutz");
   });
 });
 

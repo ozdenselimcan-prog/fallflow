@@ -10,8 +10,26 @@ export function detectService(text: string): string {
   if (/energieausweis/.test(t)) return "Energieausweis";
   if (/einzelmaßnahme|einzelmassnahme|\bem[\s-]?vollmacht\b/.test(t)) return "Einzelmaßnahme";
   if (/hydraulisch(er|en)?\s*abgleich/.test(t)) return "Hydraulischer Abgleich";
+  // Spezifischere Förder-Leistungen vor der allgemeinen Fördermittelberatung prüfen, da "förder" sonst
+  // schon bei "Förderantrag"/"Förderbegleitung" zuschlagen würde.
+  if (/förderantrag|antragstellung/.test(t)) return "Förderantragstellung";
+  if (/förderbegleitung/.test(t)) return "Förderbegleitung";
   if (/förder|foerder|bafa|kfw/.test(t)) return "Fördermittelberatung";
   if (/baubegleitung/.test(t)) return "Baubegleitung";
+  // Spezifische Heizungs-/Gebäude-Leistungen vor den allgemeineren Heizungs-/Energieberatung-Stichworten
+  // unten prüfen, sonst würde z. B. "Heizungsoptimierung" nur als "Heizung" erkannt.
+  if (/heizlast/.test(t)) return "Heizlastberechnung";
+  if (/heizungsoptimierung/.test(t)) return "Heizungsoptimierung";
+  if (/heizungsplanung/.test(t)) return "Heizungsplanung";
+  if (/wärmepumpenberatung|waermepumpenberatung|(wärmepumpe|waermepumpe)[^.?!]{0,20}beratung|beratung[^.?!]{0,20}(wärmepumpe|waermepumpe)/.test(t)) return "Wärmepumpenberatung";
+  if (/neubau[^.?!]{0,20}energieberat|energieberat[^.?!]{0,20}neubau/.test(t)) return "Neubau-Energieberatung";
+  if (/fachplanung/.test(t)) return "Energetische Fachplanung";
+  if (/geg[\s-]?nachweis/.test(t)) return "GEG-Nachweise";
+  if (/lüftungskonzept|lueftungskonzept/.test(t)) return "Lüftungskonzept";
+  if (/wärmebrücke|waermebruecke/.test(t)) return "Wärmebrückenberechnung";
+  if (/photovoltaik|pv-anlage/.test(t)) return "Photovoltaikberatung";
+  if (/thermografie|thermographie/.test(t)) return "Thermografie";
+  if (/sommerlicher wärmeschutz|sommerlichen wärmeschutz|wärmeschutznachweis/.test(t)) return "Sommerlicher Wärmeschutz";
   // Vor den Heizung/Sanierung-Stichworten geprüft: wer "Energieberatung" ausdrücklich nennt, meint die
   // Beratung selbst – auch wenn im selben Satz nebenbei die vorhandene Heizung/Sanierungslage erwähnt wird
   // (z. B. "Energieberatung für mein Haus mit Gasheizung" darf nicht als Leistung "Heizung" fehlinterpretiert werden).
@@ -19,7 +37,7 @@ export function detectService(text: string): string {
   // Bewusst auf konkrete Vorhaben eingegrenzt (nicht die bloße Erwähnung der vorhandenen Heizung, die ist
   // ein eigenes Feld – siehe detectHeating), sonst würde "...mit Gasheizung" fälschlich als Leistungswunsch zählen.
   if (
-    /heizung(s)?(stausch|wechsel|tausch|erneuer|sanierung|check|optimierung)|neue (heizung|wärmepumpe|waermepumpe)|(heizung|wärmepumpe|waermepumpe)[^.?!]{0,15}(machen|einbauen|installieren|erneuern)/.test(t)
+    /heizung(s)?(stausch|wechsel|tausch|erneuer|sanierung|check)|neue (heizung|wärmepumpe|waermepumpe)|(heizung|wärmepumpe|waermepumpe)[^.?!]{0,15}(machen|einbauen|installieren|erneuern)/.test(t)
   )
     return "Heizung";
   if (/sanier|dämm|daemm/.test(t)) return "Sanierung";
