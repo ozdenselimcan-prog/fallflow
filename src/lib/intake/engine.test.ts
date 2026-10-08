@@ -73,6 +73,18 @@ describe("processIntakeMessage – Terminvorschlag", () => {
     const appointments = await store.listAppointments();
     expect(appointments.some((a) => a.caseId === t1.sessionId)).toBe(false);
   });
+
+  it("bucht per E-Mail automatisch den nächsten freien Termin, sobald der Fall laut Vorlagen & Nachrichten komplett ist – ohne den Kunden nach Wunschtagen zu fragen", async () => {
+    await store.saveServiceMessage({ service: "Fördermittelberatung", body: "Danke für Ihre Anfrage, wir prüfen die Förderoptionen für Sie." });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Fördermittelberatung.", source: "email", channel: "email" });
+    const reply = first.replies.join(" ");
+    expect(reply).toContain("Förderoptionen");
+    expect(reply).not.toMatch(/welche tage|wochentage/i);
+    expect(reply).toMatch(/Mitarbeiter/);
+
+    const appointments = await store.listAppointments();
+    expect(appointments.some((a) => a.caseId === first.sessionId && a.status === "proposed")).toBe(true);
+  });
 });
 
 describe("processIntakeMessage – eigenes Kontaktformular", () => {

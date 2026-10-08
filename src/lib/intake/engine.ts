@@ -7,7 +7,7 @@ import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
-import { refreshCase, ensureUploadToken, matchServiceMaterials, uploadUrl } from "./case-ops";
+import { refreshCase, ensureUploadToken, autoBookNextSlot, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { chatDocumentPrompt } from "./messages";
 import {
   appointmentCancelledText,
@@ -259,10 +259,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     } else if (stage === "ask") {
       if (!(await resolveAndPropose(input.text))) replies.push(availabilityNotUnderstoodText);
       // Die aktive "Welche Tage passen Ihnen?"-Rückfrage ist wie der Frage-Flow eine reine
-      // Website-Chat-Funktion – per E-Mail soll die KI nicht zusätzlich nach Terminwünschen fragen.
+      // Website-Chat-Funktion. Per E-Mail fragt die KI nicht zusätzlich nach Terminwünschen, bucht aber
+      // trotzdem automatisch den nächsten freien Termin, sobald der Fall (laut Vorlagen & Nachrichten
+      // bzw. Dokumenten) komplett ist – der Berater braucht den Kalendereintrag unabhängig vom Kanal.
     } else if (stage === "" && isInteractive(input.channel) && (turn.appointmentRequested || turn.complete)) {
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       replies.push(availabilityQuestion(settings.workingDays));
+    } else if (stage === "" && !isInteractive(input.channel) && (turn.appointmentRequested || checklist.missing.length === 0)) {
+      if (await autoBookNextSlot(store, refreshed.caseRecord)) replies.push(appointmentPendingReviewText);
     }
     // stage "proposed"/"confirmed"/"failed": liegt beim Team bzw. ist bereits final – die KI sagt dazu nichts Neues mehr.
   }

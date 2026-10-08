@@ -14,7 +14,7 @@ import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
 import { documentRequestMessage, infoReminderMessage } from "./messages";
-import { appointmentConfirmedText, formatSlot } from "./scheduling";
+import { appointmentConfirmedText, appointmentPendingReviewText, findNextSlot, formatSlot } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
 
@@ -107,6 +107,43 @@ export async function matchServiceMaterials(
     }
   }
   return null;
+}
+
+/**
+ * Bucht automatisch den nächstmöglichen freien Termin für einen Fall (unter Berücksichtigung bestehender
+ * Termine inkl. vom Büro eingetragener Blocker und der Tagesobergrenze) und lässt ihn vom Team freigeben –
+ * genau wie der Terminvorschlag im Website-Chat (siehe engine.ts), nur ohne vorherige "Welche Tage passen
+ * Ihnen?"-Rückfrage (die ist eine reine Website-Chat-Funktion). Wird auch nach einer per E-Mail
+ * zurückgeschickten, korrekt ausgefüllten Vorlage aufgerufen (siehe receiveFilledTemplate) – der Berater
+ * braucht den Kalendereintrag unabhängig davon, über welchen Kanal der Fall fertig wurde (z. B. weil er nur
+ * eine begrenzte Anzahl Termine pro Tag vergeben kann). Tut nichts, wenn Terminvergabe aus ist, bereits ein
+ * Termin läuft, oder kein freier Slot gefunden wird. Gibt true zurück, wenn ein Termin vorgeschlagen wurde.
+ */
+export async function autoBookNextSlot(store: Store, c: CaseRecord): Promise<boolean> {
+  const settings = await store.getAssistant();
+  if (!settings.appointmentBooking || (c.fields.apptStage ?? "") !== "") return false;
+  const existing = await store.listAppointments();
+  const slot = findNextSlot({
+    workingDays: settings.workingDays,
+    customerDays: settings.workingDays,
+    slotStart: settings.slotStart,
+    slotEnd: settings.slotEnd,
+    slotMinutes: settings.slotMinutes,
+    maxAppointmentsPerDay: settings.maxAppointmentsPerDay,
+    existing,
+  });
+  if (!slot) return false;
+  await store.saveAppointment({
+    caseId: c.id,
+    title: `Beratung ${c.customerName}`,
+    startsAt: slot.toISOString(),
+    durationMin: settings.slotMinutes,
+    notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team",
+    status: "proposed",
+  });
+  await store.updateCase(c.id, { fields: { apptStage: "proposed" } });
+  await store.addEvent(c.id, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
+  return true;
 }
 
 /** Liefert einen gültigen Upload-Token für den Fall (erzeugt/erneuert ihn bei Bedarf). */
@@ -252,8 +289,13 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   if (refreshed.becamePrepared) {
     const serviceMessages = await store.listServiceMessages();
     const completionText = serviceMessages.find((m) => m.service === c.fields.service)?.appointmentNote?.trim() || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";
-    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: completionText });
-    await store.addMessage(caseId, "assistant", completionText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+    // Auch per E-Mail direkt einen freien Termin in den Kalender eintragen – aber nur, wenn dadurch
+    // wirklich NICHTS mehr offen ist (nicht nur die Vorlage, sondern auch sonstige Pflichtdokumente wie
+    // Grundriss/Energieausweis), sonst würde der Termin schon vor Vollständigkeit gebucht.
+    const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, refreshed.caseRecord));
+    const text = booked ? `${completionText} ${appointmentPendingReviewText}` : completionText;
+    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text });
+    await store.addMessage(caseId, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
   }
   return true;
 }
