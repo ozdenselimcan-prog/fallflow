@@ -172,6 +172,18 @@ describe("applyTurn", () => {
     expect(res.fields.service).toBe("Energieberatung");
   });
 
+  it("blosse Erwähnung von 'Mensch'/'Mitarbeiter' ohne Kontakt-Absicht löst KEINE Übergabe aus (Regressionstest)", () => {
+    // Vorher loeste schon die bloße Erwaehnung des Wortes "Mensch" sofort eine Uebergabe aus, auch bei einer
+    // unverbundenen Rueckfrage des Kunden ("Bist du ein Mensch oder ein Bot?").
+    const res = applyTurn(turn({ text: "Bist du ein Mensch oder ein Bot? Antworte mir ehrlich.", first: true }));
+    expect(res.handoff).toBe(false);
+  });
+
+  it("'mit einem Mitarbeiter sprechen' löst weiterhin eine Übergabe aus", () => {
+    const res = applyTurn(turn({ fields: { service: "Energieberatung" }, text: "Ich möchte mit einem Mitarbeiter sprechen" }));
+    expect(res.handoff).toBe(true);
+  });
+
   it("direkte Antwort auf eine Pflichtfrage rückt zur nächsten vor", () => {
     const res = applyTurn(turn({ fields: { service: "Energieberatung" }, text: "Max Mustermann" }));
     expect(res.fields.name).toBe("Max Mustermann");

@@ -28,6 +28,18 @@ describe("detectService", () => {
   it("erkennt Hydraulischen Abgleich vor der allgemeineren Heizungs-Erkennung", () => {
     expect(detectService("Wir brauchen einen hydraulischen Abgleich unserer Heizung")).toBe("Hydraulischer Abgleich");
   });
+
+  it("erkennt Energieberatung, auch wenn im selben Satz nur die vorhandene Heizung erwähnt wird (Regressionstest)", () => {
+    // "Gasheizung" beschreibt hier nur die bestehende Anlage (eigenes Feld, siehe detectHeating) - das darf die
+    // ausdrücklich gewünschte Leistung "Energieberatung" nicht zu "Heizung" verfälschen.
+    expect(detectService("Energieberatung für mein Haus, Baujahr 1990, Gasheizung.")).toBe("Energieberatung");
+    expect(detectService("Ich möchte eine Energieberatung, meine Heizung ist eine Wärmepumpe.")).toBe("Energieberatung");
+  });
+
+  it("erkennt 'Heizung' trotzdem, wenn tatsächlich eine neue Heizung/ein Heizungstausch gewünscht ist", () => {
+    expect(detectService("Ich möchte einen Heizungstausch.")).toBe("Heizung");
+    expect(detectService("Wir brauchen eine neue Heizung.")).toBe("Heizung");
+  });
 });
 
 describe("detectBuildingType", () => {

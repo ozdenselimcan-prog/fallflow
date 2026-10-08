@@ -12,9 +12,18 @@ export function detectService(text: string): string {
   if (/hydraulisch(er|en)?\s*abgleich/.test(t)) return "Hydraulischer Abgleich";
   if (/förder|foerder|bafa|kfw/.test(t)) return "Fördermittelberatung";
   if (/baubegleitung/.test(t)) return "Baubegleitung";
-  if (/heizung|wärmepumpe|waermepumpe|heizungstausch/.test(t)) return "Heizung";
+  // Vor den Heizung/Sanierung-Stichworten geprüft: wer "Energieberatung" ausdrücklich nennt, meint die
+  // Beratung selbst – auch wenn im selben Satz nebenbei die vorhandene Heizung/Sanierungslage erwähnt wird
+  // (z. B. "Energieberatung für mein Haus mit Gasheizung" darf nicht als Leistung "Heizung" fehlinterpretiert werden).
+  if (/energieberat/.test(t)) return "Energieberatung";
+  // Bewusst auf konkrete Vorhaben eingegrenzt (nicht die bloße Erwähnung der vorhandenen Heizung, die ist
+  // ein eigenes Feld – siehe detectHeating), sonst würde "...mit Gasheizung" fälschlich als Leistungswunsch zählen.
+  if (
+    /heizung(s)?(stausch|wechsel|tausch|erneuer|sanierung|check|optimierung)|neue (heizung|wärmepumpe|waermepumpe)|(heizung|wärmepumpe|waermepumpe)[^.?!]{0,15}(machen|einbauen|installieren|erneuern)/.test(t)
+  )
+    return "Heizung";
   if (/sanier|dämm|daemm/.test(t)) return "Sanierung";
-  if (/energieberat|beratung/.test(t)) return "Energieberatung";
+  if (/beratung/.test(t)) return "Energieberatung";
   return "";
 }
 

@@ -99,7 +99,9 @@ const PHRASES: Record<Tone, Phrases> = {
 const NUMBER_FILLER = /baujahr|gebaut|jahr|ca\.?|circa|etwa|ungefähr|rund|m²|m2|qm|quadratmeter|wohnfläche|etagen?|stockwerke?|geschosse?|vollgeschosse?|von|aus|im|es|sind|ist|hat|haben|wir|und|mit|das|haus/gi;
 /** Ausdrücke, mit denen Kunden eine zuvor erkannte Angabe berichtigen. */
 const CORRECTION = /korrigier|berichtig|stimmt nicht|nicht richtig|falsch|eigentlich|vielmehr|richtig ist|nein,|nicht \d/i;
-const HANDOFF = /mitarbeiter|mensch|berater sprechen|jemanden sprechen|rückruf|anrufen/i;
+// Bewusst nicht die blossen Woerter "mitarbeiter"/"mensch" allein (z. B. "Bist du ein Mensch oder ein Bot?"
+// loeste damit faelschlich eine sofortige Uebergabe aus) - erst in Verbindung mit einer klaren Kontakt-Absicht.
+const HANDOFF = /mit (einem |einer |dem |der )?(mitarbeiter|berater|menschen|person)\b[^.?!]{0,20}(sprechen|telefonieren|reden)|(mitarbeiter|berater)[^.?!]{0,20}(sprechen|kontaktieren|erreichen|melden)|echten? menschen|jemanden sprechen|rückruf|zurückrufen|anrufen/i;
 const SKIP = /^(überspringen|weiß ich nicht|weiss ich nicht|keine ahnung|k\. ?a\.?|-|—)$/i;
 export const SKIP_LABEL_REQUIRED = "Weiß ich nicht";
 export const SKIP_LABEL_OPTIONAL = "Überspringen";
