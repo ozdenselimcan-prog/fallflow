@@ -156,7 +156,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Wann können Sie Termine anbieten?</h1>
             <p className="text-sm text-muted-foreground">
-              Sobald ein Fall vollständig ist, schlägt die KI dem Kunden selbstständig einen freien Termin vor – nur an diesen Tagen, in diesem Zeitfenster.
+              Sobald ein Fall vollständig ist, trägt die KI einen passenden freien Termin – nur an diesen Tagen, in diesem Zeitfenster – als Vorschlag in Ihren Kalender ein. Erst wenn Sie ihn bestätigen, schickt die KI die Bestätigung per Mail an den Kunden.
             </p>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Verfügbare Wochentage">
               {DISPLAY_ORDER.map((day) => {
