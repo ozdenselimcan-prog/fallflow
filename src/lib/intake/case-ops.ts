@@ -186,15 +186,17 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   const templates = await store.listDocumentTemplates();
   const template = templates.find((t) => t.id === pending.templateId);
   const title = template?.title ?? fileName;
-  const { filled, note } = text ? await verifyFilledTemplate(title, text) : { filled: null, note: "" };
+  const { filled, wrongDocument, note } = text ? await verifyFilledTemplate(title, text) : { filled: null, wrongDocument: false, note: "" };
 
-  await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled, receivedAt: new Date().toISOString() });
+  await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled: wrongDocument ? false : filled, receivedAt: new Date().toISOString() });
   await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
 
-  if (filled === false) {
-    const requestText = note
-      ? `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Beim Prüfen ist uns aufgefallen: ${note} Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`
-      : `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Sie wirkt noch nicht vollständig ausgefüllt. Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`;
+  if (wrongDocument || filled === false) {
+    const requestText = wrongDocument
+      ? `Vielen Dank für Ihre Rückmeldung. ${note || "Das zurückgeschickte Dokument scheint nicht die erwartete Vorlage zu sein."} Bitte schicken Sie uns stattdessen das Formular „${title}“ (im Anhang) ausgefüllt als Antwort auf diese E-Mail zurück.`
+      : note
+        ? `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Beim Prüfen ist uns aufgefallen: ${note} Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`
+        : `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Sie wirkt noch nicht vollständig ausgefüllt. Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`;
     const attachments: InboundAttachment[] = [];
     if (template) {
       const blank = await readFile(template.storagePath);

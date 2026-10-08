@@ -8,7 +8,7 @@ import { receiveFilledTemplate, syncServiceQuestionOptions } from "./case-ops";
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
 // wird hier deterministisch gemockt, statt einen echten KI-Key fuer den Test zu brauchen.
 vi.mock("@/lib/documents/pdf-text", () => ({ extractPdfText: vi.fn(async () => "") }));
-vi.mock("@/lib/ai/verify-filled-template", () => ({ verifyFilledTemplate: vi.fn(async () => ({ filled: null, note: "" })) }));
+vi.mock("@/lib/ai/verify-filled-template", () => ({ verifyFilledTemplate: vi.fn(async () => ({ filled: null, wrongDocument: false, note: "" })) }));
 
 function freshStore(): Store {
   delete (globalThis as unknown as { __fallflowDb?: unknown }).__fallflowDb;
@@ -45,7 +45,7 @@ describe("receiveFilledTemplate", () => {
 
   it("erkennt eine nicht ausgefüllte Vorlage, zählt sie nicht als erledigt und bittet automatisch um eine neue", async () => {
     vi.mocked(extractPdfText).mockResolvedValueOnce("Formular Name: ______ Datum: ______");
-    vi.mocked(verifyFilledTemplate).mockResolvedValueOnce({ filled: false, note: "Das Datum fehlt." });
+    vi.mocked(verifyFilledTemplate).mockResolvedValueOnce({ filled: false, wrongDocument: false, note: "Das Datum fehlt." });
 
     const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht", fileName: "vollmacht.pdf", storagePath: "demo/x.pdf" });
     const c = await store.createCase({ source: "email", status: "NEW", assignedTo: null, summary: "", fields: { service: "Energieberatung", email: "kunde@example.com" }, customerName: "Max", service: "Energieberatung" });
@@ -62,6 +62,31 @@ describe("receiveFilledTemplate", () => {
     const requestText = messages.find((m) => m.role === "assistant")?.content ?? "";
     expect(requestText).toContain("Das Datum fehlt");
     expect(requestText).toContain("erneut");
+  });
+
+  it("erkennt eine falsche Vorlage (anderes Formular geschickt) und bittet um die richtige", async () => {
+    vi.mocked(extractPdfText).mockResolvedValueOnce("Vollmacht für Einzelmaßnahmen - Name: Max Beispiel");
+    vi.mocked(verifyFilledTemplate).mockResolvedValueOnce({
+      filled: true,
+      wrongDocument: true,
+      note: "Das scheint die Vollmacht für Einzelmaßnahmen zu sein, nicht die erwartete iSFP-Vorlage.",
+    });
+
+    const template = await store.saveDocumentTemplate({ service: "iSFP", title: "iSFP-Vollmacht", fileName: "isfp.pdf", storagePath: "demo/isfp.pdf" });
+    const c = await store.createCase({ source: "email", status: "NEW", assignedTo: null, summary: "", fields: { service: "iSFP", email: "kunde@example.com" }, customerName: "Max", service: "iSFP" });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: template.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+
+    const ok = await receiveFilledTemplate(store, c.id, new Uint8Array([1, 2, 3]), "em_vollmacht.pdf");
+    expect(ok).toBe(true);
+
+    const [doc] = await store.listTemplateDocuments(c.id);
+    expect(doc.status).toBe("received");
+    expect(doc.filled).toBe(false); // falsches Dokument zaehlt nicht als erledigt, auch wenn es selbst ausgefuellt war
+
+    const messages = await store.listMessages(c.id);
+    const requestText = messages.find((m) => m.role === "assistant")?.content ?? "";
+    expect(requestText).toContain("Einzelmaßnahmen");
+    expect(requestText).toContain("iSFP-Vollmacht");
   });
 });
 
