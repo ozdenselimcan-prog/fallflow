@@ -204,6 +204,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
         {step === 6 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Website verbinden</h1>
+            <p className="text-sm text-muted-foreground">Optional. Sie können diesen Schritt auch später in den Einstellungen erledigen.</p>
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Code kopieren.</li>
               <li>Vor dem schließenden &lt;/body&gt;-Tag Ihrer Website einfügen (bei Website-Baukästen im Bereich „Eigener Code“).</li>
@@ -217,6 +218,11 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
             <a href={`/widget/${companyId}`} target="_blank" rel="noreferrer" className="inline-block text-sm font-medium text-accent hover:underline">
               Widget in neuem Tab testen →
             </a>
+            <div>
+              <button type="button" onClick={next} className="text-sm font-medium text-muted-foreground hover:underline">
+                Später erledigen →
+              </button>
+            </div>
           </div>
         )}
 
