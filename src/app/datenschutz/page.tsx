@@ -91,7 +91,7 @@ export default function DatenschutzPage() {
               ]}
             />
             <p>
-              Der E-Mail-Kanal (per IMAP/SMTP, z. B. Gmail, Outlook oder das eigene Domain-Postfach) wird nur genutzt, wenn ein Büro sein eigenes Postfach aktiv verbindet. Die Zugangsdaten jedes Büros werden verschlüsselt gespeichert, sind ausschließlich diesem Büro zugeordnet und für andere Büros oder im Browser nicht einsehbar.
+              Der E-Mail-Kanal (per IMAP/SMTP, z. B. Gmail, Outlook oder das eigene Domain-Postfach) wird nur genutzt, wenn ein Büro sein eigenes Postfach aktiv verbindet. Die Zugangsdaten jedes Büros werden verschlüsselt gespeichert, sind ausschließlich diesem Büro zugeordnet und für andere Büros oder im Browser nicht einsehbar. Der Abruf und Versand von E-Mails erfolgt ausschließlich automatisiert durch das System; der Betreiber von FallFlow hat keinen manuellen Zugriff auf die Postfächer der Büros.
             </p>
           </Section>
 

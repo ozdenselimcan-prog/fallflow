@@ -128,7 +128,7 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
           <div className="mt-4 space-y-3">
             <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
               <Lock className="mt-0.5 size-3.5 shrink-0" />
-              Ihre Zugangsdaten werden verschlüsselt (AES-256) gespeichert und ausschließlich automatisiert für den Mail-Abruf und -Versand genutzt. Niemand sieht Ihr Passwort im Klartext – auch wir als Betreiber nicht.
+              Ihre Zugangsdaten werden verschlüsselt (AES-256) gespeichert und ausschließlich automatisiert für den Mail-Abruf und -Versand genutzt. Niemand sieht Ihr Passwort im Klartext – auch wir als Betreiber nicht. Wir als Betreiber haben keinen manuellen Zugriff auf Ihr Postfach: Niemand bei uns liest Ihre E-Mails mit – der Abruf und Versand läuft ausschließlich automatisiert über das System.
             </p>
             <Field label="Üblicher Anbieter (füllt Server-Felder automatisch aus)">
               <Select defaultValue="" onChange={(e) => applyPreset(e.target.value)}>
