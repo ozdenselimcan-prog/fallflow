@@ -3,6 +3,7 @@ import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { receiveFilledTemplate } from "@/lib/intake/case-ops";
+import { findCaseByIdentity } from "@/lib/intake/identity";
 import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
 import type { MailSyncProvider } from "./email";
@@ -72,6 +73,29 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
         // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
         if (from === connection.accountEmail.trim().toLowerCase()) continue;
         if (/no.?reply|do.?not.?reply|mailer-daemon|postmaster/i.test(from)) continue;
+        // Markiert sich die Mail selbst als automatisch versendet (RFC 3834), nie beantworten – sonst entsteht
+        // eine Endlosschleife, z. B. mit einer Abwesenheitsnotiz oder einem ANDEREN Büro, das ebenfalls
+        // FallFlow nutzt und dessen Antwort hier sonst fälschlich als neue Kundenanfrage ankäme.
+        if (mail.autoSubmitted) {
+          skipped++;
+          await persistSeenIds();
+          continue;
+        }
+        // Zusätzliches Sicherheitsnetz, falls die Gegenseite den Auto-Submitted-Header nicht setzt (nicht
+        // jedes System hält sich daran): Hat der zugehörige Fall in den letzten 10 Minuten schon auffällig
+        // viele automatische Antworten bekommen, nicht weiter automatisch antworten – vermutlich eine
+        // Mail-Schleife. Das Team wird per Ereignis informiert und übernimmt manuell.
+        const existing = findCaseByIdentity(await store.listCases(), { email: from });
+        if (existing) {
+          const tenMinutesAgo = Date.now() - 10 * 60_000;
+          const recentAutoReplies = (await store.listMessages(existing.id)).filter((m) => m.role === "assistant" && Date.parse(m.createdAt) > tenMinutesAgo).length;
+          if (recentAutoReplies >= 5) {
+            await store.addEvent(existing.id, "note", "Auffällig viele automatische Antworten in kurzer Zeit erkannt (möglicherweise eine Mail-Schleife) – automatische Antworten für diesen Fall vorerst pausiert, bitte manuell prüfen.");
+            skipped++;
+            await persistSeenIds();
+            continue;
+          }
+        }
         const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
         // Ein PDF-Anhang (z. B. die ausgefüllt zurückgeschickte Vollmacht) ist eindeutig fallrelevant, auch
         // wenn der Mailtext selbst knapp ist ("siehe Anhang") – dann die KI-Einschätzung nicht erst fragen.

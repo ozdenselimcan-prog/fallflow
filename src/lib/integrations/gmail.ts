@@ -87,6 +87,12 @@ export const gmailProvider: MailSyncProvider = {
           const attachments: InboundAttachment[] = (parsed.attachments ?? [])
             .filter((a) => a.contentType === "application/pdf" && a.content && a.content.length > 0 && a.content.length <= MAX_ATTACHMENT_BYTES)
             .map((a) => ({ filename: a.filename || "dokument.pdf", mime: a.contentType, bytes: new Uint8Array(a.content) }));
+          // RFC 3834: "Auto-Submitted: no" (oder fehlend) = normale Mail eines Menschen; jeder andere Wert
+          // (z. B. "auto-replied", "auto-generated") kommt von einem automatisch antwortenden System – das darf
+          // niemals wieder automatisch beantwortet werden, sonst entsteht eine Endlosschleife (z. B. mit einer
+          // Abwesenheitsnotiz oder einem anderen Büro, das ebenfalls FallFlow nutzt).
+          const autoSubmittedHeader = parsed.headers.get("auto-submitted");
+          const autoSubmitted = typeof autoSubmittedHeader === "string" && autoSubmittedHeader.toLowerCase() !== "no";
           out.push({
             externalId: String(msg.uid),
             from: parsed.from?.text ?? "",
@@ -94,6 +100,7 @@ export const gmailProvider: MailSyncProvider = {
             body: (parsed.text ?? stripHtml(typeof parsed.html === "string" ? parsed.html : "")).slice(0, 4000),
             receivedAt: (parsed.date ?? new Date()).toISOString(),
             attachments,
+            autoSubmitted,
           });
         }
       } finally {
@@ -111,6 +118,10 @@ export const gmailProvider: MailSyncProvider = {
       subject,
       text: body,
       attachments: attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.bytes), contentType: a.mime })),
+      // RFC 3834: markiert die Mail als automatisch versendet, damit andere automatische Systeme (z. B. ein
+      // Abwesenheitsassistent oder ein anderes Büro, das ebenfalls FallFlow nutzt) sie nicht wiederum
+      // automatisch beantworten – verhindert Endlosschleifen zwischen zwei auto-antwortenden Postfächern.
+      headers: { "Auto-Submitted": "auto-replied" },
     });
   },
 };

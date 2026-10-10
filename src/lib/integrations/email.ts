@@ -18,6 +18,10 @@ export interface InboundEmail {
   body: string;
   receivedAt: string;
   attachments: InboundAttachment[];
+  /** true = die Mail trägt selbst einen Auto-Antwort-Header (RFC 3834, z. B. "Auto-Submitted: auto-replied").
+   * Verhindert Endlosschleifen mit Abwesenheitsnotizen oder einem ANDEREN automatisch antwortenden System
+   * (z. B. einem anderen Energieberatungsbüro, das ebenfalls FallFlow nutzt). */
+  autoSubmitted: boolean;
 }
 
 /** Für den Abruf/Versand nötige, bereits entschlüsselte Zugangsdaten dieses Büros. Bei der aktuellen
