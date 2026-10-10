@@ -71,6 +71,7 @@ export const questionSchema = z.object({
 export const reorderSchema = z.object({ ids: z.array(z.string()).max(100) });
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Format HH:MM");
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format JJJJ-MM-TT");
 
 export const assistantSchema = z
   .object({
@@ -86,8 +87,11 @@ export const assistantSchema = z
     slotEnd: timeSchema,
     slotMinutes: z.coerce.number().int().min(15).max(480),
     maxAppointmentsPerDay: z.coerce.number().int().min(1).max(50).nullable(),
+    vacationFrom: dateSchema.nullable(),
+    vacationUntil: dateSchema.nullable(),
   })
-  .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] });
+  .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] })
+  .refine((v) => !v.vacationFrom || !v.vacationUntil || v.vacationFrom <= v.vacationUntil, { message: "Enddatum darf nicht vor dem Startdatum liegen", path: ["vacationUntil"] });
 
 export const companySchema = z.object({
   name: str(120).min(1, "Firmenname erforderlich"),

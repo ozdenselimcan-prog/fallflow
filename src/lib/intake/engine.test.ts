@@ -74,6 +74,22 @@ describe("processIntakeMessage – Terminvorschlag", () => {
     expect(appointments.some((a) => a.caseId === t1.sessionId)).toBe(false);
   });
 
+  it("bucht während eines eingetragenen Urlaubszeitraums keinen Termin in dieser Zeit, sondern erst danach", async () => {
+    const settings = await store.getAssistant();
+    const toYmd = (d: Date) => d.toISOString().slice(0, 10);
+    const from = toYmd(new Date());
+    const until = toYmd(new Date(Date.now() + 3 * 86_400_000));
+    await store.saveAssistant({ ...settings, vacationFrom: from, vacationUntil: until });
+
+    await store.saveServiceMessage({ service: "Fördermittelberatung", body: "Danke für Ihre Anfrage, wir prüfen die Förderoptionen für Sie." });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Fördermittelberatung.", source: "email", channel: "email" });
+
+    const appointments = await store.listAppointments();
+    const proposed = appointments.find((a) => a.caseId === first.sessionId && a.status === "proposed");
+    expect(proposed).toBeDefined();
+    expect(proposed!.startsAt.slice(0, 10) > until).toBe(true);
+  });
+
   it("bucht per E-Mail automatisch den nächsten freien Termin, sobald der Fall laut Vorlagen & Nachrichten komplett ist – ohne den Kunden nach Wunschtagen zu fragen", async () => {
     await store.saveServiceMessage({ service: "Fördermittelberatung", body: "Danke für Ihre Anfrage, wir prüfen die Förderoptionen für Sie." });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Fördermittelberatung.", source: "email", channel: "email" });

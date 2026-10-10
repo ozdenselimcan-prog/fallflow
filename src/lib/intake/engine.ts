@@ -23,6 +23,7 @@ import {
   noOverlapText,
   noSlotFoundText,
   notAWorkingDayText,
+  onVacationText,
   parseAvailability,
   parseSpecificDate,
   ymdToDate,
@@ -196,7 +197,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // und .../decline).
   if (settings.appointmentBooking && !turn.handoff) {
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
-    const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay };
+    const vacation = settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null;
+    const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay, vacation };
 
     const bookSlot = async (slot: Date, pendingText: string = appointmentPendingReviewText) => {
       await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
@@ -215,7 +217,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
           await bookSlot(exact.slot, pendingText);
           return true;
         }
-        const info = exact.reason === "not_a_working_day" ? notAWorkingDayText(specificDate) : fullyBookedText(specificDate);
+        const info =
+          exact.reason === "not_a_working_day" ? notAWorkingDayText(specificDate) : exact.reason === "on_vacation" ? onVacationText(specificDate) : fullyBookedText(specificDate);
         const alt = findNextSlot({ ...slotBase, customerDays: settings.workingDays, existing: existingAppts, from: ymdToDate(specificDate) });
         if (alt) {
           await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });

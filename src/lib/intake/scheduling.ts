@@ -153,6 +153,19 @@ export interface SlotSearch {
   horizonDays?: number;
   /** Höchstzahl an Terminen pro Kalendertag – null/undefined = unbegrenzt. */
   maxAppointmentsPerDay?: number | null;
+  /** Urlaubszeitraum (inklusive Start-/Enddatum "YYYY-MM-DD") – an diesen Tagen werden keine Termine vergeben. */
+  vacation?: { from: string; until: string } | null;
+}
+
+function parseYmdString(s: string): Ymd {
+  const [y, m, d] = s.split("-").map(Number);
+  return { y, m, d };
+}
+const ymdLte = (a: Ymd, b: Ymd) => (a.y !== b.y ? a.y < b.y : a.m !== b.m ? a.m < b.m : a.d <= b.d);
+/** Liegt dieser Tag innerhalb des Urlaubszeitraums (inklusive)? */
+function isOnVacation(ymd: Ymd, vacation?: { from: string; until: string } | null): boolean {
+  if (!vacation) return false;
+  return ymdLte(parseYmdString(vacation.from), ymd) && ymdLte(ymd, parseYmdString(vacation.until));
 }
 
 const MIN_LEAD_MS = 2 * 3_600_000; // mindestens 2 Stunden Vorlauf
@@ -200,18 +213,19 @@ export function findNextSlot(input: SlotSearch): Date | null {
 
   for (let i = 0; i <= horizon; i++) {
     const day = addDays(start, i);
-    if (!allowedDays.has(weekdayOf(day))) continue;
+    if (!allowedDays.has(weekdayOf(day)) || isOnVacation(day, input.vacation)) continue;
     const slot = firstFreeSlotOnDay(day, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay);
     if (slot) return slot;
   }
   return null;
 }
 
-export type DateSlotReason = "ok" | "not_a_working_day" | "fully_booked";
+export type DateSlotReason = "ok" | "not_a_working_day" | "fully_booked" | "on_vacation";
 
-/** Prüft ein vom Kunden genanntes konkretes Datum: frei, kein Bürotag, oder ausgebucht (auch bei erreichter Tagesobergrenze). */
+/** Prüft ein vom Kunden genanntes konkretes Datum: frei, kein Bürotag, im Urlaub, oder ausgebucht (auch bei erreichter Tagesobergrenze). */
 export function findSlotOnDate(ymd: Ymd, input: Omit<SlotSearch, "customerDays" | "from">): { slot: Date | null; reason: DateSlotReason } {
   if (!input.workingDays.includes(weekdayOf(ymd))) return { slot: null, reason: "not_a_working_day" };
+  if (isOnVacation(ymd, input.vacation)) return { slot: null, reason: "on_vacation" };
   const slot = firstFreeSlotOnDay(ymd, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay);
   return slot ? { slot, reason: "ok" } : { slot: null, reason: "fully_booked" };
 }
@@ -250,5 +264,6 @@ export function noOverlapText(workingDays: number[]): string {
 export const availabilityNotUnderstoodText = "Das habe ich leider nicht verstanden. Bitte nennen Sie mir die Wochentage oder ein konkretes Datum, z. B. „Montag bis Freitag“ oder „15. Oktober“.";
 export const notAWorkingDayText = (ymd: Ymd) => `Am ${formatYmd(ymd)} bieten wir leider keine Termine an.`;
 export const fullyBookedText = (ymd: Ymd) => `Der ${formatYmd(ymd)} ist leider schon ausgebucht.`;
+export const onVacationText = (ymd: Ymd) => `Am ${formatYmd(ymd)} sind wir leider im Urlaub und bieten keine Termine an.`;
 
 export const WEEKDAY_LABELS_FULL = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"] as const;

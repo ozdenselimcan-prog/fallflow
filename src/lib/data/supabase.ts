@@ -427,6 +427,8 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         slotEnd: r.slot_end ?? "17:00",
         slotMinutes: r.slot_minutes ?? 60,
         maxAppointmentsPerDay: r.max_appointments_per_day ?? null,
+        vacationFrom: r.vacation_from ?? null,
+        vacationUntil: r.vacation_until ?? null,
       };
     },
     async saveAssistant(s) {
@@ -444,6 +446,8 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         slot_end: s.slotEnd,
         slot_minutes: s.slotMinutes,
         max_appointments_per_day: s.maxAppointmentsPerDay,
+        vacation_from: s.vacationFrom,
+        vacation_until: s.vacationUntil,
       });
       fail(error, "assistant save");
       return s;

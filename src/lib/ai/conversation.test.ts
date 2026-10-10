@@ -15,6 +15,8 @@ const settings = (overrides: Partial<AssistantSettings> = {}): AssistantSettings
   slotEnd: "17:00",
   slotMinutes: 60,
   maxAppointmentsPerDay: null,
+  vacationFrom: null,
+  vacationUntil: null,
   ...overrides,
 });
 

@@ -122,6 +122,39 @@ export function AssistantForm({ initial, canEdit }: { initial: AssistantSettings
               </div>
             </div>
           )}
+
+          <div className="space-y-3 rounded-xl border border-border p-4">
+            <p className="text-sm font-medium">Urlaub / Pause</p>
+            <p className="text-xs text-muted-foreground">
+              In diesem Zeitraum schlägt die KI keine Termine vor (bei einem genannten Wunschdatum sagt sie klar, dass in dieser Zeit Urlaub ist, und sucht automatisch den nächsten freien Termin danach).
+              Anfragen werden trotzdem ganz normal weiter angenommen und bearbeitet.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Von">
+                <Input type="date" value={s.vacationFrom ?? ""} onChange={(e) => set("vacationFrom", e.target.value || null)} />
+              </Field>
+              <Field label="Bis">
+                <Input type="date" value={s.vacationUntil ?? ""} onChange={(e) => set("vacationUntil", e.target.value || null)} />
+              </Field>
+            </div>
+            {s.vacationFrom && s.vacationUntil && (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Urlaub eingetragen: {s.vacationFrom} bis {s.vacationUntil}.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    set("vacationFrom", null);
+                    set("vacationUntil", null);
+                  }}
+                  className="shrink-0 text-xs font-medium text-accent hover:underline"
+                >
+                  Zurücksetzen
+                </button>
+              </div>
+            )}
+          </div>
         </fieldset>
         <p className="rounded-xl bg-muted px-4 py-3 text-xs text-muted-foreground">
           Der Assistent sammelt ausschließlich Angaben, ordnet Anliegen ein und bereitet Termine vor. Er gibt keine verbindliche Energie-, Förder- oder Rechtsberatung und leitet bei Unsicherheit an Ihr Team weiter.

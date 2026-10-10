@@ -171,6 +171,9 @@ export interface AssistantSettings {
   slotMinutes: number;
   /** Höchstzahl an Terminen, die die KI pro Kalendertag vergibt. null = unbegrenzt (nur durch Bürozeiten begrenzt). */
   maxAppointmentsPerDay: number | null;
+  /** Urlaubs-/Pausenzeitraum (inklusive, "YYYY-MM-DD"). Während dieser Zeit schlägt die KI keine Termine vor. null = kein Urlaub eingetragen. */
+  vacationFrom: string | null;
+  vacationUntil: string | null;
 }
 
 export interface Appointment {

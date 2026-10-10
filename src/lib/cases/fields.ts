@@ -111,6 +111,8 @@ export const DEFAULT_ASSISTANT: AssistantSettings = {
   slotEnd: "17:00",
   slotMinutes: 60,
   maxAppointmentsPerDay: null,
+  vacationFrom: null,
+  vacationUntil: null,
 };
 
 export const WEEKDAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"] as const;

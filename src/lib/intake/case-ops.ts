@@ -130,6 +130,7 @@ export async function autoBookNextSlot(store: Store, c: CaseRecord): Promise<boo
     slotEnd: settings.slotEnd,
     slotMinutes: settings.slotMinutes,
     maxAppointmentsPerDay: settings.maxAppointmentsPerDay,
+    vacation: settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null,
     existing,
   });
   if (!slot) return false;

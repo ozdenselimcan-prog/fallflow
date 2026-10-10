@@ -166,6 +166,36 @@ describe("findSlotOnDate", () => {
     const res = findSlotOnDate(fridayYmd, { ...base, existing: [{ startsAt: nineAm.toISOString(), durationMin: 30 }], maxAppointmentsPerDay: 1 });
     expect(res).toEqual<{ slot: Date | null; reason: DateSlotReason }>({ slot: null, reason: "fully_booked" });
   });
+
+  it("meldet 'on_vacation' für einen Tag im eingetragenen Urlaubszeitraum, auch wenn es sonst ein Bürotag wäre", () => {
+    const friday = nextWeekday(REF, 5, 0);
+    const fridayYmd = berlinYmd(friday);
+    const ymdStr = (ymd: { y: number; m: number; d: number }) => `${ymd.y}-${String(ymd.m).padStart(2, "0")}-${String(ymd.d).padStart(2, "0")}`;
+    const res = findSlotOnDate(fridayYmd, { ...base, vacation: { from: ymdStr(berlinYmd(addDays(friday, -2))), until: ymdStr(berlinYmd(addDays(friday, 2))) } });
+    expect(res).toEqual<{ slot: Date | null; reason: DateSlotReason }>({ slot: null, reason: "on_vacation" });
+  });
+});
+
+describe("findNextSlot – Urlaubszeitraum", () => {
+  const ymdStr = (ymd: { y: number; m: number; d: number }) => `${ymd.y}-${String(ymd.m).padStart(2, "0")}-${String(ymd.d).padStart(2, "0")}`;
+
+  it("überspringt Tage im Urlaubszeitraum und findet den nächsten freien Tag danach", () => {
+    const friday = nextWeekday(REF, 5, 0);
+    const vacation = { from: ymdStr(berlinYmd(friday)), until: ymdStr(berlinYmd(addDays(friday, 10))) };
+    const slot = findNextSlot({
+      workingDays: [1, 2, 3, 4, 5],
+      customerDays: [1, 2, 3, 4, 5],
+      slotStart: "09:00",
+      slotEnd: "17:00",
+      slotMinutes: 60,
+      existing: [],
+      from: friday,
+      vacation,
+    });
+    expect(slot).not.toBeNull();
+    const slotYmd = ymdStr(berlinYmd(slot!));
+    expect(slotYmd > vacation.until).toBe(true);
+  });
 });
 
 describe("looksLikeCancellation", () => {
