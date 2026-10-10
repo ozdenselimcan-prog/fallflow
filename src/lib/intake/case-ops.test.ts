@@ -94,7 +94,9 @@ describe("receiveFilledTemplate", () => {
     vi.mocked(extractPdfText).mockResolvedValueOnce("Vollmacht Energieberatung - Name: Max Mustermann, Datum: 03.10.2026, Unterschrift: Max Mustermann");
     vi.mocked(verifyFilledTemplate).mockResolvedValueOnce({ filled: true, wrongDocument: false, note: "" });
 
-    await store.saveServiceMessage({ service: "Energieberatung", body: "Danke!", appointmentNote: "Vielen Dank, ein Mitarbeiter meldet sich in Kürze bei Ihnen." });
+    // Grundriss/Energieausweis für diese Leistung bewusst abgeschaltet, damit die zurückgeschickte Vorlage
+    // wirklich die letzte offene Pflichtangabe ist (sonst bliebe der Fall trotz korrekter PDF unvollständig).
+    await store.saveServiceMessage({ service: "Energieberatung", body: "Danke!", appointmentNote: "Vielen Dank, ein Mitarbeiter meldet sich in Kürze bei Ihnen.", requiresFloorplan: false, requiresEnergyCertificate: false });
     const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht", fileName: "vollmacht.pdf", storagePath: "demo/x.pdf" });
     const fields = {
       service: "Energieberatung",

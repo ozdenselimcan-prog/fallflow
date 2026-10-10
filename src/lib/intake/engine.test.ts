@@ -103,10 +103,11 @@ describe("processIntakeMessage – Terminvorschlag", () => {
     expect(appointments.some((a) => a.caseId === first.sessionId && a.status === "proposed")).toBe(true);
   });
 
-  it("schickt die Abschluss-Nachricht & bucht einen Termin, wenn die PDF-Vorlage NACH der ersten (bereits 'COMPLETE' markierten) E-Mail zurückkommt (Regressionstest)", async () => {
-    // Bei E-Mail-Fällen wird der Status schon nach der ersten Nachricht "COMPLETE" (Frage-Flow-Felder zählen
-    // dort nicht mehr), obwohl die Vorlage noch gar nicht zurück ist – das darf becamePrepared beim späteren
-    // Übergang zu READY_FOR_REVIEW (Vorlage kommt an) nicht blockieren, siehe case-ops.ts PREPARED-Check.
+  it("schickt die Abschluss-Nachricht & bucht einen Termin, wenn die PDF-Vorlage zurückkommt (Regressionstest)", async () => {
+    // Solange die Vorlage noch nicht zurück ist, darf der Status NICHT "COMPLETE"/"Angaben vollständig"
+    // zeigen (sonst genau der vom Nutzer gemeldete Bug: Status sagt vollständig, aber Vollständigkeit 0%
+    // und "fehlt noch" listet weiterhin die Vorlage auf) – bei E-Mail-Fällen gibt es keine Frage-Flow-Felder,
+    // die diesen Zwischenstatus rechtfertigen würden, siehe checklist.ts hasFieldItems.
     await store.saveServiceMessage({
       service: "Fördermittelberatung",
       body: "Danke für Ihre Anfrage, wir prüfen die Förderoptionen für Sie.",
@@ -115,7 +116,7 @@ describe("processIntakeMessage – Terminvorschlag", () => {
     const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf" });
     await store.saveDocumentTemplate({ service: "Fördermittelberatung", title: "Förderantrag", fileName: "antrag.pdf", storagePath: path });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Fördermittelberatung.", source: "email", channel: "email" });
-    expect((await store.getCase(first.sessionId))?.status).toBe("COMPLETE");
+    expect((await store.getCase(first.sessionId))?.status).not.toBe("COMPLETE");
 
     await receiveFilledTemplate(store, first.sessionId, new Uint8Array([0x25, 0x50, 0x44, 0x46]), "antrag_ausgefuellt.pdf");
 

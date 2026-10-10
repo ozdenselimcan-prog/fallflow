@@ -212,6 +212,30 @@ describe("deriveStatus", () => {
     expect(deriveStatus("WAITING_FOR_CUSTOMER", withReceivedTemplate)).toBe("READY_FOR_REVIEW");
   });
 
+  it("E-Mail-Fälle (keine Frage-Flow-Felder, includeFields: false) werden NICHT als 'COMPLETE' markiert, nur weil Dokumente noch fehlen (Regressionstest)", () => {
+    // Ohne Frage-Flow-Felder ist dataComplete vacuous-true – das darf allein nicht zu "Angaben vollständig"
+    // führen, solange noch Dokumente (hier: Grundriss) offen sind. Sonst genau der gemeldete Bug: Status
+    // sagt "Angaben vollständig", aber Vollständigkeit zeigt 0 % und "fehlt noch" listet Dokumente auf.
+    const emailChecklist = buildChecklist({
+      questions: [q({ key: "name", label: "Name" })],
+      fields: { service: "Energieausweis" },
+      documents: [],
+      includeFields: false,
+    });
+    expect(emailChecklist.hasFieldItems).toBe(false);
+    expect(emailChecklist.dataComplete).toBe(true); // keine Felder zu erfüllen -> vacuous true
+    expect(deriveStatus("QUALIFYING", emailChecklist, "chat")).toBe("QUALIFYING");
+    expect(deriveStatus("QUALIFYING", emailChecklist, "chat")).not.toBe("COMPLETE");
+
+    const emailChecklistDone = buildChecklist({
+      questions: [q({ key: "name", label: "Name" })],
+      fields: { service: "Energieausweis" },
+      documents: [{ id: "d1", caseId: "c1", companyId: "c1", kind: "floorplan", status: "received", fileName: "", mimeType: "", size: 0, storagePath: "", requestedAt: "", receivedAt: "" }],
+      includeFields: false,
+    });
+    expect(deriveStatus("QUALIFYING", emailChecklistDone, "chat")).toBe("READY_FOR_REVIEW");
+  });
+
   it("unvollständig + hint 'waiting' → WAITING_FOR_CUSTOMER", () => {
     expect(deriveStatus("QUALIFYING", baseChecklist(false, false), "waiting")).toBe("WAITING_FOR_CUSTOMER");
   });
