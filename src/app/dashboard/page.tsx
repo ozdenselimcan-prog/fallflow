@@ -8,7 +8,7 @@ import { requireSession } from "@/lib/auth/session";
 import { getStore } from "@/lib/data";
 import { buildAttention } from "@/lib/intake/attention";
 import { buildCaseMeta } from "@/lib/intake/meta";
-import { cn, greeting, relativeDay, timeAgo } from "@/lib/utils";
+import { cn, greeting, timeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -17,11 +17,10 @@ const dot = { accent: "bg-accent", warning: "bg-warning", success: "bg-success" 
 export default async function DashboardPage() {
   const session = await requireSession();
   const store = await getStore(session);
-  const [stats, cases, documents, followUps, appointments, events, questions, company, templateDocs, templates, serviceMessages] = await Promise.all([
+  const [stats, cases, documents, appointments, events, questions, company, templateDocs, templates, serviceMessages] = await Promise.all([
     store.getStats(),
     store.listCases({ sort: "newest" }),
     store.listDocuments(),
-    store.listFollowUps(),
     store.listAppointments(),
     store.listRecentEvents(12),
     store.listQuestions(),
@@ -39,11 +38,10 @@ export default async function DashboardPage() {
     { label: "Automatisch qualifizierte Leads", value: stats.autoQualified, icon: Sparkles, href: "/dashboard/intake" },
   ];
 
-  const attention = buildAttention({ cases, documents, followUps, appointments });
+  const attention = buildAttention({ cases, documents, appointments });
   const active = cases.filter((c) => c.status !== "CONVERTED").sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
   const meta = buildCaseMeta(active, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, templateDocs, templates, serviceMessages);
   const nameOf = new Map(cases.map((c) => [c.id, c.customerName && c.customerName !== "Unbekannt" ? c.customerName : (c.fields.email ?? c.customerName)]));
-  const upcoming = followUps.filter((f) => f.status === "planned" || f.status === "manual").slice(0, 4);
 
   return (
     <div className="space-y-8">
@@ -101,7 +99,7 @@ export default async function DashboardPage() {
           <CaseTable cases={active} meta={meta} />
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div>
           <Card>
             <CardHeader title="KI-Aktivitäten" description="Was FallFlow zuletzt automatisch erledigt hat" />
             <ol className="space-y-3 px-5 py-4">
@@ -123,22 +121,6 @@ export default async function DashboardPage() {
             </ol>
           </Card>
 
-          <Card>
-            <CardHeader title="Geplante Follow-ups" />
-            <ul className="space-y-3 px-5 py-4">
-              {upcoming.length === 0 && <li className="text-sm text-muted-foreground">Keine Follow-ups geplant.</li>}
-              {upcoming.map((f) => (
-                <li key={f.id} className="text-sm">
-                  <Link href={`/dashboard/cases/${f.caseId}`} className="font-medium hover:underline">
-                    {nameOf.get(f.caseId) ?? "Fall"}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    {f.status === "manual" ? "Fällig – manuell senden" : `Follow-up geplant für ${relativeDay(f.scheduledFor)}`} · {f.kind === "document" ? "Dokument fehlt" : "Angaben fehlen"}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </Card>
       </div>
     </div>
   );

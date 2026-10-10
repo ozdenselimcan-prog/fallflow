@@ -76,7 +76,7 @@ export async function extractForText(text: string): Promise<Record<string, strin
 
 /**
  * Verarbeitet eine Kundennachricht (Website-Chat, E-Mail): erkennt bekannte Angaben, fragt nur noch
- * relevante fehlende Angaben ab, hält Fallakte, Status, Dokumentenanforderung und Follow-ups aktuell.
+ * relevante fehlende Angaben ab, hält Fallakte, Status und Dokumentenanforderung aktuell.
  */
 export async function processIntakeMessage(store: Store, input: IntakeInput): Promise<IntakeTurn> {
   const { companyId } = input;
@@ -159,15 +159,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   if (turn.appointmentRequested) await store.addEvent(caseId, "appointment", "Kunde wünscht einen Termin");
 
   // Büro-Vorlage(n) und/oder eigene Leistungs-Nachricht automatisch mitschicken – siehe matchServiceMaterials
-  // (gemeinsam mit den Follow-up-Erinnerungen genutzt, damit beide dieselbe, vom Büro geschriebene Nachricht
-  // verschicken statt einer automatisch generierten Angaben-Checkliste). Vor refreshCase, damit der Fall
+  // (Nachricht und Vorlage kommen vom Büro selbst, keine automatisch generierte Angaben-Checkliste). Vor refreshCase, damit der Fall
   // nicht in diesem Zug schon als "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht.
   const caseNow = (await store.getCase(caseId))!;
   const material = await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
   const attachments: InboundAttachment[] = material?.attachments ?? [];
   if (material) replies.push(...material.texts);
 
-  // Nachbereitung: Vollständigkeit, Status, automatische Dokumentenanforderung, Follow-ups.
+  // Nachbereitung: Vollständigkeit, Status, automatische Dokumentenanforderung.
   const refreshed = await refreshCase(store, caseId, {
     // Per E-Mail gibt es kein laufendes Gespräch: Hat die KI dem Kunden gerade Vorlage/Nachricht geschickt, liegt der
     // Ball beim Kunden ("Warten auf Kunde") statt dauerhaft "wird qualifiziert" zu zeigen.

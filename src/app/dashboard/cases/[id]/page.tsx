@@ -8,7 +8,6 @@ import { CaseEditor } from "@/components/dashboard/case-editor";
 import { AiStatusCard, CompletenessCard, PreparedCard, SummaryCard } from "@/components/dashboard/case-file";
 import { CommunicationPanel } from "@/components/dashboard/communication";
 import { DocumentsPanel } from "@/components/dashboard/documents-panel";
-import { FollowUpsPanel } from "@/components/dashboard/followups-panel";
 import { KiToolsCard } from "@/components/dashboard/ki-tools-card";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -33,12 +32,11 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const store = await getStore(session);
   // Keine dieser Abfragen hängt vom Ergebnis der anderen ab, alle brauchen nur die id – parallel statt
   // nacheinander (spart eine Datenbank-Runde beim Öffnen einer Fallakte).
-  const [c, events, messages, documents, followUps, questions, company, templateDocs, templates, subscription, serviceMessages] = await Promise.all([
+  const [c, events, messages, documents, questions, company, templateDocs, templates, subscription, serviceMessages] = await Promise.all([
     store.getCase(id).catch(() => null),
     store.listEvents(id),
     store.listMessages(id),
     store.listDocuments(id),
-    store.listFollowUps(id),
     store.listQuestions(),
     store.getCompany(),
     store.listTemplateDocuments(id),
@@ -55,7 +53,6 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const readiness = readinessOf(c.status, checklist);
   const extra = questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
   const requiredKeys = questions.filter((q) => q.active && q.required).map((q) => q.key);
-  const canPlan = Boolean(c.fields.email || c.fields.phone) && checklist.missing.length > 0 && c.status !== "CONVERTED";
   const showPrepared = c.status === "COMPLETE" || c.status === "READY_FOR_REVIEW" || c.status === "CONVERTED";
 
   return (
@@ -81,7 +78,6 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
         <aside className="space-y-4 lg:order-2">
           <CompletenessCard checklist={checklist} readiness={readiness} />
           {showPrepared && <PreparedCard checklist={checklist} fields={c.fields} summary={c.summary} />}
-          <FollowUpsPanel caseId={c.id} followUps={followUps} canWrite={canWrite} canPlan={canPlan} />
           <Card>
             <CardHeader title="Verlauf & KI-Aktivitäten" />
             <ol className="space-y-4 px-5 py-4">

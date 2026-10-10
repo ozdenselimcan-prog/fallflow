@@ -18,7 +18,6 @@ import {
   ScatterChart,
   Sparkles,
   Workflow,
-  BellRing,
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
@@ -167,7 +166,6 @@ const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = 
   { icon: ClipboardCheck, title: "Case Completeness Score", text: "Jeder Fall zeigt 0–100 %, was vorliegt und was fehlt." },
   { icon: FileText, title: "Fallakte", text: "Kunde, Gebäude, Anliegen, Dokumente, Kommunikation und Zusammenfassung an einem Ort." },
   { icon: FileUp, title: "Dokumenten-Upload", text: "Sicherer Link zum Hochladen von Grundriss, Energieausweis und Fotos – privat gespeichert." },
-  { icon: BellRing, title: "Automatische Follow-ups", text: "Wenn der Kunde nicht liefert, wird nachgefasst – sichtbar im Dashboard." },
   { icon: Inbox, title: "Zentrale Inbox", text: "Website, E-Mail und Telefonnotizen – automatisch dem richtigen Fall zugeordnet." },
   { icon: Globe, title: "Website-Chat", text: "Ein Script-Tag genügt, um das Widget in Ihre bestehende Website einzubinden." },
   { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook und praktisch jedem Postfach." },
@@ -202,7 +200,7 @@ export function FeaturesSection() {
   );
 }
 
-const focus = ["Intake", "Qualifizierung", "Datensammlung", "Dokumente", "Follow-up", "Fallerstellung"];
+const focus = ["Intake", "Qualifizierung", "Datensammlung", "Dokumente", "Fallerstellung"];
 
 export function NoCrmSection() {
   return (

@@ -8,13 +8,12 @@ import {
   seedCompany,
   seedDocuments,
   seedEvents,
-  seedFollowUps,
   seedMembers,
   seedMessages,
   seedQuestions,
 } from "./seed";
 import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
-import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, DocumentTemplate, FollowUp, Member, Question, ServiceMessage, TemplateDocument } from "./types";
+import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, DocumentTemplate, Member, Question, ServiceMessage, TemplateDocument } from "./types";
 
 interface MemoryDb {
   company: Company;
@@ -22,7 +21,6 @@ interface MemoryDb {
   events: CaseEvent[];
   messages: CaseMessage[];
   documents: CaseDocument[];
-  followUps: FollowUp[];
   questions: Question[];
   assistant: AssistantSettings;
   appointments: Appointment[];
@@ -41,7 +39,6 @@ function db(): MemoryDb {
     events: seedEvents(),
     messages: seedMessages(),
     documents: seedDocuments(),
-    followUps: seedFollowUps(),
     questions: seedQuestions(),
     assistant: seedAssistant(),
     appointments: seedAppointments(),
@@ -121,7 +118,6 @@ export function createMemoryStore(): Store {
       d.events = d.events.filter((e) => e.caseId !== id);
       d.messages = d.messages.filter((m) => m.caseId !== id);
       d.documents = d.documents.filter((x) => x.caseId !== id);
-      d.followUps = d.followUps.filter((x) => x.caseId !== id);
     },
 
     async listEvents(caseId) {
@@ -169,23 +165,6 @@ export function createMemoryStore(): Store {
       }
       const created: CaseDocument = { ...doc, id: uid(), companyId: DEMO_COMPANY_ID };
       d.documents.push(created);
-      return created;
-    },
-
-    async listFollowUps(caseId) {
-      return db()
-        .followUps.filter((f) => !caseId || f.caseId === caseId)
-        .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
-    },
-    async saveFollowUp(f) {
-      const d = db();
-      const existing = f.id ? d.followUps.find((x) => x.id === f.id) : undefined;
-      if (existing) {
-        Object.assign(existing, f);
-        return existing;
-      }
-      const created: FollowUp = { ...f, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
-      d.followUps.push(created);
       return created;
     },
 

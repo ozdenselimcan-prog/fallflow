@@ -32,7 +32,7 @@ export const plans: Plan[] = [
     features: [
       "500 Kundenanfragen/Monat",
       "KI-Voreinschätzung, Förder- & Bauteilwerte-Schätzung",
-      "Zentrale Inbox & automatische Follow-ups",
+      "Zentrale Inbox",
       "Mehrere Mitarbeiter",
       "Monatlich kündbar",
     ],

@@ -140,7 +140,6 @@ export const messageSchema = z.object({
 
 export const documentRequestSchema = z.object({ kinds: z.array(z.enum(DOCUMENT_KINDS)).max(4).optional() });
 
-export const followUpActionSchema = z.object({ action: z.enum(["cancel", "mark_sent", "plan"]) });
 
 export const widgetSessionSchema = z.object({ companyId: z.string().uuid().or(z.literal("demo")) });
 export const widgetMessageSchema = z.object({

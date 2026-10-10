@@ -1,4 +1,4 @@
-import type { Appointment, CaseDocument, CaseRecord, FollowUp } from "@/lib/data/types";
+import type { Appointment, CaseDocument, CaseRecord } from "@/lib/data/types";
 
 export interface AttentionItem {
   id: string;
@@ -10,8 +10,8 @@ export interface AttentionItem {
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 /** „Anfragen, die deine Aufmerksamkeit brauchen“ – jeder Eintrag entspricht einer konkreten Handlung. */
-export function buildAttention(input: { cases: CaseRecord[]; documents: CaseDocument[]; followUps: FollowUp[]; appointments: Appointment[] }): AttentionItem[] {
-  const { cases, documents, followUps, appointments } = input;
+export function buildAttention(input: { cases: CaseRecord[]; documents: CaseDocument[]; appointments: Appointment[] }): AttentionItem[] {
+  const { cases, documents, appointments } = input;
   const items: AttentionItem[] = [];
   const open = cases.filter((c) => c.status !== "CONVERTED");
 
@@ -25,16 +25,6 @@ export function buildAttention(input: { cases: CaseRecord[]; documents: CaseDocu
       tone: "warning",
       text: `${withOpenDocs} ${plural(withOpenDocs, "Kunde hat", "Kunden haben")} noch Dokumente nicht hochgeladen`,
       href: "/dashboard/intake?filter=documents",
-    });
-  }
-
-  const dueManual = followUps.filter((f) => f.status === "manual").length;
-  if (dueManual) {
-    items.push({
-      id: "manual",
-      tone: "warning",
-      text: `${dueManual} ${plural(dueManual, "Follow-up ist", "Follow-ups sind")} fällig – bitte manuell nachfassen`,
-      href: "/dashboard/intake?filter=followups",
     });
   }
 

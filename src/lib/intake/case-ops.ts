@@ -13,7 +13,6 @@ import { readFile, saveFile, sniffMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
-import { documentRequestMessage, infoReminderMessage } from "./messages";
 import { appointmentConfirmedText, appointmentPendingReviewText, findNextSlot, formatSlot } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
@@ -25,13 +24,6 @@ export const uploadUrl = (token: string) => `${siteConfig.appUrl}/upload/${token
 export function currentUploadLink(c: Pick<CaseRecord, "uploadToken" | "uploadTokenExpiresAt">): string | null {
   return c.uploadToken && c.uploadTokenExpiresAt && Date.parse(c.uploadTokenExpiresAt) > Date.now() ? uploadUrl(c.uploadToken) : null;
 }
-
-const nextMorning = (days: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(9, 0, 0, 0);
-  return d.toISOString();
-};
 
 /**
  * Grenzt die Auswahl der "Leistung"-Frage auf die vom Büro tatsächlich angebotenen Leistungen ein
@@ -454,60 +446,9 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   else if (status !== previous) await store.addEvent(caseId, "status", `Status: ${STATUS_LABELS[status]}`);
 
   const result = updated ?? { ...c, status, completeness: checklist.percent, summary };
-  await syncFollowUps(store, result, checklist);
   return { caseRecord: result, checklist, documents, requestedNow, uploadLink, becamePrepared };
 }
 
-/** Plant genau ein Follow-up, solange etwas fehlt; bricht es ab, sobald alles vorliegt. */
-export async function syncFollowUps(store: Store, c: CaseRecord, checklist: Checklist, opts: { force?: boolean } = {}) {
-  const settings = await store.getAssistant();
-  const planned = (await store.listFollowUps(c.id)).filter((f) => f.status === "planned");
-  const needsFollowUp = c.status !== "CONVERTED" && checklist.missing.length > 0;
-
-  if (!needsFollowUp) {
-    for (const f of planned) await store.saveFollowUp({ ...f, status: "cancelled", note: "Nicht mehr nötig – alle Informationen liegen vor." });
-    return;
-  }
-  if ((!opts.force && !settings.autoFollowUp) || !(c.fields.email || c.fields.phone)) return;
-
-  const onlyDocsMissing = checklist.missingFields.length === 0;
-  let message: string;
-  let kind: "document" | "info";
-  if (onlyDocsMissing) {
-    const token = await ensureUploadToken(store, c);
-    // Klassische Dokumentarten und zurückerwartete Büro-Vorlagen ("template:…", kein fester DocumentKind)
-    // getrennt behandeln – letztere haben keinen Eintrag in den Dokumentart-Textbausteinen.
-    const docMissing = checklist.missing.filter((i) => i.key.startsWith("doc:"));
-    const templateMissing = checklist.missing.filter((i) => i.key.startsWith("template:"));
-    const parts: string[] = [];
-    if (docMissing.length) {
-      const kinds = docMissing.map((i) => i.key.replace("doc:", "") as DocumentKind);
-      parts.push(documentRequestMessage({ name: c.fields.name, kinds, url: uploadUrl(token), reminder: true }));
-    }
-    if (templateMissing.length) {
-      const list = templateMissing.map((i) => i.label).join(", ");
-      const greetingLine = c.fields.name?.trim() ? `Guten Tag ${c.fields.name.trim()},` : "Guten Tag,";
-      parts.push(
-        docMissing.length
-          ? `Außerdem fehlt uns noch die ausgefüllte Vorlage: ${list}. Bitte einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`
-          : `${greetingLine}\n\nuns fehlt noch die ausgefüllte Vorlage: ${list}. Bitte einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.\n\nVielen Dank!`,
-      );
-    }
-    message = parts.join("\n\n");
-    kind = "document";
-  } else {
-    message = infoReminderMessage({ name: c.fields.name, missing: checklist.missing.map((i) => i.label) });
-    kind = "info";
-  }
-
-  const existing = planned[0];
-  if (existing) {
-    if (existing.message !== message || existing.kind !== kind) await store.saveFollowUp({ ...existing, message, kind });
-    return;
-  }
-  await store.saveFollowUp({ caseId: c.id, kind, message, scheduledFor: nextMorning(1), status: "planned", sentAt: null, note: "" });
-  await store.addEvent(c.id, "followup", "Follow-up geplant für morgen");
-}
 
 export type ConfirmAppointmentResult =
   | { ok: true; appointment: Appointment; delivered: boolean; reason: string }

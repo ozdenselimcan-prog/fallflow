@@ -126,20 +126,6 @@ export interface CaseDocument {
   receivedAt: string | null;
 }
 
-export interface FollowUp {
-  id: string;
-  caseId: string;
-  companyId: string;
-  kind: "document" | "info";
-  message: string;
-  scheduledFor: string;
-  /** planned = geplant, sent = versendet, manual = fällig, aber Versand nur manuell möglich, cancelled = abgebrochen */
-  status: "planned" | "sent" | "manual" | "cancelled";
-  sentAt: string | null;
-  note: string;
-  createdAt: string;
-}
-
 export interface Question {
   id: string;
   companyId: string;

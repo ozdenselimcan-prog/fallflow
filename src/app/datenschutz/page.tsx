@@ -72,7 +72,7 @@ export default function DatenschutzPage() {
               items={[
                 "Bereitstellung der Anwendung und Vertragserfüllung mit den Büros – Art. 6 Abs. 1 lit. b DSGVO",
                 "Bearbeitung von Anfragen durch das jeweilige Büro (Vorbereitung eines Beratungsverhältnisses) – Art. 6 Abs. 1 lit. b DSGVO, im Auftrag des Büros",
-                "Erfassung fehlender Angaben, Erinnerungen und Nachfassen zu einer offenen Anfrage – Art. 6 Abs. 1 lit. b bzw. f DSGVO (Interesse an einer zügigen Bearbeitung)",
+                "Erfassung fehlender Angaben zu einer offenen Anfrage – Art. 6 Abs. 1 lit. b bzw. f DSGVO (Interesse an einer zügigen Bearbeitung)",
                 "Sicherheit, Missbrauchsabwehr und Fehleranalyse (Rate-Limits, Logs) – Art. 6 Abs. 1 lit. f DSGVO",
                 "Erfüllung gesetzlicher Pflichten – Art. 6 Abs. 1 lit. c DSGVO",
               ]}

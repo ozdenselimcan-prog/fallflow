@@ -9,8 +9,8 @@ export const GET = withSession(async (_req, { store }, ctx: RouteContext<"/api/c
   if (!idSchema.safeParse(id).success) return apiError("Nicht gefunden", 404);
   const c = await store.getCase(id);
   if (!c) return apiError("Nicht gefunden", 404);
-  const [events, messages, documents, followUps] = await Promise.all([store.listEvents(id), store.listMessages(id), store.listDocuments(id), store.listFollowUps(id)]);
-  return json({ case: c, events, messages, documents: documents.map(publicDocument), followUps });
+  const [events, messages, documents] = await Promise.all([store.listEvents(id), store.listMessages(id), store.listDocuments(id)]);
+  return json({ case: c, events, messages, documents: documents.map(publicDocument) });
 });
 
 export const PATCH = withSession(

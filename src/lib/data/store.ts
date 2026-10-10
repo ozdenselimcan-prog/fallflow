@@ -15,7 +15,6 @@ import type {
   Company,
   DashboardStats,
   DocumentTemplate,
-  FollowUp,
   Member,
   MessageMeta,
   Profile,
@@ -41,7 +40,6 @@ export interface CasePatch {
 }
 
 export type DocumentInput = Omit<CaseDocument, "id" | "companyId"> & { id?: string };
-export type FollowUpInput = Omit<FollowUp, "id" | "companyId" | "createdAt"> & { id?: string };
 
 /**
  * Datenzugriff pro Mandant (Company). Es gibt zwei Implementierungen:
@@ -71,8 +69,6 @@ export interface Store {
   saveDocument(doc: DocumentInput): Promise<CaseDocument>;
 
   /** Ohne caseId: alle Follow-ups des Büros. */
-  listFollowUps(caseId?: string): Promise<FollowUp[]>;
-  saveFollowUp(f: FollowUpInput): Promise<FollowUp>;
 
   listQuestions(): Promise<Question[]>;
   saveQuestion(q: Omit<Question, "companyId" | "id" | "position"> & { id?: string; position?: number }): Promise<Question>;

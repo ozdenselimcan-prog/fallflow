@@ -1,7 +1,6 @@
 import { buildSummary } from "@/lib/cases/completeness";
 import { DEFAULT_ASSISTANT, DEFAULT_QUESTIONS } from "@/lib/cases/fields";
 import { buildChecklist } from "@/lib/intake/checklist";
-import { documentRequestMessage, infoReminderMessage } from "@/lib/intake/messages";
 import type {
   Appointment,
   CaseDocument,
@@ -11,7 +10,6 @@ import type {
   CaseStatus,
   Company,
   DocumentKind,
-  FollowUp,
   Member,
   MessageChannel,
   Question,
@@ -27,8 +25,6 @@ const inDays = (days: number, hour: number) => {
   d.setHours(hour, 0, 0, 0);
   return d.toISOString();
 };
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-const uploadUrl = (token: string) => `${APP_URL}/upload/${token}`;
 
 export function seedCompany(): Company {
   return {
@@ -397,45 +393,3 @@ export function seedAppointments(): Appointment[] {
   ];
 }
 
-export function seedFollowUps(): FollowUp[] {
-  const weber = seedCases.find((c) => c.id === "c-3")!;
-  const mustermann = seedCases.find((c) => c.id === "c-1")!;
-  return [
-    {
-      id: "f-1",
-      caseId: "c-3",
-      companyId: DEMO_COMPANY_ID,
-      kind: "document",
-      message: documentRequestMessage({ name: weber.fields.name, kinds: ["floorplan", "energy_certificate"], url: uploadUrl(weber.token!), reminder: true }),
-      scheduledFor: inDays(1, 9),
-      status: "planned",
-      sentAt: null,
-      note: "",
-      createdAt: ago(1, 20),
-    },
-    {
-      id: "f-2",
-      caseId: "c-1",
-      companyId: DEMO_COMPANY_ID,
-      kind: "document",
-      message: documentRequestMessage({ name: mustermann.fields.name, kinds: ["floorplan"], url: uploadUrl(mustermann.token!), reminder: true }),
-      scheduledFor: inDays(2, 9),
-      status: "planned",
-      sentAt: null,
-      note: "",
-      createdAt: ago(0, 2),
-    },
-    {
-      id: "f-3",
-      caseId: "c-2",
-      companyId: DEMO_COMPANY_ID,
-      kind: "info",
-      message: infoReminderMessage({ name: "Anna Schmidt", missing: ["Wohnfläche", "Heizung", "Eigentümerstatus", "Straße", "Telefonnummer"] }),
-      scheduledFor: inDays(1, 9),
-      status: "planned",
-      sentAt: null,
-      note: "",
-      createdAt: ago(0, 0, 10),
-    },
-  ];
-}

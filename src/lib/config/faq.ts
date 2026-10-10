@@ -5,7 +5,7 @@ export const faqs = [
   },
   {
     q: "Was unterscheidet FallFlow von einem KI-Chatbot?",
-    a: "Ein Chatbot beantwortet Fragen. FallFlow führt einen Vorgang zu Ende: Es erkennt Angaben in der Anfrage, fragt nur Fehlendes nach, fordert Dokumente an, fasst nach, prüft die Vollständigkeit und legt die fertige Fallakte an. Es berät nicht und erfindet keine Angaben.",
+    a: "Ein Chatbot beantwortet Fragen. FallFlow führt einen Vorgang zu Ende: Es erkennt Angaben in der Anfrage, fragt nur Fehlendes nach, fordert Dokumente an, prüft die Vollständigkeit und legt die fertige Fallakte an. Es berät nicht und erfindet keine Angaben.",
   },
   {
     q: "Kann ich meine bestehende Website weiterverwenden?",
@@ -14,10 +14,6 @@ export const faqs = [
   {
     q: "Was passiert mit hochgeladenen Dokumenten?",
     a: "Kunden laden Grundriss, Energieausweis oder Fotos über einen persönlichen, zeitlich begrenzten Link hoch. Zulässig sind PDF, JPG, PNG und WebP bis 10 MB; der Dateityp wird am Inhalt geprüft. Die Dateien liegen in einem privaten Speicher und sind nur für Mitarbeiter Ihres Büros abrufbar – es gibt keine öffentlichen Datei-Links.",
-  },
-  {
-    q: "Wird wirklich per E-Mail nachgefasst?",
-    a: "Nur über einen tatsächlich verbundenen Kanal. Solange kein E-Mail-Postfach mit Ihren Zugangsdaten verbunden ist, zeigt FallFlow das klar als „nicht verbunden“ bzw. „Demo-Modus“ an und legt fällige Follow-ups mit fertigem Text zum manuellen Versand bereit. Es wird nie ein Versand vorgetäuscht.",
   },
   {
     q: "Kann FallFlow automatisch antworten?",

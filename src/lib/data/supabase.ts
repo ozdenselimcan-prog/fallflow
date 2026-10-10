@@ -11,7 +11,6 @@ import type {
   Channel,
   Company,
   DocumentTemplate,
-  FollowUp,
   Member,
   Question,
   ServiceMessage,
@@ -116,19 +115,6 @@ const mapDocument = (r: Row): CaseDocument => ({
   storagePath: r.storage_path,
   requestedAt: r.requested_at,
   receivedAt: r.received_at,
-});
-
-const mapFollowUp = (r: Row): FollowUp => ({
-  id: r.id,
-  caseId: r.case_id,
-  companyId: r.company_id,
-  kind: r.kind,
-  message: r.message,
-  scheduledFor: r.scheduled_for,
-  status: r.status,
-  sentAt: r.sent_at,
-  note: r.note,
-  createdAt: r.created_at,
 });
 
 const mapQuestion = (r: Row): Question => ({
@@ -332,30 +318,6 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       const { data, error } = await q.select("*").single();
       fail(error, "document save");
       return mapDocument(data!);
-    },
-
-    async listFollowUps(caseId): Promise<FollowUp[]> {
-      let q = db.from("follow_ups").select("*").eq("company_id", companyId).order("scheduled_for");
-      if (caseId) q = q.eq("case_id", caseId);
-      const { data, error } = await q;
-      fail(error, "follow-ups");
-      return (data ?? []).map(mapFollowUp);
-    },
-    async saveFollowUp(f) {
-      const row = {
-        company_id: companyId,
-        case_id: f.caseId,
-        kind: f.kind,
-        message: f.message,
-        scheduled_for: f.scheduledFor,
-        status: f.status,
-        sent_at: f.sentAt,
-        note: f.note,
-      };
-      const q = f.id ? db.from("follow_ups").update(row).eq("company_id", companyId).eq("id", f.id) : db.from("follow_ups").insert(row);
-      const { data, error } = await q.select("*").single();
-      fail(error, "follow-up save");
-      return mapFollowUp(data!);
     },
 
     async listQuestions() {

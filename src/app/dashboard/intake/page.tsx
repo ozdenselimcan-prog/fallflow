@@ -15,7 +15,7 @@ import { cn, timeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "AI Intake" };
 
-const FILTERS = { documents: "Warten auf Dokumente", followups: "Follow-up fällig" } as const;
+const FILTERS = { documents: "Warten auf Dokumente" } as const;
 
 function Panel({ title, description, empty, children, count }: { title: string; description: string; empty: string; children: React.ReactNode; count: number }) {
   return (
@@ -42,10 +42,9 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
 
   const session = await requireSession();
   const store = await getStore(session);
-  const [cases, documents, followUps, questions, company, templateDocs, templates, serviceMessages] = await Promise.all([
+  const [cases, documents, questions, company, templateDocs, templates, serviceMessages] = await Promise.all([
     store.listCases({ sort: "newest" }),
     store.listDocuments(),
-    store.listFollowUps(),
     store.listQuestions(),
     store.getCompany(),
     store.listTemplateDocuments(),
@@ -59,12 +58,10 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
   const byActivity = (list: CaseRecord[]) => [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
   const openDocCases = new Set(documents.filter((d) => d.status === "requested" && nameOf.get(d.caseId)?.status !== "CONVERTED").map((d) => d.caseId));
-  const manualCases = new Set(followUps.filter((f) => f.status === "manual").map((f) => f.caseId));
 
   let filtered: CaseRecord[] | null = null;
   if (status) filtered = cases.filter((c) => c.status === status);
   else if (filter === "documents") filtered = cases.filter((c) => openDocCases.has(c.id));
-  else if (filter === "followups") filtered = cases.filter((c) => manualCases.has(c.id));
 
   const fresh = byActivity(cases.filter((c) => c.status === "NEW"));
   const qualifying = byActivity(cases.filter((c) => c.status === "QUALIFYING"));
