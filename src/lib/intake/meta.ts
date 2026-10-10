@@ -1,4 +1,4 @@
-import type { CaseDocument, CaseRecord, DocumentTemplate, Question, TemplateDocument } from "@/lib/data/types";
+import type { CaseDocument, CaseRecord, DocumentTemplate, Question, ServiceMessage, TemplateDocument } from "@/lib/data/types";
 import { buildChecklist, readinessOf, type FoerderDocumentOverrides, type Readiness } from "./checklist";
 
 export interface CaseMeta {
@@ -17,6 +17,7 @@ export function buildCaseMeta(
   foerderOverrides?: FoerderDocumentOverrides,
   templateDocs: TemplateDocument[] = [],
   templates: DocumentTemplate[] = [],
+  serviceMessages: ServiceMessage[] = [],
 ): Record<string, CaseMeta> {
   const byCase = new Map<string, CaseDocument[]>();
   for (const d of documents) byCase.set(d.caseId, [...(byCase.get(d.caseId) ?? []), d]);
@@ -29,7 +30,7 @@ export function buildCaseMeta(
   return Object.fromEntries(
     cases.map((c) => {
       const docs = byCase.get(c.id) ?? [];
-      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides, templateSends: templateSendsByCase.get(c.id), includeFields: c.source !== "email" });
+      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides, serviceMessages, templateSends: templateSendsByCase.get(c.id), includeFields: c.source !== "email" });
       return [
         c.id,
         {

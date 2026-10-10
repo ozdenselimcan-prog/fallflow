@@ -307,9 +307,19 @@ export function createMemoryStore(): Store {
       if (existing) {
         existing.body = m.body;
         if (m.appointmentNote !== undefined) existing.appointmentNote = m.appointmentNote;
+        if (m.requiresFloorplan !== undefined) existing.requiresFloorplan = m.requiresFloorplan;
+        if (m.requiresEnergyCertificate !== undefined) existing.requiresEnergyCertificate = m.requiresEnergyCertificate;
         return existing;
       }
-      const created: ServiceMessage = { id: uid(), companyId: DEMO_COMPANY_ID, service: m.service, body: m.body, appointmentNote: m.appointmentNote ?? "" };
+      const created: ServiceMessage = {
+        id: uid(),
+        companyId: DEMO_COMPANY_ID,
+        service: m.service,
+        body: m.body,
+        appointmentNote: m.appointmentNote ?? "",
+        requiresFloorplan: m.requiresFloorplan ?? null,
+        requiresEnergyCertificate: m.requiresEnergyCertificate ?? null,
+      };
       d.serviceMessages.push(created);
       return created;
     },

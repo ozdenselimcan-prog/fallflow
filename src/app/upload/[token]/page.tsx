@@ -23,12 +23,13 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
   }
 
   const { store, caseRecord } = found;
-  const [questions, documents, company, templateDocs, templates] = await Promise.all([
+  const [questions, documents, company, templateDocs, templates, serviceMessages] = await Promise.all([
     store.listQuestions(),
     store.listDocuments(caseRecord.id),
     store.getCompany(),
     store.listTemplateDocuments(caseRecord.id),
     store.listDocumentTemplates(),
+    store.listServiceMessages(),
   ]);
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
   const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
@@ -37,6 +38,7 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
     fields: caseRecord.fields,
     documents,
     foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    serviceMessages,
     templateSends,
   });
   const items = checklist.items.filter((i) => i.kind === "document").map((i) => ({ kind: i.key.startsWith("doc:") ? i.key.replace("doc:", "") : i.key, label: i.label, required: i.required, done: i.done }));

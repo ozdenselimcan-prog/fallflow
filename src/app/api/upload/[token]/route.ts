@@ -15,12 +15,13 @@ export const GET = publicRoute("upload-info", 60, async (_req, ctx: RouteContext
   const found = await findUploadContext(token);
   if (!found) return apiError("Der Link ist ungültig oder abgelaufen.", 404);
   const { store, caseRecord } = found;
-  const [questions, documents, company, templateDocs, templates] = await Promise.all([
+  const [questions, documents, company, templateDocs, templates, serviceMessages] = await Promise.all([
     store.listQuestions(),
     store.listDocuments(caseRecord.id),
     store.getCompany(),
     store.listTemplateDocuments(caseRecord.id),
     store.listDocumentTemplates(),
+    store.listServiceMessages(),
   ]);
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
   const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
@@ -29,6 +30,7 @@ export const GET = publicRoute("upload-info", 60, async (_req, ctx: RouteContext
     fields: caseRecord.fields,
     documents,
     foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    serviceMessages,
     templateSends,
   });
   return json({

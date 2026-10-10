@@ -1,16 +1,16 @@
 import { isAnswered, SKIPPED } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, ENERGY_SOURCE_BY_HEATING } from "@/lib/cases/fields";
-import type { CaseDocument, CaseStatus, DocumentKind, Question } from "@/lib/data/types";
+import type { CaseDocument, CaseStatus, DocumentKind, Question, ServiceMessage } from "@/lib/data/types";
 
 /**
  * Reine Logik (ohne Server-Abhängigkeiten, läuft auch im Browser):
  * Vollständigkeits-Checkliste, Dokumentenbedarf, Lead-Readiness und Statusableitung.
  */
 
-const ENERGY_CERT_SERVICES = ["iSFP", "Energieberatung", "Sanierung", "Baubegleitung", "Heizung"];
+export const ENERGY_CERT_SERVICES = ["iSFP", "Energieberatung", "Sanierung", "Baubegleitung", "Heizung"];
 const FLOORS_SERVICES = ["iSFP", "Sanierung", "Baubegleitung"];
 /** Für diese Leistung sind Energieausweis/Grundriss je Büro einstellbar (Standard: nicht nötig). */
-const FOERDER_SERVICE = "Fördermittelberatung";
+export const FOERDER_SERVICE = "Fördermittelberatung";
 
 export interface DocumentRequirement {
   kind: DocumentKind;
@@ -24,17 +24,27 @@ export interface FoerderDocumentOverrides {
   floorplan: boolean;
 }
 
-/** Welche Dokumente für diesen Fall gebraucht werden – abhängig von der gewünschten Leistung. */
-export function documentRequirements(fields: Record<string, string>, foerderOverrides?: FoerderDocumentOverrides): DocumentRequirement[] {
+/** Standard-Dokumentbedarf einer Leistung, ohne jede Büro-Einstellung – Basis für die Checkbox-Anzeige "Vorlagen & Nachrichten". */
+export function defaultDocumentRequirements(service: string): { floorplan: boolean; energyCertificate: boolean } {
+  return { floorplan: service !== FOERDER_SERVICE, energyCertificate: ENERGY_CERT_SERVICES.includes(service) };
+}
+
+/** Welche Dokumente für diesen Fall gebraucht werden – abhängig von der gewünschten Leistung, dem (veralteten,
+ * nur für Fördermittelberatung genutzten) Firmen-Override und der je Leistung einstellbaren Vorlagen-&-
+ * Nachrichten-Konfiguration (serviceMessages – hat Vorrang, falls dort ausdrücklich gesetzt). */
+export function documentRequirements(fields: Record<string, string>, foerderOverrides?: FoerderDocumentOverrides, serviceMessages?: ServiceMessage[]): DocumentRequirement[] {
   const service = fields.service ?? "";
   const isFoerder = service === FOERDER_SERVICE;
   const out: DocumentRequirement[] = [];
-  // Grundriss ist sonst immer Pflicht (Basis der Gebäudeaufnahme) – nur bei Fördermittelberatung einstellbar.
-  const wantsFloorplan = isFoerder ? Boolean(foerderOverrides?.floorplan) : true;
+  const override = serviceMessages?.find((m) => m.service === service);
+  const defaults = defaultDocumentRequirements(service);
+  // Grundriss ist sonst immer Pflicht (Basis der Gebäudeaufnahme) – nur bei Fördermittelberatung über den
+  // alten Firmen-Override einstellbar, es sei denn, das Büro hat es für diese Leistung ausdrücklich gesetzt.
+  const wantsFloorplan = override?.requiresFloorplan ?? (isFoerder ? Boolean(foerderOverrides?.floorplan) : defaults.floorplan);
   if (wantsFloorplan) {
     out.push({ kind: "floorplan", label: DOCUMENT_LABELS.floorplan, required: true, reason: "Grundlage für die Gebäudeaufnahme" });
   }
-  const wantsEnergyCert = isFoerder ? Boolean(foerderOverrides?.energyCertificate) : ENERGY_CERT_SERVICES.includes(service);
+  const wantsEnergyCert = override?.requiresEnergyCertificate ?? (isFoerder ? Boolean(foerderOverrides?.energyCertificate) : defaults.energyCertificate);
   if (wantsEnergyCert) {
     out.push({ kind: "energy_certificate", label: DOCUMENT_LABELS.energy_certificate, required: true, reason: "Ausgangswerte des Gebäudes" });
   }
@@ -93,6 +103,8 @@ export function buildChecklist(input: {
   fields: Record<string, string>;
   documents: CaseDocument[];
   foerderOverrides?: FoerderDocumentOverrides;
+  /** Für den je Leistung einstellbaren Dokumentbedarf (Vorlagen & Nachrichten) – siehe documentRequirements. */
+  serviceMessages?: ServiceMessage[];
   /** Vom Büro an diesen Fall gesendete PDF-Vorlagen – fließen als Pflichtdokumente ein, bis sie ausgefüllt zurück sind. */
   templateSends?: TemplateSendInfo[];
   /**
@@ -112,7 +124,7 @@ export function buildChecklist(input: {
       items.push({ key: q.key, label: q.label, kind: "field", required: q.required, done });
     }
   }
-  for (const req of documentRequirements(fields, input.foerderOverrides)) {
+  for (const req of documentRequirements(fields, input.foerderOverrides, input.serviceMessages)) {
     const done = documents.some((d) => d.kind === req.kind && d.status === "received");
     const requested = done || documents.some((d) => d.kind === req.kind && d.status === "requested");
     items.push({ key: `doc:${req.kind}`, label: req.label, kind: "document", required: req.required, done, requested });

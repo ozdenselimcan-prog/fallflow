@@ -17,7 +17,7 @@ const dot = { accent: "bg-accent", warning: "bg-warning", success: "bg-success" 
 export default async function DashboardPage() {
   const session = await requireSession();
   const store = await getStore(session);
-  const [stats, cases, documents, followUps, appointments, events, questions, company, templateDocs, templates] = await Promise.all([
+  const [stats, cases, documents, followUps, appointments, events, questions, company, templateDocs, templates, serviceMessages] = await Promise.all([
     store.getStats(),
     store.listCases({ sort: "newest" }),
     store.listDocuments(),
@@ -28,6 +28,7 @@ export default async function DashboardPage() {
     store.getCompany(),
     store.listTemplateDocuments(),
     store.listDocumentTemplates(),
+    store.listServiceMessages(),
   ]);
 
   const tiles = [
@@ -40,7 +41,7 @@ export default async function DashboardPage() {
 
   const attention = buildAttention({ cases, documents, followUps, appointments });
   const active = cases.filter((c) => c.status !== "CONVERTED").sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
-  const meta = buildCaseMeta(active, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, templateDocs, templates);
+  const meta = buildCaseMeta(active, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, templateDocs, templates, serviceMessages);
   const nameOf = new Map(cases.map((c) => [c.id, c.customerName && c.customerName !== "Unbekannt" ? c.customerName : (c.fields.email ?? c.customerName)]));
   const upcoming = followUps.filter((f) => f.status === "planned" || f.status === "manual").slice(0, 4);
 

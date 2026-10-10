@@ -334,13 +334,14 @@ const PREPARED = ["COMPLETE", "READY_FOR_REVIEW", "CONVERTED"];
  * Wird nach jeder Änderung aufgerufen (Chat-Nachricht, Upload, Bearbeitung, Notiz).
  */
 export async function refreshCase(store: Store, caseId: string, opts: RefreshOptions = {}): Promise<RefreshResult> {
-  const [current, questions, settings, company, templateDocs, templates] = await Promise.all([
+  const [current, questions, settings, company, templateDocs, templates, serviceMessages] = await Promise.all([
     store.getCase(caseId),
     store.listQuestions(),
     store.getAssistant(),
     store.getCompany(),
     store.listTemplateDocuments(caseId),
     store.listDocumentTemplates(),
+    store.listServiceMessages(),
   ]);
   if (!current) throw new Error("Fall nicht gefunden");
 
@@ -354,7 +355,7 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   // Frage-Flow ist eine reine Website-Chat-Funktion: Bei E-Mail-Fällen fragt die KI nichts davon aktiv ab
   // (siehe engine.ts), deshalb dürfen diese Felder dort auch nicht als "fehlend" die Vollständigkeit blockieren.
   const includeFields = c.source !== "email";
-  let checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends, includeFields });
+  let checklist = buildChecklist({ questions, fields, documents, foerderOverrides, serviceMessages, templateSends, includeFields });
 
   let requestedNow: DocumentKind[] = [];
   let uploadLink: string | null = null;
@@ -365,7 +366,7 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
       requestedNow = res.requested;
       uploadLink = res.url;
       documents = await store.listDocuments(caseId);
-      checklist = buildChecklist({ questions, fields, documents, foerderOverrides, templateSends, includeFields });
+      checklist = buildChecklist({ questions, fields, documents, foerderOverrides, serviceMessages, templateSends, includeFields });
       c = (await store.getCase(caseId)) ?? c;
     }
   }

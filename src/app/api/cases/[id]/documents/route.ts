@@ -20,12 +20,13 @@ export const POST = withSession(
     const c = await store.getCase(id);
     if (!c) return apiError("Nicht gefunden", 404);
 
-    const [questions, documents, company] = await Promise.all([store.listQuestions(), store.listDocuments(id), store.getCompany()]);
+    const [questions, documents, company, serviceMessages] = await Promise.all([store.listQuestions(), store.listDocuments(id), store.getCompany(), store.listServiceMessages()]);
     const checklist = buildChecklist({
       questions,
       fields: c.fields,
       documents,
       foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+      serviceMessages,
     });
     // Nur klassische Dokumentarten – Vorlagen-Rückläufer ("template:…") laufen über die Büro-Vorlagen-Funktion, nicht hier.
     const kinds: DocumentKind[] = body.data.kinds ?? checklist.missing.filter((i) => i.kind === "document" && i.key.startsWith("doc:")).map((i) => i.key.replace("doc:", "") as DocumentKind);

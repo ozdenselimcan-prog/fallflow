@@ -31,7 +31,13 @@ export default async function AssistantTemplatesPage() {
       <div className="h-4" />
       <ServiceMessagesPanel
         services={company.services}
-        initialMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
+        initialMessages={serviceMessages.map((m) => ({
+          service: m.service,
+          body: m.body,
+          appointmentNote: m.appointmentNote,
+          requiresFloorplan: m.requiresFloorplan,
+          requiresEnergyCertificate: m.requiresEnergyCertificate,
+        }))}
         initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
         canEdit={canEdit}
       />

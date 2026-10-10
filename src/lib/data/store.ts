@@ -102,7 +102,7 @@ export interface Store {
 
   listServiceMessages(): Promise<ServiceMessage[]>;
   /** Legt an oder aktualisiert (ein Eintrag pro Leistung) – service identifiziert, nicht id. */
-  saveServiceMessage(m: { service: string; body: string; appointmentNote?: string }): Promise<ServiceMessage>;
+  saveServiceMessage(m: { service: string; body: string; appointmentNote?: string; requiresFloorplan?: boolean | null; requiresEnergyCertificate?: boolean | null }): Promise<ServiceMessage>;
 
   listChannels(): Promise<Channel[]>;
   /** Kanal-Status für die UI setzen (verbunden/getrennt + sichtbarer Account-Name, z. B. E-Mail-Adresse). Keine Tokens. */

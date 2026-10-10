@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/form";
+import { Checkbox, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
+import { defaultDocumentRequirements } from "@/lib/intake/checklist";
 import { apiFetch } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,8 @@ export interface ServiceMessageView {
   service: string;
   body: string;
   appointmentNote?: string;
+  requiresFloorplan?: boolean | null;
+  requiresEnergyCertificate?: boolean | null;
 }
 export interface ServiceTemplateView {
   id: string;
@@ -83,6 +86,18 @@ export function ServiceMessagesPanel({
     }
     return map;
   });
+  // Welche Dokumente braucht das Büro für diese Leistung wirklich? Ohne eigene Angabe gilt die Standard-Logik
+  // je Leistung (z. B. Grundriss normalerweise Pflicht, Energieausweis nur bei bestimmten Leistungen).
+  const [docReqs, setDocReqs] = useState<Record<string, { floorplan: boolean; energyCertificate: boolean }>>(() => {
+    const map: Record<string, { floorplan: boolean; energyCertificate: boolean }> = {};
+    for (const s of rows) {
+      if (s === ALWAYS_ROW) continue;
+      const stored = initialMessages.find((m) => m.service === s);
+      const defaults = defaultDocumentRequirements(s);
+      map[s] = { floorplan: stored?.requiresFloorplan ?? defaults.floorplan, energyCertificate: stored?.requiresEnergyCertificate ?? defaults.energyCertificate };
+    }
+    return map;
+  });
   const [templates, setTemplates] = useState(initialTemplates);
   const [savedService, setSavedService] = useState<string | null>(null);
   const [busyRow, setBusyRow] = useState<string | null>(null);
@@ -93,7 +108,13 @@ export function ServiceMessagesPanel({
     setError(null);
     setBusyRow(service);
     try {
-      await apiFetch("PUT", "/api/service-messages", { service, body: bodies[service] ?? "", appointmentNote: appointmentNotes[service] ?? "" });
+      await apiFetch("PUT", "/api/service-messages", {
+        service,
+        body: bodies[service] ?? "",
+        appointmentNote: appointmentNotes[service] ?? "",
+        requiresFloorplan: docReqs[service]?.floorplan ?? true,
+        requiresEnergyCertificate: docReqs[service]?.energyCertificate ?? false,
+      });
       setSavedService(service);
       setTimeout(() => setSavedService((s) => (s === service ? null : s)), 2000);
     } catch (e) {
@@ -210,6 +231,23 @@ export function ServiceMessagesPanel({
                       value={appointmentNotes[row] ?? ""}
                       onChange={(e) => setAppointmentNotes({ ...appointmentNotes, [row]: e.target.value })}
                     />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Welche Angaben benötigen Sie bei dieser Leistung?</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Checkbox
+                        label="Grundriss"
+                        disabled={!canEdit}
+                        checked={docReqs[row]?.floorplan ?? true}
+                        onChange={(v) => setDocReqs({ ...docReqs, [row]: { ...docReqs[row], floorplan: v, energyCertificate: docReqs[row]?.energyCertificate ?? false } })}
+                      />
+                      <Checkbox
+                        label="Energieausweis"
+                        disabled={!canEdit}
+                        checked={docReqs[row]?.energyCertificate ?? false}
+                        onChange={(v) => setDocReqs({ ...docReqs, [row]: { ...docReqs[row], floorplan: docReqs[row]?.floorplan ?? true, energyCertificate: v } })}
+                      />
+                    </div>
                   </div>
                   {canEdit && (
                     <div className="mt-2 flex items-center gap-2">

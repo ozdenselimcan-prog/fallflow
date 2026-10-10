@@ -224,6 +224,10 @@ export interface ServiceMessage {
   /** Ersetzt die sonst feste, tonabhängige Standardformulierung ("Ein Mitarbeiter meldet sich ..."),
    * sobald der Fall für diese Leistung vollständig ist. Leer = Standardtext verwenden. */
   appointmentNote: string;
+  /** Welche Dokumente braucht das Büro für diese Leistung wirklich? null = Standardverhalten je Leistung
+   * (siehe checklist.ts documentRequirements), sonst vom Büro ausdrücklich festgelegt. */
+  requiresFloorplan: boolean | null;
+  requiresEnergyCertificate: boolean | null;
 }
 
 /** Rückweg einer Büro-PDF-Vorlage: 'sent' = an den Kunden geschickt, 'received' = ausgefüllt zurück. */

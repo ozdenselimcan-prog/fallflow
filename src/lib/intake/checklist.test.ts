@@ -40,6 +40,22 @@ describe("documentRequirements", () => {
   it("Fotos sind nie Pflicht", () => {
     expect(documentRequirements({ service: "Energieberatung" }).find((r) => r.kind === "photos")?.required).toBe(false);
   });
+
+  it("die je Leistung einstellbaren Angaben (Vorlagen & Nachrichten) haben Vorrang vor der Standard-Logik", () => {
+    // iSFP verlangt standardmäßig Grundriss + Energieausweis – das Büro kann beides einzeln abschalten.
+    const off = documentRequirements({ service: "iSFP" }, undefined, [{ id: "s1", companyId: "c1", service: "iSFP", body: "", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false }]);
+    expect(off.some((r) => r.kind === "floorplan")).toBe(false);
+    expect(off.some((r) => r.kind === "energy_certificate")).toBe(false);
+
+    // Fördermittelberatung verlangt standardmäßig keins von beidem – das Büro kann es trotzdem einschalten,
+    // auch ohne den alten (nur für diese eine Leistung gedachten) Firmen-Override zu setzen.
+    const on = documentRequirements({ service: "Fördermittelberatung" }, undefined, [
+      { id: "s2", companyId: "c1", service: "Fördermittelberatung", body: "", appointmentNote: "", requiresFloorplan: true, requiresEnergyCertificate: null },
+    ]);
+    expect(on.some((r) => r.kind === "floorplan")).toBe(true);
+    // requiresEnergyCertificate ist null -> fällt auf die normale Fördermittelberatung-Logik (Firmen-Override) zurück.
+    expect(on.some((r) => r.kind === "energy_certificate")).toBe(false);
+  });
 });
 
 describe("isRelevant", () => {

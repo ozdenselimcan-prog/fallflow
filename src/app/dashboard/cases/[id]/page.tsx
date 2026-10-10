@@ -33,7 +33,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const store = await getStore(session);
   // Keine dieser Abfragen hängt vom Ergebnis der anderen ab, alle brauchen nur die id – parallel statt
   // nacheinander (spart eine Datenbank-Runde beim Öffnen einer Fallakte).
-  const [c, events, messages, documents, followUps, questions, company, templateDocs, templates, subscription] = await Promise.all([
+  const [c, events, messages, documents, followUps, questions, company, templateDocs, templates, subscription, serviceMessages] = await Promise.all([
     store.getCase(id).catch(() => null),
     store.listEvents(id),
     store.listMessages(id),
@@ -44,13 +44,14 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
     store.listTemplateDocuments(id),
     store.listDocumentTemplates(),
     store.getSubscription(),
+    store.listServiceMessages(),
   ]);
   if (!c) notFound();
   const canWrite = can(session.role, "cases:write");
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
   const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
-  const checklist = buildChecklist({ questions, fields: c.fields, documents, foerderOverrides, templateSends, includeFields: c.source !== "email" });
+  const checklist = buildChecklist({ questions, fields: c.fields, documents, foerderOverrides, serviceMessages, templateSends, includeFields: c.source !== "email" });
   const readiness = readinessOf(c.status, checklist);
   const extra = questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
   const requiredKeys = questions.filter((q) => q.active && q.required).map((q) => q.key);

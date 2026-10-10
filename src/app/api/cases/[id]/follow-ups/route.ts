@@ -11,12 +11,13 @@ export const POST = withSession(
     const c = await store.getCase(id);
     if (!c) return apiError("Nicht gefunden", 404);
     if (!c.fields.email && !c.fields.phone) return apiError("Für ein Follow-up fehlt eine E-Mail-Adresse oder Telefonnummer.", 400);
-    const [questions, documents, company, templateDocs, templates] = await Promise.all([
+    const [questions, documents, company, templateDocs, templates, serviceMessages] = await Promise.all([
       store.listQuestions(),
       store.listDocuments(id),
       store.getCompany(),
       store.listTemplateDocuments(id),
       store.listDocumentTemplates(),
+      store.listServiceMessages(),
     ]);
     const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
     const checklist = buildChecklist({
@@ -24,6 +25,7 @@ export const POST = withSession(
       fields: c.fields,
       documents,
       foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+      serviceMessages,
       templateSends: templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled })),
       includeFields: c.source !== "email",
     });
