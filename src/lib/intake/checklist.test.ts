@@ -236,6 +236,18 @@ describe("deriveStatus", () => {
     expect(deriveStatus("QUALIFYING", emailChecklistDone, "chat")).toBe("READY_FOR_REVIEW");
   });
 
+  it("E-Mail: vom Büro in der Leistungs-Nachricht verlangte Angaben (Telefonnummer, E-Mail) zählen als benötigt", () => {
+    const questions = [q({ key: "phone", label: "Telefonnummer" }), q({ key: "email", label: "E-Mail" }), q({ key: "name", label: "Name" })];
+    const serviceMessages = [{ id: "s1", companyId: "c1", service: "Energieausweis", body: "Danke! Wir benötigen noch Ihre Nummer und Mail-Adresse. Wir melden uns per Telefon.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false }];
+    const open = buildChecklist({ questions, fields: { service: "Energieausweis" }, documents: [], serviceMessages, includeFields: false });
+    expect(open.missingFields.map((i) => i.key).sort()).toEqual(["email", "phone"]); // "name" nicht verlangt, "per Telefon" ist keine Anforderung
+    expect(deriveStatus("QUALIFYING", open, "chat")).toBe("QUALIFYING");
+
+    const done = buildChecklist({ questions, fields: { service: "Energieausweis", phone: "0170 1", email: "a@b.de" }, documents: [], serviceMessages, includeFields: false });
+    expect(done.dataComplete).toBe(true);
+    expect(deriveStatus("QUALIFYING", done, "chat")).toBe("READY_FOR_REVIEW");
+  });
+
   it("unvollständig + hint 'waiting' → WAITING_FOR_CUSTOMER", () => {
     expect(deriveStatus("QUALIFYING", baseChecklist(false, false), "waiting")).toBe("WAITING_FOR_CUSTOMER");
   });

@@ -1,6 +1,7 @@
 import { isAnswered, SKIPPED } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, ENERGY_SOURCE_BY_HEATING } from "@/lib/cases/fields";
 import type { CaseDocument, CaseStatus, DocumentKind, Question, ServiceMessage } from "@/lib/data/types";
+import { requestedFieldKeys } from "./requested-fields";
 
 /**
  * Reine Logik (ohne Server-Abhängigkeiten, läuft auch im Browser):
@@ -127,6 +128,15 @@ export function buildChecklist(input: {
       if (!q.active || !isRelevant(q, fields)) continue;
       const done = isAnswered(fields, q.key) && fields[q.key] !== SKIPPED;
       items.push({ key: q.key, label: q.label, kind: "field", required: q.required, done });
+    }
+  } else {
+    // Kein Frage-Flow (E-Mail): benötigt ist nur, was das Büro in der Nachricht zur Leistung ausdrücklich
+    // verlangt (z. B. "Bitte senden Sie uns Ihre Telefonnummer").
+    const message = input.serviceMessages?.find((m) => m.service === (fields.service ?? ""));
+    const wanted = new Set(requestedFieldKeys(message?.body ?? ""));
+    for (const q of [...input.questions].sort((a, b) => a.position - b.position)) {
+      if (!wanted.has(q.key)) continue;
+      items.push({ key: q.key, label: q.label, kind: "field", required: true, done: isAnswered(fields, q.key) && fields[q.key] !== SKIPPED });
     }
   }
   for (const req of documentRequirements(fields, input.foerderOverrides, input.serviceMessages)) {

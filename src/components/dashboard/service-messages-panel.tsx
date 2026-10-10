@@ -217,7 +217,9 @@ export function ServiceMessagesPanel({
               {!isAlways && (
                 <div className="space-y-3">
                   <div>
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">Nachricht</p>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      Nachricht – Tipp: Schreiben Sie hier, was Sie vom Kunden brauchen (z. B. „Bitte senden Sie uns Ihre Telefonnummer und E-Mail-Adresse“). Das zählt per E-Mail automatisch als benötigte Angabe.
+                    </p>
                     <Textarea rows={2} disabled={!canEdit} value={bodies[row] ?? ""} onChange={(e) => setBodies({ ...bodies, [row]: e.target.value })} />
                   </div>
                   <div>
