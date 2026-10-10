@@ -7,7 +7,7 @@ import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
-import { refreshCase, ensureUploadToken, autoBookNextSlot, matchServiceMaterials, uploadUrl } from "./case-ops";
+import { refreshCase, ensureUploadToken, autoBookNextSlot, completionTextFor, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { chatDocumentPrompt } from "./messages";
 import {
   appointmentCancelledText,
@@ -174,6 +174,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     autoRequestDocs: settings.autoReply && !turn.handoff,
   });
   const { checklist } = refreshed;
+
+  // Per E-Mail: Ist der Fall durch diese Antwort (z. B. nachgereichte Telefonnummer) vollständig geworden, die
+  // Abschluss-Nachricht schicken – außer der Kunde bekommt in diesem Zug ohnehin die Büro-Nachricht/Vorlage.
+  if (input.channel === "email" && refreshed.becamePrepared && !material && !turn.done) replies.push(await completionTextFor(store, refreshed.caseRecord.fields.service));
 
   let upload: UploadPrompt | null = null;
   // Nur klassische (vom Kunden angeforderte) Dokumentarten – Vorlagen-Rückläufer haben keinen festen

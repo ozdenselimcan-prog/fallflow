@@ -4,7 +4,7 @@ import type { Store } from "@/lib/data/store";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { saveFile } from "@/lib/documents/storage";
-import { matchServiceMaterials, receiveCaseDocument, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
+import { matchServiceMaterials, receiveCaseDocument, receiveEmailAttachments, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
 
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
 // wird hier deterministisch gemockt, statt einen echten KI-Key fuer den Test zu brauchen.
@@ -249,6 +249,41 @@ describe("receiveCaseDocument", () => {
     expect(docs.some((d) => d.kind === "floorplan" && d.status === "received")).toBe(true);
     // Energieausweis fehlt für Energieberatung noch -> nicht vollständig, aber der Ball liegt beim Kunden.
     expect((await store.getCase(c.id))?.status).toBe("WAITING_FOR_CUSTOMER");
+  });
+});
+
+describe("receiveEmailAttachments", () => {
+  const pdf = (n: number) => new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, n]);
+  async function setup() {
+    const store = freshStore();
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: pdf(0), mime: "application/pdf" });
+    const template = await store.saveDocumentTemplate({ service: "Energieausweis", title: "Vollmacht", fileName: "Vollmacht.pdf", storagePath: path });
+    const c = await store.createCase({ source: "email", status: "WAITING_FOR_CUSTOMER", assignedTo: null, summary: "", fields: { service: "Energieausweis", email: "kunde@test.de" }, customerName: "Max", service: "Energieausweis" });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: template.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+    return { store, c };
+  }
+
+  it("Kunde schickt Vorlage UND Grundriss in einer Mail: beides wird richtig zugeordnet, Fall wird vollständig und die KI antwortet (Regressionstest)", async () => {
+    const { store, c } = await setup();
+    // Grundriss bewusst ZUERST, damit er nicht fälschlich als Vorlage geprüft wird.
+    await receiveEmailAttachments(store, c.id, [
+      { filename: "Grundriss EG.pdf", mime: "application/pdf", bytes: pdf(1) },
+      { filename: "Vollmacht (1).pdf", mime: "application/pdf", bytes: pdf(2) },
+    ]);
+    expect((await store.listDocuments(c.id)).some((d) => d.kind === "floorplan" && d.status === "received")).toBe(true);
+    expect((await store.listTemplateDocuments(c.id))[0].status).toBe("received");
+    expect((await store.getCase(c.id))?.status).toBe("READY_FOR_REVIEW");
+    const reply = (await store.listMessages(c.id)).filter((m) => m.role === "assistant").at(-1)?.content ?? "";
+    expect(reply).toMatch(/Mitarbeiter/);
+  });
+
+  it("fehlt danach noch etwas, bekommt der Kunde eine kurze Bestätigung mit dem, was noch fehlt – statt gar keiner Antwort", async () => {
+    const { store, c } = await setup();
+    await receiveEmailAttachments(store, c.id, [{ filename: "Vollmacht (1).pdf", mime: "application/pdf", bytes: pdf(2) }]);
+    expect((await store.getCase(c.id))?.status).toBe("WAITING_FOR_CUSTOMER");
+    const reply = (await store.listMessages(c.id)).filter((m) => m.role === "assistant").at(-1)?.content ?? "";
+    expect(reply).toContain("angekommen");
+    expect(reply).toContain("Grundriss");
   });
 });
 

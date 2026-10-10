@@ -241,9 +241,7 @@ export async function receiveCaseDocument(store: Store, caseId: string, bytes: U
   const c = await store.getCase(caseId);
   const mime = sniffMime(bytes);
   if (!c || !mime) return;
-  const name = fileName.toLowerCase();
-  const guessed: DocumentKind | null = /grundriss|floorplan|bauplan/.test(name) ? "floorplan" : /energieausweis|energy/.test(name) ? "energy_certificate" : null;
-  let kind: DocumentKind | null = guessed;
+  let kind: DocumentKind | null = guessDocumentKind(fileName);
   if (!kind) {
     const openDocs = (await refreshCase(store, caseId, { hint: "waiting", touch: false })).checklist.missing.filter((i) => i.key.startsWith("doc:"));
     kind = openDocs.length === 1 ? (openDocs[0].key.replace("doc:", "") as DocumentKind) : mime === "application/pdf" ? "other" : "photos";
@@ -285,7 +283,14 @@ function matchPendingByFileName(pendingList: TemplateDocument[], templates: Docu
   return best;
 }
 
-export async function receiveFilledTemplate(store: Store, caseId: string, bytes: Uint8Array, fileName: string): Promise<boolean> {
+export async function receiveFilledTemplate(
+  store: Store,
+  caseId: string,
+  bytes: Uint8Array,
+  fileName: string,
+  /** pendingId: diese offene Vorlage verwenden (statt sie selbst zu suchen); quiet: keine Abschluss-Nachricht, das übernimmt der Aufrufer. */
+  opts: { pendingId?: string; quiet?: boolean } = {},
+): Promise<boolean> {
   const pendingList = (await store.listTemplateDocuments(caseId)).filter((t) => t.status === "sent");
   if (!pendingList.length) return false;
   const c = await store.getCase(caseId);
@@ -297,7 +302,8 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   // Mehrere offene Vorlagen gleichzeitig (z. B. Leistungs-Vorlage UND "bei jeder Anfrage dabei"-Vorlage):
   // nicht blind die erste nehmen, sonst wird ein zurückgeschicktes Dokument der FALSCHEN erwarteten Vorlage
   // zugeordnet. Stattdessen anhand des zurückgeschickten Dateinamens die naheliegendste Vorlage auswählen.
-  const pending = pendingList.length > 1 ? (matchPendingByFileName(pendingList, templates, fileName) ?? pendingList[0]) : pendingList[0];
+  const forced = opts.pendingId ? pendingList.find((p) => p.id === opts.pendingId) : undefined;
+  const pending = forced ?? (pendingList.length > 1 ? (matchPendingByFileName(pendingList, templates, fileName) ?? pendingList[0]) : pendingList[0]);
   const template = templates.find((t) => t.id === pending.templateId);
   const title = template?.title ?? fileName;
   // Leere Original-Vorlage einmal lesen: Der Unterschied zum zurückgeschickten Dokument zeigt der Prüfung, was der
@@ -344,18 +350,90 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   // Zeitpunkt die Vorlage noch als "sent" galt; die KI konnte den Fall also in diesem Zug noch nicht als
   // fertig erkennen – das muss hier nachgeholt werden, sonst bleibt die Abschluss-Nachricht ganz aus.
   const refreshed = await refreshCase(store, caseId, { hint: "waiting" });
-  if (refreshed.becamePrepared) {
-    const serviceMessages = await store.listServiceMessages();
-    const completionText = serviceMessages.find((m) => m.service === c.fields.service)?.appointmentNote?.trim() || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";
-    // Auch per E-Mail direkt einen freien Termin in den Kalender eintragen – aber nur, wenn dadurch
-    // wirklich NICHTS mehr offen ist (nicht nur die Vorlage, sondern auch sonstige Pflichtdokumente wie
-    // Grundriss/Energieausweis), sonst würde der Termin schon vor Vollständigkeit gebucht.
-    const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, refreshed.caseRecord));
-    const text = booked ? `${completionText} ${appointmentPendingReviewText}` : completionText;
-    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text });
-    await store.addMessage(caseId, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
-  }
+  if (refreshed.becamePrepared && !opts.quiet) await sendCompletionMessage(store, refreshed);
   return true;
+}
+
+/** Text der Abschluss-Nachricht: eigener Text des Büros für diese Leistung, sonst Standard. */
+export async function completionTextFor(store: Store, service: string | undefined): Promise<string> {
+  const serviceMessages = await store.listServiceMessages();
+  return serviceMessages.find((m) => m.service === service)?.appointmentNote?.trim() || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";
+}
+
+/**
+ * Schickt per E-Mail die Abschluss-Nachricht, sobald ein Fall wirklich vollständig geworden ist, und trägt
+ * dabei direkt einen freien Termin als Vorschlag in den Kalender ein (siehe autoBookNextSlot).
+ */
+export async function sendCompletionMessage(store: Store, refreshed: RefreshResult): Promise<void> {
+  const c = refreshed.caseRecord;
+  const completionText = await completionTextFor(store, c.fields.service);
+  const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, c));
+  const text = booked ? `${completionText} ${appointmentPendingReviewText}` : completionText;
+  const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text });
+  await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+}
+
+/** Erkennt die Dokumentart am Dateinamen (null = nicht eindeutig). */
+function guessDocumentKind(fileName: string): DocumentKind | null {
+  const name = fileName.toLowerCase();
+  if (/grundriss|floorplan|bauplan/.test(name)) return "floorplan";
+  if (/energieausweis|energy/.test(name)) return "energy_certificate";
+  return null;
+}
+
+/**
+ * Verarbeitet alle Anhänge EINER Kunden-E-Mail gemeinsam und antwortet danach genau einmal:
+ * - Anhänge, deren Dateiname zu einer offenen Büro-Vorlage passt, werden als ausgefüllte Vorlage geprüft.
+ * - Anhänge, die nach Grundriss/Energieausweis heißen oder Fotos sind, werden als Dokument des Falls abgelegt.
+ * - Übrige PDFs gehen an eine noch offene Vorlage (falls eine offen ist), sonst als Dokument.
+ * Danach: Ist der Fall vollständig → Abschluss-Nachricht (+ Terminvorschlag). Fehlt noch etwas und wurde
+ * nichts beanstandet → kurze Bestätigung mit dem, was noch fehlt (sonst hört der Kunde gar nichts).
+ */
+export async function receiveEmailAttachments(store: Store, caseId: string, attachments: InboundAttachment[]): Promise<void> {
+  if (!attachments.length) return;
+  const templates = await store.listDocumentTemplates();
+  const before = await store.getCase(caseId);
+  if (!before) return;
+  const previousStatus = before.status;
+  let rejected = false;
+
+  // Zuerst alle Anhänge, die eindeutig einer offenen Vorlage zugeordnet werden können – damit ein ebenfalls
+  // mitgeschickter Grundriss nicht fälschlich als Vorlage geprüft wird.
+  const rest: InboundAttachment[] = [];
+  for (const att of attachments) {
+    const pendingList = (await store.listTemplateDocuments(caseId)).filter((t) => t.status === "sent");
+    const match = att.mime === "application/pdf" && pendingList.length ? matchPendingByFileName(pendingList, templates, att.filename) : null;
+    if (match) {
+      await receiveFilledTemplate(store, caseId, att.bytes, att.filename, { pendingId: match.id, quiet: true });
+      const doc = (await store.listTemplateDocuments(caseId)).find((t) => t.id === match.id);
+      if (doc?.filled === false) rejected = true;
+    } else rest.push(att);
+  }
+  for (const att of rest) {
+    const pendingList = (await store.listTemplateDocuments(caseId)).filter((t) => t.status === "sent");
+    if (att.mime === "application/pdf" && !guessDocumentKind(att.filename) && pendingList.length) {
+      await receiveFilledTemplate(store, caseId, att.bytes, att.filename, { pendingId: pendingList[0].id, quiet: true });
+      const doc = (await store.listTemplateDocuments(caseId)).find((t) => t.id === pendingList[0].id);
+      if (doc?.filled === false) rejected = true;
+    } else {
+      await receiveCaseDocument(store, caseId, att.bytes, att.filename);
+    }
+  }
+
+  const refreshed = await refreshCase(store, caseId, { hint: "waiting" });
+  const nowPrepared = refreshed.caseRecord.status === "READY_FOR_REVIEW" && previousStatus !== "READY_FOR_REVIEW" && previousStatus !== "CONVERTED";
+  if (nowPrepared) {
+    await sendCompletionMessage(store, refreshed);
+    return;
+  }
+  // Beanstandete Vorlagen haben bereits eine eigene Nachricht bekommen (falsches Dokument / unvollständig).
+  if (rejected || refreshed.caseRecord.status === "READY_FOR_REVIEW") return;
+  const stillMissing = refreshed.checklist.missing.map((i) => i.label);
+  if (!stillMissing.length) return;
+  const c = refreshed.caseRecord;
+  const text = `Vielen Dank, Ihre Unterlagen sind bei uns angekommen. Damit wir Ihre Anfrage abschließen können, fehlt uns noch: ${stillMissing.join(", ")}. Sie können uns das einfach als Antwort auf diese E-Mail schicken.`;
+  const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text });
+  await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
 
 export interface RefreshOptions {
