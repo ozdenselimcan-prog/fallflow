@@ -61,7 +61,8 @@ export default function DatenschutzPage() {
                 "Kontaktdaten: Name, E-Mail-Adresse, Telefonnummer, Adresse",
                 "Gebäudeangaben: Gebäudetyp, Baujahr, Wohnfläche, Etagen, Heizung, Eigentümerstatus",
                 "Anliegen, Inhalt der Chat- und E-Mail-Nachrichten und Telefonnotizen",
-                "Hochgeladene Dokumente (z. B. Grundriss, Energieausweis, Fotos)",
+                "Hochgeladene bzw. per E-Mail zurückgeschickte Dokumente (z. B. Grundriss, Energieausweis, Fotos, ausgefüllte Büro-Vorlagen)",
+                "Terminwünsche sowie vorgeschlagene bzw. vereinbarte Beratungstermine",
               ]}
             />
           </Section>
@@ -84,7 +85,7 @@ export default function DatenschutzPage() {
               items={[
                 "Supabase (Datenbank, Authentifizierung, Dateispeicher). Speicherort des Projekts: Region eu-west-1 (Irland, EU).",
                 "Vercel Inc. (Hosting und Auslieferung der Anwendung, Server-Logs).",
-                "OpenAI (nur wenn die KI-Auswertung aktiviert ist): Chat-Texte werden zur Erkennung von Angaben (z. B. Baujahr, Heizung) und zur Erstellung einer Kurzzusammenfassung an die OpenAI-Schnittstelle übermittelt. Die Daten werden nach den Vertragsbedingungen von OpenAI nicht zum Training genutzt [bitte anhand Ihres OpenAI-Vertrags prüfen].",
+                "OpenAI (nur wenn die KI-Auswertung aktiviert ist): Chat- und E-Mail-Texte werden zur Erkennung von Angaben (z. B. Baujahr, Heizung), zur Erstellung einer Kurzzusammenfassung, zur groben Einschätzung ob eine eingehende E-Mail überhaupt eine Kundenanfrage ist sowie zur Prüfung zurückgeschickter, ausgefüllter Büro-Vorlagen (Text aus hochgeladenen PDF-Dokumenten) an die OpenAI-Schnittstelle übermittelt. Die Daten werden nach den Vertragsbedingungen von OpenAI nicht zum Training genutzt [bitte anhand Ihres OpenAI-Vertrags prüfen].",
                 "Stripe (Zahlungsabwicklung): Zur Abrechnung der Büro-Abonnements verarbeitet Stripe Rechnungs- und Kontaktdaten des Büros (Name, E-Mail, Zahlungsmethode, Transaktionsdaten). FallFlow selbst speichert keine vollständigen Zahlungsdaten (z. B. Kartennummern) – diese liegen ausschließlich bei Stripe.",
                 "Sentry (Fehler-Überwachung, nur soweit aktiviert): Bei technischen Fehlern werden Diagnosedaten (z. B. Stacktrace, aufgerufene Seite/Route, grob anonymisierte technische Kontextdaten) übermittelt, um Störungen zu beheben. Die Datenverarbeitung erfolgt in einer EU-Region (Frankfurt).",
               ]}
