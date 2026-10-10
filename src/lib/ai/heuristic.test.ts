@@ -61,6 +61,21 @@ describe("detectService", () => {
   });
 });
 
+describe("detectService – Langformen und Abkürzungen", () => {
+  it.each([
+    ["Ich brauche einen individuellen Sanierungsfahrplan", "iSFP"],
+    ["Individuellersanierungsfahrplan bitte", "iSFP"],
+    ["Brauche eine BEG EM Förderung", "Einzelmaßnahme"],
+    ["Ich möchte eine PV Anlage", "Photovoltaikberatung"],
+    ["WP Beratung", "Wärmepumpenberatung"],
+    ["Gebäudeenergiegesetz Nachweis", "GEG-Nachweise"],
+    ["Baubegleitung KfW 261", "Baubegleitung"],
+    ["Thermographie meines Hauses", "Thermografie"],
+  ])("%s → %s", (text, service) => {
+    expect(detectService(text)).toBe(service);
+  });
+});
+
 describe("detectBuildingType", () => {
   it("erkennt Mehrfamilienhaus und Abkürzung", () => {
     expect(detectBuildingType("Es ist ein Mehrfamilienhaus")).toBe("Mehrfamilienhaus");

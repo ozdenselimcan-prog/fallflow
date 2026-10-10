@@ -17,6 +17,7 @@ Regeln:
 - Jahres- und Flächenangaben in Worten (z. B. "neunzehnhundertachtundachtzig") nur übernehmen, wenn du sie sicher in Ziffern umrechnen kannst; im Zweifel null. Ziffernangaben exakt übernehmen.
 - heating.type nur aus: ${HEATING_TYPES.join(", ")}.
 - request.service nur aus: ${SERVICES.join(", ")}.
+- Erkenne auch Langformen, Abkürzungen und Umschreibungen und ordne sie der passenden Leistung zu, z. B.: individueller Sanierungsfahrplan / Sanierungsfahrplan / ISFP = iSFP; EM / BEG EM / Einzelmaßnahme (z. B. Dämmung, Fenstertausch mit Förderung) = Einzelmaßnahme; EBW / Energieberatung für Wohngebäude = Energieberatung; GEG / Gebäudeenergiegesetz-Nachweis = GEG-Nachweise; PV / Solaranlage = Photovoltaikberatung; WP = Wärmepumpe; BzA / Baubegleitung (auch KfW 261) = Baubegleitung; Thermographie = Thermografie.
 - customer.ownerStatus nur aus: ${OWNER_STATUSES.join(", ")} – und nur, wenn der Kunde es ausdrücklich sagt.
 - property.street: Straße mit Hausnummer, falls genannt. property.floors: Anzahl der Etagen/Vollgeschosse.
 - request.description: knappe sachliche Zusammenfassung des Anliegens in einem Satz.
