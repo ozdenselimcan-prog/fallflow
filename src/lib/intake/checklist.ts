@@ -89,11 +89,6 @@ export interface Checklist {
   percent: number;
   /** Alle Pflichtangaben (ohne Dokumente) vorhanden */
   dataComplete: boolean;
-  /** Gab es überhaupt Pflicht-Angaben (Frage-Flow-Felder) in dieser Checkliste? Bei E-Mail-Fällen (siehe
-   * includeFields) ist das nie der Fall – "dataComplete" ist dort automatisch immer true, ohne dass wirklich
-   * etwas erledigt wurde. Nur mit hasFieldItems=true ist der Zwischenstatus COMPLETE ("Angaben vollständig,
-   * Dokumente fehlen noch") aussagekräftig; siehe deriveStatus. */
-  hasFieldItems: boolean;
 }
 
 export interface TemplateSendInfo {
@@ -161,7 +156,6 @@ export function buildChecklist(input: {
     requiredDone,
     percent: required.length === 0 ? 100 : Math.round((requiredDone / required.length) * 100),
     dataComplete: missingFields.length === 0,
-    hasFieldItems: items.some((i) => i.kind === "field" && i.required),
   };
 }
 
@@ -172,14 +166,11 @@ export type StatusHint = "chat" | "waiting" | "edit";
 /** Leitet den Prozessstatus aus dem Fallstand ab. CONVERTED bleibt immer erhalten. */
 export function deriveStatus(current: CaseStatus, checklist: Checklist, hint: StatusHint = "edit"): CaseStatus {
   if (current === "CONVERTED") return "CONVERTED";
+  // "Bereit zur Prüfung" erst, wenn ALLES da ist: alle Pflichtangaben UND alle Pflichtdokumente/Vorlagen. Einen
+  // Zwischenstatus "Angaben vollständig" gibt es bewusst nicht mehr – er stand sonst bei einem Fall, dem noch
+  // Dokumente fehlten und der z. B. erst bei 25 % war.
   const docsReceived = checklist.items.filter((i) => i.kind === "document" && i.required).every((i) => i.done);
   if (docsReceived && checklist.dataComplete) return "READY_FOR_REVIEW";
-  // "Angaben vollständig" (COMPLETE), während Dokumente noch fehlen, ist nur aussagekräftig, wenn es
-  // überhaupt Pflichtangaben gab, die der Fall abgeschlossen haben kann (Website-Chat). Bei E-Mail-Fällen
-  // (kein Frage-Flow, siehe includeFields) wäre dataComplete sonst von der allerersten Mail an immer true,
-  // obwohl noch nichts erledigt wurde – der Fall bliebe dann fälschlich auf "Angaben vollständig" stehen,
-  // während "fehlt noch" weiterhin Dokumente auflistet.
-  if (checklist.dataComplete && checklist.hasFieldItems) return "COMPLETE";
   if (hint === "waiting") return "WAITING_FOR_CUSTOMER";
   if (hint === "chat") return "QUALIFYING";
   return current === "NEW" || current === "QUALIFYING" || current === "WAITING_FOR_CUSTOMER" ? current : "QUALIFYING";

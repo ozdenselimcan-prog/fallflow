@@ -363,7 +363,6 @@ export interface RefreshResult {
   becamePrepared: boolean;
 }
 
-const PREPARED = ["COMPLETE", "READY_FOR_REVIEW", "CONVERTED"];
 
 /**
  * Berechnet Vollständigkeit, Status und Zusammenfassung eines Falls neu und hält Follow-ups aktuell.
@@ -409,11 +408,9 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
 
   const previous = c.status;
   const status = deriveStatus(previous, checklist, opts.hint);
-  // Auch der Übergang COMPLETE -> READY_FOR_REVIEW zählt als "neu vorbereitet": bei E-Mail-Fällen (Frage-Flow-
-  // Felder zählen dort nicht, siehe includeFields) ist COMPLETE praktisch immer sofort erreicht, die eigentliche
-  // Fertigstellung (z. B. die zurückgeschickte Vorlage) kommt erst mit READY_FOR_REVIEW – sonst bliebe die
-  // Abschluss-Nachricht/Terminbuchung aus, weil der Fall ja "schon vorbereitet" schien.
-  const becamePrepared = (status === "COMPLETE" || status === "READY_FOR_REVIEW") && (!PREPARED.includes(previous) || (previous === "COMPLETE" && status === "READY_FOR_REVIEW"));
+  // "Vorbereitet" heißt: wirklich alles liegt vor (READY_FOR_REVIEW). Alte Fälle mit dem früheren Zwischenstatus
+  // COMPLETE zählen beim Übergang ebenfalls als neu vorbereitet.
+  const becamePrepared = status === "READY_FOR_REVIEW" && previous !== "READY_FOR_REVIEW" && previous !== "CONVERTED";
 
   let summary = c.summary;
   if (checklist.dataComplete) {

@@ -190,8 +190,9 @@ describe("deriveStatus", () => {
     expect(deriveStatus("WAITING_FOR_CUSTOMER", baseChecklist(true, true))).toBe("READY_FOR_REVIEW");
   });
 
-  it("vollständige Angaben, aber Dokumente nur angefordert/fehlend → COMPLETE, nicht READY_FOR_REVIEW", () => {
-    expect(deriveStatus("WAITING_FOR_CUSTOMER", baseChecklist(true, false))).toBe("COMPLETE");
+  it("vollständige Angaben, aber Dokumente nur angefordert/fehlend → weder COMPLETE noch READY_FOR_REVIEW (kein Status vollständig)", () => {
+    expect(deriveStatus("WAITING_FOR_CUSTOMER", baseChecklist(true, false))).toBe("WAITING_FOR_CUSTOMER");
+    expect(deriveStatus("QUALIFYING", baseChecklist(true, false), "chat")).toBe("QUALIFYING");
   });
 
   it("eine gesendete, aber noch nicht zurückerhaltene Vorlage blockiert READY_FOR_REVIEW genauso wie ein fehlendes Dokument", () => {
@@ -201,7 +202,7 @@ describe("deriveStatus", () => {
       documents: [{ id: "d1", caseId: "c1", companyId: "c1", kind: "floorplan", status: "received", fileName: "", mimeType: "", size: 0, storagePath: "", requestedAt: "", receivedAt: "" }],
       templateSends: [{ id: "t1", title: "Vollmacht", status: "sent", filled: null }],
     });
-    expect(deriveStatus("WAITING_FOR_CUSTOMER", withPendingTemplate)).toBe("COMPLETE");
+    expect(deriveStatus("WAITING_FOR_CUSTOMER", withPendingTemplate)).toBe("WAITING_FOR_CUSTOMER");
 
     const withReceivedTemplate = buildChecklist({
       questions: [q({ key: "name", label: "Name" })],
@@ -222,7 +223,6 @@ describe("deriveStatus", () => {
       documents: [],
       includeFields: false,
     });
-    expect(emailChecklist.hasFieldItems).toBe(false);
     expect(emailChecklist.dataComplete).toBe(true); // keine Felder zu erfüllen -> vacuous true
     expect(deriveStatus("QUALIFYING", emailChecklist, "chat")).toBe("QUALIFYING");
     expect(deriveStatus("QUALIFYING", emailChecklist, "chat")).not.toBe("COMPLETE");
