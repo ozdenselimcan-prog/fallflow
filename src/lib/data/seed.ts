@@ -37,7 +37,6 @@ export function seedCompany(): Company {
     onboardingCompleted: true,
     foerderEnergyCertificate: false,
     foerderFloorplan: false,
-    contactFormUrl: "",
   };
 }
 

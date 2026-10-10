@@ -102,7 +102,6 @@ export const companySchema = z.object({
   services: z.array(str(60)).max(20).optional(),
   foerderEnergyCertificate: z.boolean().optional(),
   foerderFloorplan: z.boolean().optional(),
-  contactFormUrl: z.union([str(300).url("Bitte eine gültige URL eingeben"), str(0)]).optional(),
 });
 
 /** Verfügbarkeit für Terminvorschläge – im Onboarding und später in den Assistent-Einstellungen gepflegt. */

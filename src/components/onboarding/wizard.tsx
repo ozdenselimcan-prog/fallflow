@@ -17,7 +17,7 @@ interface Props {
   firstName: string;
   companyId: string;
   appUrl: string;
-  initial: { name: string; website: string; phone: string; address: string; services: string[]; contactFormUrl: string };
+  initial: { name: string; website: string; phone: string; address: string; services: string[] };
   fieldOptions: { key: string; label: string; active: boolean }[];
   widgetReceived: boolean;
   connections: { gmail: ConnectionView | null };
@@ -41,7 +41,7 @@ const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Vorlagen & Nachrichte
 
 export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections, documentTemplates, serviceMessages }: Props) {
   const [step, setStep] = useState(0);
-  const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address, contactFormUrl: initial.contactFormUrl });
+  const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
   const [services, setServices] = useState<string[]>(initial.services);
   const [active, setActive] = useState<string[]>(fieldOptions.filter((f) => f.active).map((f) => f.key));
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);

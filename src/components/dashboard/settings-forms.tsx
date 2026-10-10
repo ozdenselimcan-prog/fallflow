@@ -58,14 +58,13 @@ interface CompanyInitial {
   services: string[];
   foerderEnergyCertificate: boolean;
   foerderFloorplan: boolean;
-  contactFormUrl: string;
 }
 
 export function CompanyForm({ initial, canEdit }: { initial: CompanyInitial; canEdit: boolean }) {
   const [v, setV] = useState(initial);
   const [saved, setSaved] = useState(false);
   const { pending, error, run } = useMutation();
-  const set = (k: "name" | "website" | "phone" | "address" | "contactFormUrl") => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const set = (k: "name" | "website" | "phone" | "address") => (e: React.ChangeEvent<HTMLInputElement>) => {
     setV({ ...v, [k]: e.target.value });
     setSaved(false);
   };
@@ -88,9 +87,6 @@ export function CompanyForm({ initial, canEdit }: { initial: CompanyInitial; can
       </Field>
       <Field label="Adresse">
         <Input value={v.address} onChange={set("address")} maxLength={300} />
-      </Field>
-      <Field label="Eigenes Kontaktformular (optional)" hint="Falls vorhanden, schickt der Assistent diesen Link bei jeder neuen Anfrage zuerst mit, zusätzlich zu den eigenen Fragen.">
-        <Input type="url" value={v.contactFormUrl} onChange={set("contactFormUrl")} placeholder="https://" maxLength={300} />
       </Field>
       <Field label="Leistungen" hint="Nur ausgewählte Leistungen kann der Assistent Kunden anbieten.">
         <div className="grid gap-2 sm:grid-cols-2">

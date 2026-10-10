@@ -38,7 +38,6 @@ const mapCompany = (r: Row): Company => ({
   onboardingCompleted: r.onboarding_completed,
   foerderEnergyCertificate: r.foerder_energy_certificate ?? false,
   foerderFloorplan: r.foerder_floorplan ?? false,
-  contactFormUrl: r.contact_form_url ?? "",
 });
 
 const mapDocumentTemplate = (r: Row): DocumentTemplate => ({
@@ -175,7 +174,6 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       if (patch.onboardingCompleted !== undefined) row.onboarding_completed = patch.onboardingCompleted;
       if (patch.foerderEnergyCertificate !== undefined) row.foerder_energy_certificate = patch.foerderEnergyCertificate;
       if (patch.foerderFloorplan !== undefined) row.foerder_floorplan = patch.foerderFloorplan;
-      if (patch.contactFormUrl !== undefined) row.contact_form_url = patch.contactFormUrl;
       const { data, error } = await db.from("companies").update(row).eq("id", companyId).select("*").single();
       fail(error, "company update");
       return mapCompany(data!);
