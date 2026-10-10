@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { nextPending } from "@/lib/ai/conversation";
 import { createMemoryStore } from "@/lib/data/memory";
 import type { Store } from "@/lib/data/store";
-import { confirmAppointment, refreshCase } from "./case-ops";
+import { confirmAppointment, receiveFilledTemplate, refreshCase } from "./case-ops";
 import { CaseLimitReachedError, processIntakeMessage, type IntakeTurn } from "./engine";
 
 /**
@@ -98,6 +98,30 @@ describe("processIntakeMessage – Terminvorschlag", () => {
     expect(reply).not.toMatch(/welche tage|wochentage/i);
     expect(reply).toMatch(/Mitarbeiter/);
 
+    const appointments = await store.listAppointments();
+    expect(appointments.some((a) => a.caseId === first.sessionId && a.status === "proposed")).toBe(true);
+  });
+
+  it("schickt die Abschluss-Nachricht & bucht einen Termin, wenn die PDF-Vorlage NACH der ersten (bereits 'COMPLETE' markierten) E-Mail zurückkommt (Regressionstest)", async () => {
+    // Bei E-Mail-Fällen wird der Status schon nach der ersten Nachricht "COMPLETE" (Frage-Flow-Felder zählen
+    // dort nicht mehr), obwohl die Vorlage noch gar nicht zurück ist – das darf becamePrepared beim späteren
+    // Übergang zu READY_FOR_REVIEW (Vorlage kommt an) nicht blockieren, siehe case-ops.ts PREPARED-Check.
+    await store.saveServiceMessage({
+      service: "Fördermittelberatung",
+      body: "Danke für Ihre Anfrage, wir prüfen die Förderoptionen für Sie.",
+      appointmentNote: "Vielen Dank, wir haben alles. Ein Mitarbeiter meldet sich zur Terminabstimmung.",
+    });
+    await store.saveDocumentTemplate({ service: "Fördermittelberatung", title: "Förderantrag", fileName: "antrag.pdf", storagePath: "demo/foerder.pdf" });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Fördermittelberatung.", source: "email", channel: "email" });
+    expect((await store.getCase(first.sessionId))?.status).toBe("COMPLETE");
+
+    await receiveFilledTemplate(store, first.sessionId, new Uint8Array([0x25, 0x50, 0x44, 0x46]), "antrag_ausgefuellt.pdf");
+
+    const updated = await store.getCase(first.sessionId);
+    expect(updated?.status).toBe("READY_FOR_REVIEW");
+    const messages = await store.listMessages(first.sessionId);
+    const lastText = messages.filter((m) => m.role === "assistant").at(-1)?.content ?? "";
+    expect(lastText).toMatch(/Mitarbeiter/);
     const appointments = await store.listAppointments();
     expect(appointments.some((a) => a.caseId === first.sessionId && a.status === "proposed")).toBe(true);
   });

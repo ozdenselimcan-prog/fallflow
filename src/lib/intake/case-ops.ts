@@ -364,7 +364,11 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
 
   const previous = c.status;
   const status = deriveStatus(previous, checklist, opts.hint);
-  const becamePrepared = (status === "COMPLETE" || status === "READY_FOR_REVIEW") && !PREPARED.includes(previous);
+  // Auch der Übergang COMPLETE -> READY_FOR_REVIEW zählt als "neu vorbereitet": bei E-Mail-Fällen (Frage-Flow-
+  // Felder zählen dort nicht, siehe includeFields) ist COMPLETE praktisch immer sofort erreicht, die eigentliche
+  // Fertigstellung (z. B. die zurückgeschickte Vorlage) kommt erst mit READY_FOR_REVIEW – sonst bliebe die
+  // Abschluss-Nachricht/Terminbuchung aus, weil der Fall ja "schon vorbereitet" schien.
+  const becamePrepared = (status === "COMPLETE" || status === "READY_FOR_REVIEW") && (!PREPARED.includes(previous) || (previous === "COMPLETE" && status === "READY_FOR_REVIEW"));
 
   let summary = c.summary;
   if (checklist.dataComplete) {
