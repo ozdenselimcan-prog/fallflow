@@ -25,7 +25,7 @@ export function AppointmentConfirmationCard({ initial, canEdit }: { initial: Ass
     <Card>
       <CardHeader
         title="Terminbestätigung an den Kunden"
-        description={`Wird verschickt, sobald ein Mitarbeiter den Termin bestätigt. „{termin}“ wird durch Datum & Uhrzeit ersetzt – lassen Sie den Platzhalter weg, wenn Sie kein Datum per Mail nennen wollen (z. B. weil Sie danach telefonisch Kontakt aufnehmen).`}
+        description={`Wird verschickt, sobald ein Mitarbeiter den Termin bestätigt. Schreiben Sie dafür „{termin}“ in den Text – diese Klammer bitte nicht verändern, sonst wird das Datum nicht automatisch übernommen. Lassen Sie „{termin}“ ganz weg, wenn Sie kein Datum per Mail nennen wollen (z. B. weil Sie danach telefonisch Kontakt aufnehmen).`}
       />
       <div className="space-y-3 px-5 pb-5">
         <Textarea
