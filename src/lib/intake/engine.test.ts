@@ -174,6 +174,13 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     expect(templateDocs[0]).toMatchObject({ templateId: template.id, status: "sent" });
   });
 
+  it("per E-Mail steht der Fall nach dem Versand der Vorlage auf 'Warten auf Kunde' statt dauerhaft auf 'wird qualifiziert'", async () => {
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht", fileName: "vollmacht.pdf", storagePath: path });
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "email", channel: "email" });
+    expect((await store.getCase(first.sessionId))?.status).toBe("WAITING_FOR_CUSTOMER");
+  });
+
   it("schickt die Vorlage per E-Mail als Anhang statt als Link, ohne Upload-Hinweis", async () => {
     const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf" });
     await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: path });
