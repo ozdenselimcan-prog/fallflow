@@ -46,9 +46,16 @@ function AppPasswordLink({ imapHost }: { imapHost: string }) {
   const link = APP_PASSWORD_LINKS.find((l) => l.host === imapHost);
   if (!link) return null;
   return (
-    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-accent underline underline-offset-2">
-      {link.label} ↗
-    </a>
+    <div className="space-y-1">
+      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-accent underline underline-offset-2">
+        {link.label} ↗
+      </a>
+      {imapHost === "imap.gmail.com" && (
+        <p className="text-xs text-muted-foreground">
+          Meldet Google „Sie können aktuell keine App-Passwörter erstellen&quot;? Dann ist für dieses Google-Konto noch keine 2-Faktor-Authentifizierung (2-Schritt-Verifizierung) aktiviert – das muss zuerst eingerichtet werden, erst danach zeigt Google die Option für App-Passwörter an.
+        </p>
+      )}
+    </div>
   );
 }
 
