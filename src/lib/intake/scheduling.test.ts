@@ -205,12 +205,12 @@ describe("appointmentConfirmedText", () => {
     expect(appointmentConfirmedText(slot)).toBe(`Termin bestätigt: ${new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" }).format(slot)} um ${new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" }).format(slot)} Uhr. Wir freuen uns auf das Gespräch!`);
   });
 
-  it("ersetzt {termin} im eigenen Template durch Datum/Uhrzeit", () => {
-    expect(appointmentConfirmedText(slot, "Ihr Termin: {termin}.")).toMatch(/^Ihr Termin: .+\.$/);
-    expect(appointmentConfirmedText(slot, "Ihr Termin: {termin}.")).not.toContain("{termin}");
+  it("ersetzt (Termin) im eigenen Template durch Datum/Uhrzeit", () => {
+    expect(appointmentConfirmedText(slot, "Ihr Termin: (Termin).")).toMatch(/^Ihr Termin: .+\.$/);
+    expect(appointmentConfirmedText(slot, "Ihr Termin: (Termin).")).not.toContain("(Termin)");
   });
 
-  it("nennt kein Datum, wenn das eigene Template keinen {termin}-Platzhalter hat", () => {
+  it("nennt kein Datum, wenn das eigene Template keinen (Termin)-Platzhalter hat", () => {
     expect(appointmentConfirmedText(slot, "Wir rufen Sie an.")).toBe("Wir rufen Sie an.");
   });
 

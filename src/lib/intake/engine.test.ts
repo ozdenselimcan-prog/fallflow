@@ -376,9 +376,9 @@ describe("confirmAppointment", () => {
     expect(result).toEqual({ ok: false, status: 404, message: "Termin nicht gefunden" });
   });
 
-  it("nutzt den eigenen Bestätigungstext mit Datum, wenn das Büro einen mit {termin} hinterlegt hat", async () => {
+  it("nutzt den eigenen Bestätigungstext mit Datum, wenn das Büro einen mit (Termin) hinterlegt hat", async () => {
     const settings = await store.getAssistant();
-    await store.saveAssistant({ ...settings, appointmentConfirmedTemplate: "Alles klar, Ihr Termin steht: {termin}. Bis dahin!" });
+    await store.saveAssistant({ ...settings, appointmentConfirmedTemplate: "Alles klar, Ihr Termin steht: (Termin). Bis dahin!" });
     const { sessionId } = await createCaseWithProposedAppointment(store);
     const proposed = (await store.listAppointments()).find((a) => a.caseId === sessionId)!;
 
@@ -389,10 +389,10 @@ describe("confirmAppointment", () => {
     const text = messages.find((m) => m.role === "staff")?.content ?? "";
     expect(text).toContain("Alles klar, Ihr Termin steht:");
     expect(text).toContain("Bis dahin!");
-    expect(text).not.toContain("{termin}");
+    expect(text).not.toContain("(Termin)");
   });
 
-  it("nennt kein Datum, wenn der eigene Bestätigungstext keinen {termin}-Platzhalter enthält (z. B. bei telefonischer Terminabstimmung)", async () => {
+  it("nennt kein Datum, wenn der eigene Bestätigungstext keinen (Termin)-Platzhalter enthält (z. B. bei telefonischer Terminabstimmung)", async () => {
     const settings = await store.getAssistant();
     await store.saveAssistant({ ...settings, appointmentConfirmedTemplate: "Vielen Dank, ein Mitarbeiter ruft Sie in Kürze an, um den Termin zu besprechen." });
     const { sessionId } = await createCaseWithProposedAppointment(store);
