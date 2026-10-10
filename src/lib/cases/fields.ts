@@ -113,6 +113,7 @@ export const DEFAULT_ASSISTANT: AssistantSettings = {
   maxAppointmentsPerDay: null,
   vacationFrom: null,
   vacationUntil: null,
+  appointmentConfirmedTemplate: "",
 };
 
 export const WEEKDAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"] as const;

@@ -375,6 +375,37 @@ describe("confirmAppointment", () => {
     const result = await confirmAppointment(store, "does-not-exist");
     expect(result).toEqual({ ok: false, status: 404, message: "Termin nicht gefunden" });
   });
+
+  it("nutzt den eigenen Bestätigungstext mit Datum, wenn das Büro einen mit {termin} hinterlegt hat", async () => {
+    const settings = await store.getAssistant();
+    await store.saveAssistant({ ...settings, appointmentConfirmedTemplate: "Alles klar, Ihr Termin steht: {termin}. Bis dahin!" });
+    const { sessionId } = await createCaseWithProposedAppointment(store);
+    const proposed = (await store.listAppointments()).find((a) => a.caseId === sessionId)!;
+
+    const result = await confirmAppointment(store, proposed.id);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const messages = await store.listMessages(sessionId);
+    const text = messages.find((m) => m.role === "staff")?.content ?? "";
+    expect(text).toContain("Alles klar, Ihr Termin steht:");
+    expect(text).toContain("Bis dahin!");
+    expect(text).not.toContain("{termin}");
+  });
+
+  it("nennt kein Datum, wenn der eigene Bestätigungstext keinen {termin}-Platzhalter enthält (z. B. bei telefonischer Terminabstimmung)", async () => {
+    const settings = await store.getAssistant();
+    await store.saveAssistant({ ...settings, appointmentConfirmedTemplate: "Vielen Dank, ein Mitarbeiter ruft Sie in Kürze an, um den Termin zu besprechen." });
+    const { sessionId } = await createCaseWithProposedAppointment(store);
+    const proposed = (await store.listAppointments()).find((a) => a.caseId === sessionId)!;
+
+    const result = await confirmAppointment(store, proposed.id);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const messages = await store.listMessages(sessionId);
+    const text = messages.find((m) => m.role === "staff")?.content ?? "";
+    expect(text).toBe("Vielen Dank, ein Mitarbeiter ruft Sie in Kürze an, um den Termin zu besprechen.");
+    expect(text).not.toMatch(/\d{1,2}:\d{2}|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag/i);
+  });
 });
 
 describe("processIntakeMessage – Absage durch den Kunden", () => {

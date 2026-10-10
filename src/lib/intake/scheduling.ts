@@ -248,7 +248,17 @@ export function availabilityQuestion(workingDays: number[]): string {
 // Der konkrete Termin wird dem Kunden bewusst NICHT direkt von der KI genannt – ein Mitarbeiter bestätigt
 // erst im Kalender (oder waehlt selbst einen anderen Zeitpunkt), danach erst erfaehrt der Kunde das Datum.
 export const appointmentPendingReviewText = "Vielen Dank! Ich habe einen passenden Termin für Sie vorbereitet. Ein Mitarbeiter bestätigt Ihnen den genauen Termin in Kürze.";
-export const appointmentConfirmedText = (slot: Date) => `Termin bestätigt: ${formatSlot(slot)}. Wir freuen uns auf das Gespräch!`;
+export const DEFAULT_APPOINTMENT_CONFIRMED_TEMPLATE = "Termin bestätigt: {termin}. Wir freuen uns auf das Gespräch!";
+/**
+ * Nachricht an den Kunden, sobald ein Mitarbeiter den Termin bestätigt. `template` ist der vom Büro
+ * editierbare Text (Einstellungen → Vorlagen & Nachrichten); "{termin}" wird durch Datum/Uhrzeit ersetzt.
+ * Fehlt der Platzhalter im eigenen Text, wird KEIN Datum angehängt – z. B. wenn das Büro danach lieber
+ * telefonisch Kontakt aufnimmt, statt den Termin per Mail zu nennen. Leer/kein Text = Standardformulierung.
+ */
+export function appointmentConfirmedText(slot: Date, template?: string): string {
+  const t = template?.trim() || DEFAULT_APPOINTMENT_CONFIRMED_TEMPLATE;
+  return t.includes("{termin}") ? t.replace("{termin}", formatSlot(slot)) : t;
+}
 
 /** Kunde sagt einen bereits bestätigten Termin ab (nur relevant innerhalb eines bekannten, laufenden Falls). */
 const CANCEL = /\b(termin\s*(leider\s*)?(doch\s*)?(nicht\s*wahrnehmen|absagen|canceln|stornieren)|termin\s*fällt\s*(leider\s*)?aus|(muss|möchte)\s*(den\s*)?termin\s*(leider\s*)?absagen|schaffe\s*es\s*(leider\s*)?nicht|kann\s*(den\s*)?termin\s*(leider\s*)?nicht\s*(wahrnehmen|einhalten)|termin\s*verschieben)\b/i;

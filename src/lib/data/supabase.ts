@@ -429,6 +429,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         maxAppointmentsPerDay: r.max_appointments_per_day ?? null,
         vacationFrom: r.vacation_from ?? null,
         vacationUntil: r.vacation_until ?? null,
+        appointmentConfirmedTemplate: r.appointment_confirmed_template ?? "",
       };
     },
     async saveAssistant(s) {
@@ -448,6 +449,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         max_appointments_per_day: s.maxAppointmentsPerDay,
         vacation_from: s.vacationFrom,
         vacation_until: s.vacationUntil,
+        appointment_confirmed_template: s.appointmentConfirmedTemplate,
       });
       fail(error, "assistant save");
       return s;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findNextSlot, findSlotOnDate, looksLikeCancellation, parseAvailability, parseSpecificDate, ymdToDate, type DateSlotReason } from "./scheduling";
+import { appointmentConfirmedText, findNextSlot, findSlotOnDate, looksLikeCancellation, parseAvailability, parseSpecificDate, ymdToDate, type DateSlotReason } from "./scheduling";
 
 /**
  * findNextSlot/findSlotOnDate lehnen Termine ab, die weniger als 2h in der Zukunft liegen (MIN_LEAD_MS),
@@ -195,6 +195,27 @@ describe("findNextSlot – Urlaubszeitraum", () => {
     expect(slot).not.toBeNull();
     const slotYmd = ymdStr(berlinYmd(slot!));
     expect(slotYmd > vacation.until).toBe(true);
+  });
+});
+
+describe("appointmentConfirmedText", () => {
+  const slot = new Date();
+
+  it("nutzt den Standardtext mit Datum ohne eigenes Template", () => {
+    expect(appointmentConfirmedText(slot)).toBe(`Termin bestätigt: ${new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" }).format(slot)} um ${new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" }).format(slot)} Uhr. Wir freuen uns auf das Gespräch!`);
+  });
+
+  it("ersetzt {termin} im eigenen Template durch Datum/Uhrzeit", () => {
+    expect(appointmentConfirmedText(slot, "Ihr Termin: {termin}.")).toMatch(/^Ihr Termin: .+\.$/);
+    expect(appointmentConfirmedText(slot, "Ihr Termin: {termin}.")).not.toContain("{termin}");
+  });
+
+  it("nennt kein Datum, wenn das eigene Template keinen {termin}-Platzhalter hat", () => {
+    expect(appointmentConfirmedText(slot, "Wir rufen Sie an.")).toBe("Wir rufen Sie an.");
+  });
+
+  it("leeres/nur Leerzeichen-Template fällt auf den Standardtext zurück", () => {
+    expect(appointmentConfirmedText(slot, "   ")).toContain("Termin bestätigt:");
   });
 });
 

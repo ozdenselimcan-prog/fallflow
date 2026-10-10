@@ -174,6 +174,8 @@ export interface AssistantSettings {
   /** Urlaubs-/Pausenzeitraum (inklusive, "YYYY-MM-DD"). Während dieser Zeit schlägt die KI keine Termine vor. null = kein Urlaub eingetragen. */
   vacationFrom: string | null;
   vacationUntil: string | null;
+  /** Nachricht an den Kunden, sobald ein Mitarbeiter den Termin bestätigt. "{termin}" wird durch Datum/Uhrzeit ersetzt (Platzhalter weglassen = kein Datum per Mail nennen, z. B. bei telefonischer Terminabstimmung). Leer = Standardtext. */
+  appointmentConfirmedTemplate: string;
 }
 
 export interface Appointment {

@@ -17,6 +17,7 @@ const settings = (overrides: Partial<AssistantSettings> = {}): AssistantSettings
   maxAppointmentsPerDay: null,
   vacationFrom: null,
   vacationUntil: null,
+  appointmentConfirmedTemplate: "",
   ...overrides,
 });
 

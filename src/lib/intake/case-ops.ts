@@ -471,7 +471,8 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
     overrideStartsAt ? `Vorschlag abgelehnt, Team hat stattdessen bestätigt: ${formatSlot(new Date(saved.startsAt))}` : `Termin vom Team bestätigt: ${formatSlot(new Date(saved.startsAt))}`,
   );
 
-  const text = appointmentConfirmedText(new Date(saved.startsAt));
+  const settings = await store.getAssistant();
+  const text = appointmentConfirmedText(new Date(saved.startsAt), settings.appointmentConfirmedTemplate);
   const channel = "email" as const;
   const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Beratungstermin" });
   await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });

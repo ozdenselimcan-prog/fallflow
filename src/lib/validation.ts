@@ -89,6 +89,7 @@ export const assistantSchema = z
     maxAppointmentsPerDay: z.coerce.number().int().min(1).max(50).nullable(),
     vacationFrom: dateSchema.nullable(),
     vacationUntil: dateSchema.nullable(),
+    appointmentConfirmedTemplate: str(500),
   })
   .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] })
   .refine((v) => !v.vacationFrom || !v.vacationUntil || v.vacationFrom <= v.vacationUntil, { message: "Enddatum darf nicht vor dem Startdatum liegen", path: ["vacationUntil"] });
