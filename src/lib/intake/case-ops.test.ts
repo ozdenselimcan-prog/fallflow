@@ -209,6 +209,34 @@ describe("refreshCase – Frage-Flow ist eine reine Website-Chat-Funktion", () =
   });
 });
 
+describe("receiveFilledTemplate – mehrere gleichzeitig offene Vorlagen", () => {
+  it("ordnet jedes zurückgeschickte Dokument anhand des Dateinamens der richtigen erwarteten Vorlage zu, statt blind die erste offene zu nehmen (Regressionstest)", async () => {
+    const store = freshStore();
+    vi.mocked(extractPdfText).mockResolvedValue("beliebiger Text");
+    vi.mocked(verifyFilledTemplate).mockResolvedValue({ filled: true, wrongDocument: false, note: "" });
+
+    // Leistungs-Vorlage zuerst angelegt, "bei jeder Anfrage dabei"-Vorlage danach – die Reihenfolge, in der
+    // die alte Logik blind die "erste offene" Vorlage gegriffen hätte.
+    const isfpTemplate = await store.saveDocumentTemplate({ service: "iSFP", title: "Vollmacht iSFP", fileName: "Vollmacht iSFP.pdf", storagePath: "demo/x.pdf" });
+    const alwaysTemplate = await store.saveDocumentTemplate({ service: "", title: "Datenerfassungsblatt Neu", fileName: "Datenerfassungsblatt Neu.pdf", storagePath: "demo/y.pdf", alwaysInclude: true });
+    const c = await store.createCase({ source: "email", status: "NEW", assignedTo: null, summary: "", fields: { service: "iSFP", email: "kunde@test.de" }, customerName: "Max", service: "iSFP" });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: isfpTemplate.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: alwaysTemplate.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+
+    // Kunde schickt zuerst die "immer dabei"-Vorlage zurück, danach die Leistungs-Vorlage (bewusst in der
+    // Reihenfolge, die die alte "erste offene nehmen"-Logik durcheinanderbringen würde).
+    await receiveFilledTemplate(store, c.id, new Uint8Array([1]), "Datenerfassungsblatt Neu.pdf");
+    await receiveFilledTemplate(store, c.id, new Uint8Array([2]), "Vollmacht iSFP (1).pdf");
+
+    const titlesChecked = vi.mocked(verifyFilledTemplate).mock.calls.map(([title]) => title);
+    expect(titlesChecked).toEqual(["Datenerfassungsblatt Neu", "Vollmacht iSFP"]);
+
+    const docs = await store.listTemplateDocuments(c.id);
+    expect(docs.find((d) => d.templateId === isfpTemplate.id)?.status).toBe("received");
+    expect(docs.find((d) => d.templateId === alwaysTemplate.id)?.status).toBe("received");
+  });
+});
+
 describe("matchServiceMaterials", () => {
   it("überspringt eine Vorlage, deren Datei nicht aus dem Speicher geladen werden kann, markiert sie NICHT als gesendet, schickt andere passende Vorlagen aber trotzdem (Regressionstest)", async () => {
     const store = freshStore();

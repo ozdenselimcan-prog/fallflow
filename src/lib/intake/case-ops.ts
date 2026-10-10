@@ -7,7 +7,7 @@ import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
 import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
-import type { Appointment, CaseDocument, CaseRecord, DocumentKind, DocumentTemplate, MessageChannel, ServiceMessage } from "@/lib/data/types";
+import type { Appointment, CaseDocument, CaseRecord, DocumentKind, DocumentTemplate, MessageChannel, ServiceMessage, TemplateDocument } from "@/lib/data/types";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { readFile, saveFile } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
@@ -240,15 +240,51 @@ function diffNewPdfText(blankText: string, filledText: string): string {
     .join("\n");
 }
 
+/** Normalisiert einen Dateinamen für den Vergleich: Endung weg, nur Buchstaben/Zahlen, in Wörter zerlegt. */
+const normalizeFileName = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+/**
+ * Bei mehreren gleichzeitig offenen Vorlagen (z. B. Leistungs-Vorlage + "bei jeder Anfrage dabei"-Vorlage):
+ * findet anhand des zurückgeschickten Dateinamens die naheliegendste erwartete Vorlage (Kunden behalten beim
+ * Zurückschicken oft den Original-Dateinamen bei, ggf. mit Zusatz wie "_1_" oder "(1)"). Kein eindeutiger
+ * Treffer: null, der Aufrufer fällt dann auf die erste offene Vorlage zurück.
+ */
+function matchPendingByFileName(pendingList: TemplateDocument[], templates: DocumentTemplate[], fileName: string): TemplateDocument | null {
+  const incoming = normalizeFileName(fileName);
+  if (!incoming) return null;
+  let best: TemplateDocument | null = null;
+  let bestScore = 0;
+  for (const p of pendingList) {
+    const tpl = templates.find((t) => t.id === p.templateId);
+    const candidate = tpl ? normalizeFileName(tpl.fileName) : "";
+    if (!candidate) continue;
+    const score = incoming.includes(candidate) || candidate.includes(incoming) ? candidate.length : 0;
+    if (score > bestScore) {
+      bestScore = score;
+      best = p;
+    }
+  }
+  return best;
+}
+
 export async function receiveFilledTemplate(store: Store, caseId: string, bytes: Uint8Array, fileName: string): Promise<boolean> {
-  const pending = (await store.listTemplateDocuments(caseId)).find((t) => t.status === "sent");
-  if (!pending) return false;
+  const pendingList = (await store.listTemplateDocuments(caseId)).filter((t) => t.status === "sent");
+  if (!pendingList.length) return false;
   const c = await store.getCase(caseId);
   if (!c) return false;
 
   const storagePath = await saveFile({ companyId: c.companyId, caseId, bytes, mime: "application/pdf" });
   const text = await extractPdfText(bytes.slice());
   const templates = await store.listDocumentTemplates();
+  // Mehrere offene Vorlagen gleichzeitig (z. B. Leistungs-Vorlage UND "bei jeder Anfrage dabei"-Vorlage):
+  // nicht blind die erste nehmen, sonst wird ein zurückgeschicktes Dokument der FALSCHEN erwarteten Vorlage
+  // zugeordnet. Stattdessen anhand des zurückgeschickten Dateinamens die naheliegendste Vorlage auswählen.
+  const pending = pendingList.length > 1 ? (matchPendingByFileName(pendingList, templates, fileName) ?? pendingList[0]) : pendingList[0];
   const template = templates.find((t) => t.id === pending.templateId);
   const title = template?.title ?? fileName;
   const { filled, wrongDocument, note } = text ? await verifyFilledTemplate(title, text) : { filled: null, wrongDocument: false, note: "" };
