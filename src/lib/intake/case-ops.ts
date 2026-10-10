@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { extractFields } from "@/lib/ai/case-extractor";
+import { extractFromFilledForm } from "@/lib/ai/form-extractor";
 import { mergeExtracted } from "@/lib/ai/conversation";
 import { summarizeCase } from "@/lib/ai/summary";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
@@ -315,6 +315,21 @@ export async function receiveFilledTemplate(
 
   await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled: wrongDocument ? false : filled, receivedAt: new Date().toISOString() });
   await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
+  // Die ausgefüllte PDF auch als Dokument in der Fallakte ablegen, damit das Büro sie dort öffnen/herunterladen kann.
+  await registerUpload(store, c, { kind: "other", fileName: `${title} (vom Kunden) – ${fileName}`, mimeType: "application/pdf", size: bytes.length, storagePath });
+
+  // Angaben, die der Kunde ins Formular eingetragen hat (Adresse, PLZ, Gebäudetyp, Baujahr, Wohnfläche,
+  // Eigentümer …), in die Fallakte übernehmen – nur die vom Kunden eingetragenen, nicht den Vordruck des Büros.
+  // Auch bei einer nur teilweise ausgefüllten Vorlage, damit schon Vorhandenes nicht verloren geht.
+  if (!wrongDocument && text) {
+    const extracted = await extractFromFilledForm(blankText, text, newText);
+    const questions = await store.listQuestions();
+    const merged = { ...c.fields };
+    if (mergeExtracted(merged, extracted, { allowFreeText: false }, questions).length) {
+      await store.updateCase(caseId, { fields: merged, keepTimestamp: true });
+      c.fields = merged;
+    }
+  }
 
   if (wrongDocument || filled === false) {
     const requestText = wrongDocument
@@ -331,19 +346,6 @@ export async function receiveFilledTemplate(
     await store.addMessage(caseId, "assistant", requestText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
     await refreshCase(store, caseId, { hint: "waiting" });
     return true;
-  }
-
-  // Richtige, ausgefüllte Vorlage: Angaben, die der Kunde neu in die Vorlage eingetragen hat, zusätzlich für
-  // offene Pflichtfragen übernehmen (z. B. Baujahr steht sowohl im Frage-Flow als auch im Formular). Dabei
-  // wird NUR der Unterschied zur leeren Vorlage betrachtet, damit vom Büro selbst vorausgefüllter Text
-  // (Briefkopf, Textbausteine …) nicht versehentlich als Kundenangabe übernommen wird.
-  if (template && newText.trim()) {
-    const { fields: extracted } = await extractFields(newText);
-    const questions = await store.listQuestions();
-    const merged = { ...c.fields };
-    if (mergeExtracted(merged, extracted, { allowFreeText: false }, questions).length) {
-      await store.updateCase(caseId, { fields: merged, keepTimestamp: true });
-    }
   }
 
   // receiveFilledTemplate läuft NACH der normalen Gesprächsverarbeitung (siehe mail-sync.ts), zu deren

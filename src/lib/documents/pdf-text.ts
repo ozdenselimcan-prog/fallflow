@@ -4,6 +4,8 @@ interface PdfAnnotation {
   subtype?: string;
   fieldType?: string;
   fieldName?: string;
+  /** Tooltip/Beschriftung des Formularfelds – oft aussagekräftiger als der technische Feldname. */
+  alternativeText?: string;
   fieldValue?: unknown;
   contents?: string;
 }
@@ -24,7 +26,7 @@ async function extractAnnotationText(doc: Awaited<ReturnType<typeof getDocumentP
       if (a.subtype === "Widget" && a.fieldType === "Sig") {
         signature = true;
       } else if (a.subtype === "Widget" && value && value !== "Off") {
-        lines.push(`[Formularfeld] ${a.fieldName ?? "Feld"}: ${value}`);
+        lines.push(`[Formularfeld] ${a.alternativeText?.trim() || a.fieldName || "Feld"}: ${value}`);
       } else if (a.subtype === "FreeText" && a.contents?.trim()) {
         lines.push(`[Eingefügter Text] ${a.contents.trim()}`);
       } else if (a.subtype === "Ink" || a.subtype === "Stamp") {
