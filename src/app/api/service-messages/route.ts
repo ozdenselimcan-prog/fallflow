@@ -8,6 +8,7 @@ const saveSchema = z.object({
   appointmentNote: z.string().max(500).optional(),
   requiresFloorplan: z.boolean().nullable().optional(),
   requiresEnergyCertificate: z.boolean().nullable().optional(),
+  subject: z.string().trim().max(200).optional(),
 });
 
 export const GET = withSession(async (_req, { store }) => json({ serviceMessages: await store.listServiceMessages() }));

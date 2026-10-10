@@ -214,6 +214,8 @@ export interface ServiceMessage {
    * (siehe checklist.ts documentRequirements), sonst vom Büro ausdrücklich festgelegt. */
   requiresFloorplan: boolean | null;
   requiresEnergyCertificate: boolean | null;
+  /** Betreff der automatischen E-Mails zu dieser Leistung. Leer = Standardbetreff. */
+  subject: string;
 }
 
 /** Rückweg einer Büro-PDF-Vorlage: 'sent' = an den Kunden geschickt, 'received' = ausgefüllt zurück. */

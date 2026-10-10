@@ -285,7 +285,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // sonst bekäme der Kunde für einen einzigen Gesprächszug mehrere einzelne E-Mails.
   const outgoing = isInteractive(input.channel) ? replies : replies.length ? [replies.join("\n\n")] : [];
   for (const reply of outgoing) {
-    const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated, attachments });
+    const subject = serviceMessages.find((m) => m.service === turn.fields.service)?.subject?.trim() || undefined;
+    const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated, attachments, subject });
     if (!result.delivered) {
       delivered = false;
       deliveryNote = result.reason;

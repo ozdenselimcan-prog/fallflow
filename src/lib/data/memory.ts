@@ -288,6 +288,7 @@ export function createMemoryStore(): Store {
         if (m.appointmentNote !== undefined) existing.appointmentNote = m.appointmentNote;
         if (m.requiresFloorplan !== undefined) existing.requiresFloorplan = m.requiresFloorplan;
         if (m.requiresEnergyCertificate !== undefined) existing.requiresEnergyCertificate = m.requiresEnergyCertificate;
+        if (m.subject !== undefined) existing.subject = m.subject;
         return existing;
       }
       const created: ServiceMessage = {
@@ -298,6 +299,7 @@ export function createMemoryStore(): Store {
         appointmentNote: m.appointmentNote ?? "",
         requiresFloorplan: m.requiresFloorplan ?? null,
         requiresEnergyCertificate: m.requiresEnergyCertificate ?? null,
+        subject: m.subject ?? "",
       };
       d.serviceMessages.push(created);
       return created;

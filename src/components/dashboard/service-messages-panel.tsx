@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Checkbox, Textarea } from "@/components/ui/form";
+import { Checkbox, Input, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
+import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { defaultDocumentRequirements } from "@/lib/intake/checklist";
 import { apiFetch } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ export interface ServiceMessageView {
   appointmentNote?: string;
   requiresFloorplan?: boolean | null;
   requiresEnergyCertificate?: boolean | null;
+  subject?: string;
 }
 export interface ServiceTemplateView {
   id: string;
@@ -98,6 +100,15 @@ export function ServiceMessagesPanel({
     }
     return map;
   });
+  // Leer = Standardbetreff.
+  const [subjects, setSubjects] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const s of rows) {
+      if (s === ALWAYS_ROW) continue;
+      map[s] = initialMessages.find((m) => m.service === s)?.subject ?? "";
+    }
+    return map;
+  });
   const [templates, setTemplates] = useState(initialTemplates);
   const [savedService, setSavedService] = useState<string | null>(null);
   const [busyRow, setBusyRow] = useState<string | null>(null);
@@ -114,6 +125,7 @@ export function ServiceMessagesPanel({
         appointmentNote: appointmentNotes[service] ?? "",
         requiresFloorplan: docReqs[service]?.floorplan ?? true,
         requiresEnergyCertificate: docReqs[service]?.energyCertificate ?? false,
+        subject: subjects[service] ?? "",
       });
       setSavedService(service);
       setTimeout(() => setSavedService((s) => (s === service ? null : s)), 2000);
@@ -216,6 +228,10 @@ export function ServiceMessagesPanel({
 
               {!isAlways && (
                 <div className="space-y-3">
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Betreff der E-Mail (leer = Standardbetreff)</p>
+                    <Input disabled={!canEdit} maxLength={200} placeholder={DEFAULT_EMAIL_SUBJECT} value={subjects[row] ?? ""} onChange={(e) => setSubjects({ ...subjects, [row]: e.target.value })} />
+                  </div>
                   <div>
                     <p className="mb-1 text-xs font-medium text-muted-foreground">
                       Nachricht – Tipp: Schreiben Sie hier, was Sie vom Kunden brauchen (z. B. „Bitte senden Sie uns Ihre Telefonnummer und E-Mail-Adresse“). Das zählt per E-Mail automatisch als benötigte Angabe.

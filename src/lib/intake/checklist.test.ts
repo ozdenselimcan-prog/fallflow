@@ -43,14 +43,14 @@ describe("documentRequirements", () => {
 
   it("die je Leistung einstellbaren Angaben (Vorlagen & Nachrichten) haben Vorrang vor der Standard-Logik", () => {
     // iSFP verlangt standardmäßig Grundriss + Energieausweis – das Büro kann beides einzeln abschalten.
-    const off = documentRequirements({ service: "iSFP" }, undefined, [{ id: "s1", companyId: "c1", service: "iSFP", body: "", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false }]);
+    const off = documentRequirements({ service: "iSFP" }, undefined, [{ id: "s1", companyId: "c1", service: "iSFP", body: "", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false, subject: "" }]);
     expect(off.some((r) => r.kind === "floorplan")).toBe(false);
     expect(off.some((r) => r.kind === "energy_certificate")).toBe(false);
 
     // Fördermittelberatung verlangt standardmäßig keins von beidem – das Büro kann es trotzdem einschalten,
     // auch ohne den alten (nur für diese eine Leistung gedachten) Firmen-Override zu setzen.
     const on = documentRequirements({ service: "Fördermittelberatung" }, undefined, [
-      { id: "s2", companyId: "c1", service: "Fördermittelberatung", body: "", appointmentNote: "", requiresFloorplan: true, requiresEnergyCertificate: null },
+      { id: "s2", companyId: "c1", service: "Fördermittelberatung", body: "", appointmentNote: "", requiresFloorplan: true, requiresEnergyCertificate: null, subject: "" },
     ]);
     expect(on.some((r) => r.kind === "floorplan")).toBe(true);
     // requiresEnergyCertificate ist null -> fällt auf die normale Fördermittelberatung-Logik (Firmen-Override) zurück.
@@ -238,7 +238,7 @@ describe("deriveStatus", () => {
 
   it("E-Mail: vom Büro in der Leistungs-Nachricht verlangte Angaben (Telefonnummer, E-Mail) zählen als benötigt", () => {
     const questions = [q({ key: "phone", label: "Telefonnummer" }), q({ key: "email", label: "E-Mail" }), q({ key: "name", label: "Name" })];
-    const serviceMessages = [{ id: "s1", companyId: "c1", service: "Energieausweis", body: "Danke! Wir benötigen noch Ihre Nummer und Mail-Adresse. Wir melden uns per Telefon.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false }];
+    const serviceMessages = [{ id: "s1", companyId: "c1", service: "Energieausweis", body: "Danke! Wir benötigen noch Ihre Nummer und Mail-Adresse. Wir melden uns per Telefon.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false, subject: "" }];
     const open = buildChecklist({ questions, fields: { service: "Energieausweis" }, documents: [], serviceMessages, includeFields: false });
     expect(open.missingFields.map((i) => i.key).sort()).toEqual(["email", "phone"]); // "name" nicht verlangt, "per Telefon" ist keine Anforderung
     expect(deriveStatus("QUALIFYING", open, "chat")).toBe("QUALIFYING");

@@ -73,6 +73,7 @@ const mapServiceMessage = (r: Row): ServiceMessage => ({
   appointmentNote: r.appointment_note ?? "",
   requiresFloorplan: r.requires_floorplan ?? null,
   requiresEnergyCertificate: r.requires_energy_certificate ?? null,
+  subject: r.subject ?? "",
 });
 
 const mapCase = (r: Row): CaseRecord => ({
@@ -516,6 +517,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       if (m.appointmentNote !== undefined) row.appointment_note = m.appointmentNote;
       if (m.requiresFloorplan !== undefined) row.requires_floorplan = m.requiresFloorplan;
       if (m.requiresEnergyCertificate !== undefined) row.requires_energy_certificate = m.requiresEnergyCertificate;
+      if (m.subject !== undefined) row.subject = m.subject;
       const { data, error } = await db.from("service_messages").upsert(row, { onConflict: "company_id,service" }).select("*").single();
       fail(error, "service message save");
       return mapServiceMessage(data!);

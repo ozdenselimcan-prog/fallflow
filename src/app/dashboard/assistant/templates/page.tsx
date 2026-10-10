@@ -37,6 +37,7 @@ export default async function AssistantTemplatesPage() {
           appointmentNote: m.appointmentNote,
           requiresFloorplan: m.requiresFloorplan,
           requiresEnergyCertificate: m.requiresEnergyCertificate,
+          subject: m.subject,
         }))}
         initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
         canEdit={canEdit}

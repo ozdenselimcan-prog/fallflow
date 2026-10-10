@@ -1,4 +1,5 @@
 import type { MessageChannel } from "@/lib/data/types";
+import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { getValidTokens } from "./tokens";
 import { IntegrationNotReadyError, type InboundAttachment } from "./email";
 import { gmailProvider } from "./gmail";
@@ -36,7 +37,7 @@ export async function deliverToCustomer(input: {
       const found = await getValidTokens(provider, input.companyId);
       if (!found) continue;
       if (!input.email) return { delivered: false, reason: "Keine E-Mail-Adresse vorhanden." };
-      await provider.sendReply(found.tokens, input.email, input.subject ?? "Ihre Anfrage zur Energieberatung", input.text, input.attachments);
+      await provider.sendReply(found.tokens, input.email, input.subject || DEFAULT_EMAIL_SUBJECT, input.text, input.attachments);
       return { delivered: true, reason: "" };
     }
     return { delivered: false, reason: "Für dieses Büro ist kein E-Mail-Postfach verbunden." };

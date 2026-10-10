@@ -327,7 +327,7 @@ export async function receiveFilledTemplate(
       const blank = await readFile(template.storagePath);
       if (blank) attachments.push({ filename: template.fileName, mime: "application/pdf", bytes: blank.bytes });
     }
-    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: requestText, attachments });
+    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: requestText, attachments, subject: await emailSubjectFor(store, c.fields.service) });
     await store.addMessage(caseId, "assistant", requestText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
     await refreshCase(store, caseId, { hint: "waiting" });
     return true;
@@ -354,6 +354,12 @@ export async function receiveFilledTemplate(
   return true;
 }
 
+/** Eigener Betreff des Büros für automatische E-Mails zu dieser Leistung (undefined = Standardbetreff). */
+export async function emailSubjectFor(store: Store, service: string | undefined): Promise<string | undefined> {
+  const serviceMessages = await store.listServiceMessages();
+  return serviceMessages.find((m) => m.service === service)?.subject?.trim() || undefined;
+}
+
 /** Text der Abschluss-Nachricht: eigener Text des Büros für diese Leistung, sonst Standard. */
 export async function completionTextFor(store: Store, service: string | undefined): Promise<string> {
   const serviceMessages = await store.listServiceMessages();
@@ -369,7 +375,7 @@ export async function sendCompletionMessage(store: Store, refreshed: RefreshResu
   const completionText = await completionTextFor(store, c.fields.service);
   const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, c));
   const text = booked ? `${completionText} ${appointmentPendingReviewText}` : completionText;
-  const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text });
+  const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
 
@@ -432,7 +438,7 @@ export async function receiveEmailAttachments(store: Store, caseId: string, atta
   if (!stillMissing.length) return;
   const c = refreshed.caseRecord;
   const text = `Vielen Dank, Ihre Unterlagen sind bei uns angekommen. Damit wir Ihre Anfrage abschließen können, fehlt uns noch: ${stillMissing.join(", ")}. Sie können uns das einfach als Antwort auf diese E-Mail schicken.`;
-  const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text });
+  const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
 

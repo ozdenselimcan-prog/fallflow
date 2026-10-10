@@ -4,7 +4,7 @@ import type { Store } from "@/lib/data/store";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { saveFile } from "@/lib/documents/storage";
-import { matchServiceMaterials, receiveCaseDocument, receiveEmailAttachments, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
+import { emailSubjectFor, matchServiceMaterials, receiveCaseDocument, receiveEmailAttachments, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
 
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
 // wird hier deterministisch gemockt, statt einen echten KI-Key fuer den Test zu brauchen.
@@ -284,6 +284,15 @@ describe("receiveEmailAttachments", () => {
     const reply = (await store.listMessages(c.id)).filter((m) => m.role === "assistant").at(-1)?.content ?? "";
     expect(reply).toContain("angekommen");
     expect(reply).toContain("Grundriss");
+  });
+});
+
+describe("emailSubjectFor", () => {
+  it("liefert den eigenen Betreff der Leistung, sonst undefined (Standardbetreff)", async () => {
+    const store = freshStore();
+    await store.saveServiceMessage({ service: "iSFP", body: "Danke", subject: "Ihr iSFP bei BA Engineering" });
+    expect(await emailSubjectFor(store, "iSFP")).toBe("Ihr iSFP bei BA Engineering");
+    expect(await emailSubjectFor(store, "Energieberatung")).toBeUndefined();
   });
 });
 
