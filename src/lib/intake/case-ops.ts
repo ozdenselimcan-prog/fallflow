@@ -287,7 +287,12 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   const pending = pendingList.length > 1 ? (matchPendingByFileName(pendingList, templates, fileName) ?? pendingList[0]) : pendingList[0];
   const template = templates.find((t) => t.id === pending.templateId);
   const title = template?.title ?? fileName;
-  const { filled, wrongDocument, note } = text ? await verifyFilledTemplate(title, text) : { filled: null, wrongDocument: false, note: "" };
+  // Leere Original-Vorlage einmal lesen: Der Unterschied zum zurückgeschickten Dokument zeigt der Prüfung, was der
+  // Kunde wirklich eingetragen hat (sonst rät die KI nur anhand des Gesamttextes, ob etwas fehlt).
+  const blank = template ? await readFile(template.storagePath) : null;
+  const blankText = blank ? await extractPdfText(blank.bytes.slice()) : "";
+  const newText = diffNewPdfText(blankText, text);
+  const { filled, wrongDocument, note } = text ? await verifyFilledTemplate(title, text, newText) : { filled: null, wrongDocument: false, note: "" };
 
   await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled: wrongDocument ? false : filled, receivedAt: new Date().toISOString() });
   await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
@@ -313,17 +318,12 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   // offene Pflichtfragen übernehmen (z. B. Baujahr steht sowohl im Frage-Flow als auch im Formular). Dabei
   // wird NUR der Unterschied zur leeren Vorlage betrachtet, damit vom Büro selbst vorausgefüllter Text
   // (Briefkopf, Textbausteine …) nicht versehentlich als Kundenangabe übernommen wird.
-  if (template) {
-    const blank = await readFile(template.storagePath);
-    const blankText = blank ? await extractPdfText(blank.bytes.slice()) : "";
-    const newText = diffNewPdfText(blankText, text);
-    if (newText.trim()) {
-      const { fields: extracted } = await extractFields(newText);
-      const questions = await store.listQuestions();
-      const merged = { ...c.fields };
-      if (mergeExtracted(merged, extracted, { allowFreeText: false }, questions).length) {
-        await store.updateCase(caseId, { fields: merged, keepTimestamp: true });
-      }
+  if (template && newText.trim()) {
+    const { fields: extracted } = await extractFields(newText);
+    const questions = await store.listQuestions();
+    const merged = { ...c.fields };
+    if (mergeExtracted(merged, extracted, { allowFreeText: false }, questions).length) {
+      await store.updateCase(caseId, { fields: merged, keepTimestamp: true });
     }
   }
 
