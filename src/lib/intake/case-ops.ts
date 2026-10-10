@@ -71,17 +71,25 @@ export async function matchServiceMaterials(
     const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
     if (!pending.length) return null;
     for (const tpl of pending) {
-      await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
       const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
       if (channel === "email") {
+        // Erst die Datei laden und NUR bei Erfolg als "gesendet" markieren bzw. im Text behaupten, sie liege
+        // im Anhang – sonst würde bei einem Speicherfehler eine Vorlage als erledigt gelten, obwohl beim
+        // Kunden nie ein Anhang ankam (und die KI es dann auch nie erneut versucht).
         const file = await readFile(tpl.storagePath);
-        if (file) attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
+        if (!file) {
+          await store.addEvent(c.id, "document", `Vorlage „${tpl.title}“ konnte nicht aus dem Speicher geladen werden – bitte unter Vorlagen & Nachrichten erneut hochladen.`);
+          continue;
+        }
+        await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+        attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
         texts.push(
           customMessage
             ? `${customMessage}\n\n(Das Formular „${tpl.title}“ finden Sie im Anhang dieser E-Mail – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.)`
             : `Für Ihr Anliegen („${tpl.title}“) finden Sie das Formular im Anhang dieser E-Mail. Bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`,
         );
       } else {
+        await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
         const token = await ensureUploadToken(store, c);
         const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
         texts.push(

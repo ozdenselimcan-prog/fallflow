@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { nextPending } from "@/lib/ai/conversation";
 import { createMemoryStore } from "@/lib/data/memory";
 import type { Store } from "@/lib/data/store";
+import { saveFile } from "@/lib/documents/storage";
 import { confirmAppointment, receiveFilledTemplate, refreshCase } from "./case-ops";
 import { CaseLimitReachedError, processIntakeMessage, type IntakeTurn } from "./engine";
 
@@ -111,7 +112,8 @@ describe("processIntakeMessage – Terminvorschlag", () => {
       body: "Danke für Ihre Anfrage, wir prüfen die Förderoptionen für Sie.",
       appointmentNote: "Vielen Dank, wir haben alles. Ein Mitarbeiter meldet sich zur Terminabstimmung.",
     });
-    await store.saveDocumentTemplate({ service: "Fördermittelberatung", title: "Förderantrag", fileName: "antrag.pdf", storagePath: "demo/foerder.pdf" });
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "Fördermittelberatung", title: "Förderantrag", fileName: "antrag.pdf", storagePath: path });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Fördermittelberatung.", source: "email", channel: "email" });
     expect((await store.getCase(first.sessionId))?.status).toBe("COMPLETE");
 
@@ -172,7 +174,8 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
   });
 
   it("schickt die Vorlage per E-Mail als Anhang statt als Link, ohne Upload-Hinweis", async () => {
-    await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: "demo/templates/x.pdf" });
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "Energieberatung", title: "Vollmacht Energieberatung", fileName: "vollmacht.pdf", storagePath: path });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich interessiere mich für eine Energieberatung.", source: "email", channel: "email" });
     const reply = first.replies.join(" ");
     expect(reply).not.toContain("/template/");
@@ -190,7 +193,8 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
   });
 
   it("per E-Mail wird NICHT nach fehlenden Angaben gefragt – nur die eigene Leistungs-Nachricht geht raus", async () => {
-    await store.saveDocumentTemplate({ service: "iSFP", title: "iSFP-Vollmacht", fileName: "isfp.pdf", storagePath: "demo/templates/isfp.pdf" });
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "iSFP", title: "iSFP-Vollmacht", fileName: "isfp.pdf", storagePath: path });
     await store.saveServiceMessage({ service: "iSFP", body: "Vielen Dank für Ihre Anfrage zum iSFP. Unser Team meldet sich in Kürze." });
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne einen iSFP.", source: "email", channel: "email" });
     const reply = first.replies.join(" ");

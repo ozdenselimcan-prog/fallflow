@@ -4,7 +4,7 @@ import type { Store } from "@/lib/data/store";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { saveFile } from "@/lib/documents/storage";
-import { receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
+import { matchServiceMaterials, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
 
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
 // wird hier deterministisch gemockt, statt einen echten KI-Key fuer den Test zu brauchen.
@@ -206,6 +206,29 @@ describe("refreshCase – Frage-Flow ist eine reine Website-Chat-Funktion", () =
     });
     const { checklist } = await refreshCase(store, c.id, { hint: "chat" });
     expect(checklist.dataComplete).toBe(false);
+  });
+});
+
+describe("matchServiceMaterials", () => {
+  it("überspringt eine Vorlage, deren Datei nicht aus dem Speicher geladen werden kann, markiert sie NICHT als gesendet, schickt andere passende Vorlagen aber trotzdem (Regressionstest)", async () => {
+    const store = freshStore();
+    const goodPath = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1, 2, 3]), mime: "application/pdf" });
+    const broken = await store.saveDocumentTemplate({ service: "iSFP", title: "iSFP-Vollmacht", fileName: "isfp.pdf", storagePath: "pfad/der/nie/gespeichert/wurde.pdf" });
+    const always = await store.saveDocumentTemplate({ service: "", title: "Datenschutz", fileName: "datenschutz.pdf", storagePath: goodPath, alwaysInclude: true });
+    const c = await store.createCase({ source: "email", status: "NEW", assignedTo: null, summary: "", fields: { service: "iSFP" }, customerName: "Max", service: "iSFP" });
+
+    const result = await matchServiceMaterials(store, c, await store.listDocumentTemplates(), [], "email");
+    expect(result).not.toBeNull();
+    expect(result!.attachments).toHaveLength(1);
+    expect(result!.attachments[0].filename).toBe("datenschutz.pdf");
+
+    const docs = await store.listTemplateDocuments(c.id);
+    expect(docs.some((d) => d.templateId === always.id && d.status === "sent")).toBe(true);
+    // Nicht als gesendet markiert, obwohl in diesem Zug "pending" -> wird beim nächsten Mal erneut versucht.
+    expect(docs.some((d) => d.templateId === broken.id)).toBe(false);
+
+    const events = await store.listEvents(c.id);
+    expect(events.some((e) => e.text.includes("konnte nicht aus dem Speicher geladen werden"))).toBe(true);
   });
 });
 
