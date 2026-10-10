@@ -31,10 +31,6 @@ export default function ImpressumPage() {
             <h2>Kontakt</h2>
             <p>E-Mail: {siteConfig.supportEmail}</p>
           </section>
-          <section>
-            <h2>Umsatzsteuer</h2>
-            <p>Gemäß § 19 Abs. 1 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen; es liegt keine Umsatzsteuer-Identifikationsnummer vor.</p>
-          </section>
         </div>
       </main>
       <Footer />
