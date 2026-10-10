@@ -9,7 +9,7 @@ import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { Appointment, CaseDocument, CaseRecord, DocumentKind, DocumentTemplate, MessageChannel, ServiceMessage, TemplateDocument } from "@/lib/data/types";
 import { extractPdfText } from "@/lib/documents/pdf-text";
-import { readFile, saveFile } from "@/lib/documents/storage";
+import { readFile, saveFile, sniffMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
@@ -240,6 +240,27 @@ function diffNewPdfText(blankText: string, filledText: string): string {
     .join("\n");
 }
 
+/**
+ * Anhang einer E-Mail-Antwort, der keine zurückgeschickte Büro-Vorlage ist (z. B. Grundriss, Energieausweis, Foto):
+ * als Dokument des Falls ablegen. Die Art wird am Dateinamen erkannt, sonst – wenn genau ein Pflichtdokument
+ * offen ist – diesem zugeordnet, sonst als Foto/"Sonstiges". Danach wird der Fall neu bewertet.
+ */
+export async function receiveCaseDocument(store: Store, caseId: string, bytes: Uint8Array, fileName: string): Promise<void> {
+  const c = await store.getCase(caseId);
+  const mime = sniffMime(bytes);
+  if (!c || !mime) return;
+  const name = fileName.toLowerCase();
+  const guessed: DocumentKind | null = /grundriss|floorplan|bauplan/.test(name) ? "floorplan" : /energieausweis|energy/.test(name) ? "energy_certificate" : null;
+  let kind: DocumentKind | null = guessed;
+  if (!kind) {
+    const openDocs = (await refreshCase(store, caseId, { hint: "waiting", touch: false })).checklist.missing.filter((i) => i.key.startsWith("doc:"));
+    kind = openDocs.length === 1 ? (openDocs[0].key.replace("doc:", "") as DocumentKind) : mime === "application/pdf" ? "other" : "photos";
+  }
+  const storagePath = await saveFile({ companyId: c.companyId, caseId, bytes, mime });
+  await registerUpload(store, c, { kind, fileName, mimeType: mime, size: bytes.length, storagePath });
+  await refreshCase(store, caseId, { hint: "waiting" });
+}
+
 /** Normalisiert einen Dateinamen für den Vergleich: Endung weg, nur Buchstaben/Zahlen, in Wörter zerlegt. */
 const normalizeFileName = (s: string) =>
   s
@@ -310,7 +331,7 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
     }
     const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: requestText, attachments });
     await store.addMessage(caseId, "assistant", requestText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
-    await refreshCase(store, caseId, { hint: "edit" });
+    await refreshCase(store, caseId, { hint: "waiting" });
     return true;
   }
 
@@ -330,7 +351,7 @@ export async function receiveFilledTemplate(store: Store, caseId: string, bytes:
   // receiveFilledTemplate läuft NACH der normalen Gesprächsverarbeitung (siehe mail-sync.ts), zu deren
   // Zeitpunkt die Vorlage noch als "sent" galt; die KI konnte den Fall also in diesem Zug noch nicht als
   // fertig erkennen – das muss hier nachgeholt werden, sonst bleibt die Abschluss-Nachricht ganz aus.
-  const refreshed = await refreshCase(store, caseId, { hint: "edit" });
+  const refreshed = await refreshCase(store, caseId, { hint: "waiting" });
   if (refreshed.becamePrepared) {
     const serviceMessages = await store.listServiceMessages();
     const completionText = serviceMessages.find((m) => m.service === c.fields.service)?.appointmentNote?.trim() || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";

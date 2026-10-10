@@ -2,7 +2,7 @@ import { isCustomerInquiry } from "@/lib/ai/classify";
 import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
-import { receiveFilledTemplate } from "@/lib/intake/case-ops";
+import { receiveCaseDocument, receiveFilledTemplate } from "@/lib/intake/case-ops";
 import { findCaseByIdentity } from "@/lib/intake/identity";
 import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
@@ -114,9 +114,14 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           });
           messages++;
           for (const att of mail.attachments) {
-            await receiveFilledTemplate(store, turn.sessionId, att.bytes, att.filename).catch((err) => {
-              console.error(`[${provider.id}] Vorlagen-Rückläufer konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
-            });
+            // PDFs zuerst als zurückgeschickte Büro-Vorlage prüfen; alles andere (bzw. wenn keine Vorlage offen ist)
+            // als Dokument des Falls ablegen (Grundriss, Energieausweis, Fotos).
+            try {
+              const asTemplate = att.mime === "application/pdf" ? await receiveFilledTemplate(store, turn.sessionId, att.bytes, att.filename) : false;
+              if (!asTemplate) await receiveCaseDocument(store, turn.sessionId, att.bytes, att.filename);
+            } catch (err) {
+              console.error(`[${provider.id}] Anhang konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
+            }
           }
         } catch (err) {
           if (err instanceof CaseLimitReachedError) {

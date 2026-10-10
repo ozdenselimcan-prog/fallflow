@@ -82,11 +82,13 @@ export const gmailProvider: MailSyncProvider = {
         for await (const msg of client.fetch(recent, { source: true, uid: true }, { uid: true })) {
           if (!msg.source) continue;
           const parsed = await simpleParser(msg.source);
-          // Nur PDF-Anhänge in vernünftiger Größe werden übernommen (z. B. eine ausgefüllt zurückgeschickte
-          // Büro-Vorlage) – alles andere (Bilder in Signaturen, große Dateien) wird ignoriert.
+          // Übernommen werden PDFs sowie echte Foto-Anhänge (z. B. Grundriss/Energieausweis als Foto) in
+          // vernünftiger Größe – Bilder in Signaturen (inline, klein) und große Dateien werden ignoriert.
+          const isImage = (a: { contentType: string; contentDisposition?: string; content?: Buffer }) =>
+            ["image/jpeg", "image/png", "image/webp"].includes(a.contentType) && a.contentDisposition === "attachment" && (a.content?.length ?? 0) >= 20_000;
           const attachments: InboundAttachment[] = (parsed.attachments ?? [])
-            .filter((a) => a.contentType === "application/pdf" && a.content && a.content.length > 0 && a.content.length <= MAX_ATTACHMENT_BYTES)
-            .map((a) => ({ filename: a.filename || "dokument.pdf", mime: a.contentType, bytes: new Uint8Array(a.content) }));
+            .filter((a) => (a.contentType === "application/pdf" || isImage(a)) && a.content && a.content.length > 0 && a.content.length <= MAX_ATTACHMENT_BYTES)
+            .map((a) => ({ filename: a.filename || (a.contentType === "application/pdf" ? "dokument.pdf" : "foto"), mime: a.contentType, bytes: new Uint8Array(a.content) }));
           // RFC 3834: "Auto-Submitted: no" (oder fehlend) = normale Mail eines Menschen; jeder andere Wert
           // (z. B. "auto-replied", "auto-generated") kommt von einem automatisch antwortenden System – das darf
           // niemals wieder automatisch beantwortet werden, sonst entsteht eine Endlosschleife (z. B. mit einer

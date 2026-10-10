@@ -4,7 +4,7 @@ import type { Store } from "@/lib/data/store";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { saveFile } from "@/lib/documents/storage";
-import { matchServiceMaterials, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
+import { matchServiceMaterials, receiveCaseDocument, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
 
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
 // wird hier deterministisch gemockt, statt einen echten KI-Key fuer den Test zu brauchen.
@@ -236,6 +236,19 @@ describe("receiveFilledTemplate – mehrere gleichzeitig offene Vorlagen", () =>
     const docs = await store.listTemplateDocuments(c.id);
     expect(docs.find((d) => d.templateId === isfpTemplate.id)?.status).toBe("received");
     expect(docs.find((d) => d.templateId === alwaysTemplate.id)?.status).toBe("received");
+  });
+});
+
+describe("receiveCaseDocument", () => {
+  it("legt einen per E-Mail geschickten Anhang als Dokument des Falls ab, erkennt die Art am Dateinamen und setzt den Fall auf 'Warten auf Kunde', solange noch etwas fehlt", async () => {
+    const store = freshStore();
+    const c = await store.createCase({ source: "email", status: "QUALIFYING", assignedTo: null, summary: "", fields: { service: "Energieberatung", email: "kunde@test.de" }, customerName: "Max", service: "Energieberatung" });
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+    await receiveCaseDocument(store, c.id, png, "Grundriss EG.png");
+    const docs = await store.listDocuments(c.id);
+    expect(docs.some((d) => d.kind === "floorplan" && d.status === "received")).toBe(true);
+    // Energieausweis fehlt für Energieberatung noch -> nicht vollständig, aber der Ball liegt beim Kunden.
+    expect((await store.getCase(c.id))?.status).toBe("WAITING_FOR_CUSTOMER");
   });
 });
 

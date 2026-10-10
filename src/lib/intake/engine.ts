@@ -171,7 +171,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const refreshed = await refreshCase(store, caseId, {
     // Per E-Mail gibt es kein laufendes Gespräch: Hat die KI dem Kunden gerade Vorlage/Nachricht geschickt, liegt der
     // Ball beim Kunden ("Warten auf Kunde") statt dauerhaft "wird qualifiziert" zu zeigen.
-    hint: turn.handoff || (input.channel === "email" && material && (material.texts.length > 0 || material.attachments.length > 0)) ? "waiting" : "chat",
+    hint: turn.handoff || (input.channel === "email" && (existing || (material && (material.texts.length > 0 || material.attachments.length > 0)))) ? "waiting" : "chat",
     autoRequestDocs: settings.autoReply && !turn.handoff,
   });
   const { checklist } = refreshed;
