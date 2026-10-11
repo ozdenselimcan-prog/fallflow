@@ -16,7 +16,7 @@
   if (document.getElementById("fallflow-widget-root")) return;
 
   var origin = new URL(script.src, window.location.href).origin;
-  var label = script.getAttribute("data-label") || "Beratung anfragen";
+  var label = script.getAttribute("data-label") || "Fragen? Chat starten";
   var color = /^#[0-9a-fA-F]{6}$/.test(script.getAttribute("data-color") || "") ? script.getAttribute("data-color") : "#1f6f5c";
 
   var root = document.createElement("div");

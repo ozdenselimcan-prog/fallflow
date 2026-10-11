@@ -3,7 +3,7 @@ import { WidgetChat } from "@/components/chat/widget-chat";
 import { EmptyState } from "@/components/ui/states";
 import { getPublicStore } from "@/lib/data";
 
-export const metadata: Metadata = { title: "Beratung anfragen", robots: { index: false } };
+export const metadata: Metadata = { title: "Chat", robots: { index: false } };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

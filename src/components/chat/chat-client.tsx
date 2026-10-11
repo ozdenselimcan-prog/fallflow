@@ -26,6 +26,8 @@ export interface ChatSendContext {
   first: boolean;
   fields: Record<string, string>;
   sessionId: string | null;
+  /** Bisheriger Verlauf (ohne Begrüßung und ohne die aktuelle Nachricht). */
+  history: { role: "assistant" | "user"; text: string }[];
 }
 
 interface Message {
@@ -59,7 +61,7 @@ export function ChatClient({ assistantName, greeting, send, onUpdate, suggestion
   const [pendingKey, setPendingKey] = useState<string | null>("__first");
   const [done, setDone] = useState(false);
   const [upload, setUpload] = useState<ChatUpload | null>(null);
-  const stateRef = useRef<{ fields: Record<string, string>; sessionId: string | null; started: boolean; nextId: number }>({ fields: {}, sessionId: null, started: false, nextId: 1 });
+  const stateRef = useRef<{ fields: Record<string, string>; sessionId: string | null; started: boolean; nextId: number; history: ChatSendContext["history"] }>({ fields: {}, sessionId: null, started: false, nextId: 1, history: [] });
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,8 +79,9 @@ export function ChatClient({ assistantName, greeting, send, onUpdate, suggestion
       setMessages((m) => [...m, { id: st.nextId++, role: "user", text }]);
       setBusy(true);
       try {
-        const [turn] = await Promise.all([send(text, { first: !st.started, fields: st.fields, sessionId: st.sessionId }), sleep(350)]);
+        const [turn] = await Promise.all([send(text, { first: !st.started, fields: st.fields, sessionId: st.sessionId, history: st.history.slice(-10) }), sleep(350)]);
         st.started = true;
+        st.history = [...st.history, { role: "user", text }, ...turn.replies.map((t) => ({ role: "assistant" as const, text: t }))];
         if (turn.fields) st.fields = turn.fields;
         if (turn.sessionId !== undefined) st.sessionId = turn.sessionId;
         setMessages((m) => [...m, ...turn.replies.map((t) => ({ id: st.nextId++, role: "assistant" as const, text: t }))]);

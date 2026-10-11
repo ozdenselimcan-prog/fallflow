@@ -75,7 +75,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
       <LiveRefresh active={counts.NEW + counts.QUALIFYING > 0} everyMs={6000} />
       <PageHeader
         title="AI Intake"
-        description="Hier qualifiziert die KI Anfragen: Sie erkennt Angaben, fragt Fehlendes nach, fordert Dokumente an und bereitet den Fall vor."
+        description="Hier qualifiziert die KI Anfragen: Sie erkennt Angaben, fordert Fehlendes per E-Mail an und bereitet den Fall vor."
         action={
           <a href={testUrl} target="_blank" rel="noreferrer" className={buttonStyles({ variant: "secondary" })}>
             <ExternalLink className="size-4" /> Website-Chat testen

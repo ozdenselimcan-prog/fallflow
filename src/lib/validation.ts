@@ -117,7 +117,8 @@ export const availabilitySchema = z
 
 export const onboardingSchema = companySchema.extend({
   services: z.array(str(60)).max(20),
-  activeFieldKeys: z.array(str(40)).max(50),
+  /** Veraltet (früherer Onboarding-Schritt "Erfassungsfelder"), wird nur noch übernommen, falls mitgeschickt. */
+  activeFieldKeys: z.array(str(40)).max(50).optional(),
   availability: availabilitySchema,
 });
 
@@ -147,11 +148,12 @@ export const widgetMessageSchema = z.object({
   text: str(1500).min(1),
   /** true = Seite läuft in einem iframe (echte Einbindung via widget.js), nicht direkt aufgerufen. */
   embedded: z.boolean().optional(),
+  /** Bisheriger Chatverlauf (nur für den Zusammenhang, wird nicht gespeichert). */
+  history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: str(1500) })).max(20).optional(),
 });
 
 export const aiChatSchema = z.object({
-  fields: caseFieldsSchema.default({}),
   text: str(1500).min(1),
-  first: z.boolean().default(false),
+  history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: str(1500) })).max(20).optional(),
 });
 export const extractSchema = z.object({ text: str(2000).min(1) });

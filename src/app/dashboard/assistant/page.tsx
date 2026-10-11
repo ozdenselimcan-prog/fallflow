@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileText, ListChecks } from "lucide-react";
+import { FileText } from "lucide-react";
 import { AssistantForm } from "@/components/dashboard/assistant-form";
 import { AssistantPreview } from "@/components/dashboard/assistant-preview";
 import { buttonStyles } from "@/components/ui/button";
@@ -20,14 +20,11 @@ export default async function AssistantPage() {
     <>
       <PageHeader
         title="KI-Assistent"
-        description="Legen Sie fest, wie der Assistent Anfragen entgegennimmt."
+        description="Legen Sie fest, wie der Assistent E-Mail-Anfragen bearbeitet und Fragen im Website-Chat beantwortet."
         action={
           <div className="flex flex-wrap gap-2">
             <Link href="/dashboard/assistant/templates" className={buttonStyles({ variant: "secondary" })}>
               <FileText className="size-4" /> Vorlagen & Nachrichten
-            </Link>
-            <Link href="/dashboard/assistant/questions" className={buttonStyles({ variant: "secondary" })}>
-              <ListChecks className="size-4" /> Fragen bearbeiten
             </Link>
           </div>
         }

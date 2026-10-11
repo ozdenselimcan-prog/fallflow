@@ -18,7 +18,6 @@ interface Props {
   companyId: string;
   appUrl: string;
   initial: { name: string; website: string; phone: string; address: string; services: string[] };
-  fieldOptions: { key: string; label: string; active: boolean }[];
   widgetReceived: boolean;
   connections: { gmail: ConnectionView | null };
   documentTemplates: ServiceTemplateView[];
@@ -37,13 +36,12 @@ const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotS
 /** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Vorlagen & Nachrichten", "Erfassungsfelder", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
+const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Vorlagen & Nachrichten", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldOptions, widgetReceived, connections, documentTemplates, serviceMessages }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages }: Props) {
   const [step, setStep] = useState(0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
   const [services, setServices] = useState<string[]>(initial.services);
-  const [active, setActive] = useState<string[]>(fieldOptions.filter((f) => f.active).map((f) => f.key));
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
   const [saved, setSaved] = useState(false);
   const { pending, error, run } = useMutation();
@@ -55,7 +53,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
     setAvailability({ ...availability, workingDays: next.sort((a, b) => a - b) });
   };
 
-  const save = () => run(() => apiFetch("POST", "/api/onboarding", { ...company, services, activeFieldKeys: active, availability }), { refresh: false });
+  const save = () => run(() => apiFetch("POST", "/api/onboarding", { ...company, services, availability }), { refresh: false });
 
   // Vor dem letzten Schritt (Kanäle verbinden) vorab speichern, damit bis dahin eingegebene Angaben
   // nicht verloren gehen, falls der nächste Schritt die Seite verlässt (z. B. Gmail-Test).
@@ -142,18 +140,6 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
 
         {step === 4 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-semibold tracking-tight">Welche Informationen benötigen Sie?</h1>
-            <p className="text-sm text-muted-foreground">Deaktivierte Angaben fragt der Assistent nicht ab. Pflichtangaben und Reihenfolge passen Sie später im Frage-Flow an.</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {fieldOptions.map((f) => (
-                <Checkbox key={f.key} label={f.label} checked={active.includes(f.key)} onChange={(on) => setActive(toggle(active, f.key, on))} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 5 && (
-          <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Wann können Sie Termine anbieten?</h1>
             <p className="text-sm text-muted-foreground">
               Sobald ein Fall vollständig ist, trägt die KI einen passenden freien Termin – nur an diesen Tagen, in diesem Zeitfenster – als Vorschlag in Ihren Kalender ein. Erst wenn Sie ihn bestätigen, schickt die KI die Bestätigung per Mail an den Kunden.
@@ -201,19 +187,19 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
           </div>
         )}
 
-        {step === 6 && (
+        {step === 5 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Website verbinden</h1>
             <p className="text-sm text-muted-foreground">Optional. Sie können diesen Schritt auch später in den Einstellungen erledigen.</p>
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Code kopieren.</li>
               <li>Vor dem schließenden &lt;/body&gt;-Tag Ihrer Website einfügen (bei Website-Baukästen im Bereich „Eigener Code“).</li>
-              <li>Website neu laden – der Button „Beratung anfragen“ erscheint unten rechts.</li>
+              <li>Website neu laden – der Button „Fragen? Chat starten“ erscheint unten rechts.</li>
             </ol>
             <WidgetSnippet appUrl={appUrl} companyId={companyId} />
             <div className="flex items-center gap-2 rounded-xl bg-background px-4 py-3 text-sm">
               {widgetReceived ? <CheckCircle2 className="size-4 text-success" /> : <CircleDashed className="size-4 text-muted-foreground" />}
-              {widgetReceived ? "Erste Widget-Anfrage empfangen." : "Status: Noch keine Widget-Anfrage empfangen. Sie können diesen Schritt überspringen."}
+              {widgetReceived ? "Erste Widget-Nachricht empfangen." : "Status: Noch keine Widget-Nachricht empfangen. Sie können diesen Schritt überspringen."}
             </div>
             <a href={`/widget/${companyId}`} target="_blank" rel="noreferrer" className="inline-block text-sm font-medium text-accent hover:underline">
               Widget in neuem Tab testen →
@@ -226,7 +212,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, fieldO
           </div>
         )}
 
-        {step === 7 && (
+        {step === 6 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">E-Mail verbinden</h1>
             <p className="text-sm text-muted-foreground">

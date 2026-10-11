@@ -9,7 +9,7 @@ interface Props {
   greeting: string;
 }
 
-/** Chat im eingebetteten Widget: jede Nachricht geht an /api/widget/message, der Fall wird serverseitig geführt. */
+/** Chat im eingebetteten Widget: reiner Frage-Antwort-Assistent über /api/widget/message (es wird nichts gespeichert). */
 export function WidgetChat({ companyId, assistantName, greeting }: Props) {
   const send = useCallback(
     async (text: string, ctx: ChatSendContext): Promise<ChatTurn> => {
@@ -20,7 +20,7 @@ export function WidgetChat({ companyId, assistantName, greeting }: Props) {
       const res = await fetch("/api/widget/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId, sessionId: ctx.sessionId, text, embedded }),
+        body: JSON.stringify({ companyId, sessionId: null, text, embedded, history: ctx.history }),
       });
       if (!res.ok) throw new Error("widget request failed");
       return (await res.json()) as ChatTurn;

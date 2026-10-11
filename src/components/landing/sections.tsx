@@ -44,9 +44,9 @@ function Section({ id, title, intro, children, tinted }: { id?: string; title: s
 }
 
 const flow = [
-  { title: "Kundenanfrage", text: "Website-Chat, E-Mail oder Anruf" },
+  { title: "Kundenanfrage", text: "Per E-Mail – Fragen beantwortet der Website-Chat" },
   { title: "KI-Qualifizierung", text: "Bekannte Angaben werden erkannt" },
-  { title: "Fehlende Daten", text: "Nur relevante Fragen werden gestellt" },
+  { title: "Fehlende Daten", text: "Die KI fordert per Mail nur an, was noch fehlt" },
   { title: "Dokumente", text: "Grundriss & Energieausweis per sicherem Upload" },
   { title: "Termin", text: "Terminvorschlag zum fertigen Fall" },
   { title: "Fertiger Beratungsfall", text: "Der Berater übernimmt nur noch den fertigen Fall" },
@@ -162,12 +162,12 @@ export function DemoSection() {
 
 const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = [
   { icon: Workflow, title: "AI Intake", text: "Alle laufenden Qualifizierungen mit klarem Status von NEW bis READY_FOR_REVIEW." },
-  { icon: MessageCircleQuestion, title: "Dynamischer Frage-Flow", text: "Erkennt Bekanntes, fragt nur relevantes Fehlendes nach." },
+  { icon: MessageCircleQuestion, title: "Automatische Rückfragen", text: "Erkennt Bekanntes und fordert per Mail nur an, was wirklich noch fehlt." },
   { icon: ClipboardCheck, title: "Case Completeness Score", text: "Jeder Fall zeigt 0–100 %, was vorliegt und was fehlt." },
   { icon: FileText, title: "Fallakte", text: "Kunde, Gebäude, Anliegen, Dokumente, Kommunikation und Zusammenfassung an einem Ort." },
   { icon: FileUp, title: "Dokumenten-Upload", text: "Sicherer Link zum Hochladen von Grundriss, Energieausweis und Fotos – privat gespeichert." },
   { icon: Inbox, title: "Zentrale Inbox", text: "Website, E-Mail und Telefonnotizen – automatisch dem richtigen Fall zugeordnet." },
-  { icon: Globe, title: "Website-Chat", text: "Ein Script-Tag genügt, um das Widget in Ihre bestehende Website einzubinden." },
+  { icon: Globe, title: "Website-Chat", text: "Die KI beantwortet Besucherfragen zu Ihren Leistungen – eingebunden mit einem Script-Tag." },
   { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook und praktisch jedem Postfach." },
   { icon: CalendarCheck, title: "Terminübergabe", text: "Vorbereitete Fälle lassen sich direkt mit einem Terminvorschlag weitergeben." },
   { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },

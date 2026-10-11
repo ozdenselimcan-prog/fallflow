@@ -5,7 +5,7 @@ export const faqs = [
   },
   {
     q: "Was unterscheidet FallFlow von einem KI-Chatbot?",
-    a: "Ein Chatbot beantwortet Fragen. FallFlow führt einen Vorgang zu Ende: Es erkennt Angaben in der Anfrage, fragt nur Fehlendes nach, fordert Dokumente an, prüft die Vollständigkeit und legt die fertige Fallakte an. Es berät nicht und erfindet keine Angaben.",
+    a: "Ein Chatbot beantwortet nur Fragen – das macht bei FallFlow der Website-Chat. Der Kern ist aber die E-Mail-Bearbeitung: FallFlow erkennt Angaben in der Anfrage, fordert nur Fehlendes an, fordert Dokumente an, prüft die Vollständigkeit und legt die fertige Fallakte an. Es berät nicht und erfindet keine Angaben.",
   },
   {
     q: "Kann ich meine bestehende Website weiterverwenden?",
@@ -17,11 +17,11 @@ export const faqs = [
   },
   {
     q: "Kann FallFlow automatisch antworten?",
-    a: "Im Website-Chat stellt FallFlow aktiv Rückfragen, um fehlende Angaben zu sammeln. Bei E-Mails schickt es stattdessen die von Ihnen hinterlegte Nachricht je Leistung inklusive passender PDF-Vorlage – ohne automatische Rückfrage-Liste, damit es sich wie eine echte Antwort aus Ihrem Büro liest. Es gibt in beiden Fällen keine verbindliche Energie-, Förder- oder Rechtsberatung. Bei Unsicherheit oder auf Wunsch wird die Anfrage an einen Mitarbeiter übergeben. Automatische Antworten lassen sich jederzeit abschalten.",
+    a: "Ja. Auf E-Mail-Anfragen schickt FallFlow die von Ihnen hinterlegte Nachricht je Leistung inklusive passender PDF-Vorlage – damit es sich wie eine echte Antwort aus Ihrem Büro liest. Im Website-Chat beantwortet die KI Fragen von Besuchern zu Ihren Leistungen und zur Energieberatung; für Anfragen und Termine verweist sie auf Ihre E-Mail-Adresse und Telefonnummer. Es gibt keine verbindliche Energie-, Förder- oder Rechtsberatung. Bei Unsicherheit oder auf Wunsch wird die Anfrage an einen Mitarbeiter übergeben. Automatische Antworten lassen sich jederzeit abschalten.",
   },
   {
-    q: "Kann ich die Fragen selbst anpassen?",
-    a: "Ja. Im Frage-Flow-Builder legen Sie fest, welche Angaben abgefragt werden, in welcher Reihenfolge und welche davon Pflicht sind. Die Vollständigkeit jedes Falls richtet sich nach Ihren Pflichtangaben.",
+    q: "Kann ich festlegen, welche Angaben und Unterlagen ich brauche?",
+    a: "Ja. Unter „Vorlagen & Nachrichten“ legen Sie je Leistung Ihren Nachrichtentext, PDF-Vorlagen und benötigte Dokumente (z. B. Grundriss, Energieausweis) fest. Angaben, die Sie in der Nachricht anfordern (z. B. Telefonnummer), zählen automatisch zur Vollständigkeit des Falls.",
   },
   {
     q: "Wo werden Kundendaten gespeichert?",

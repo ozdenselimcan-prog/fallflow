@@ -1,39 +1,20 @@
 import { apiError, json, parseBody, publicRoute } from "@/lib/api";
-import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
-import { CaseLimitReachedError, processIntakeMessage, SessionNotFoundError } from "@/lib/intake/engine";
+import { answerWebsiteChat, chatTurnOf } from "@/lib/intake/website-chat";
 import { widgetMessageSchema } from "@/lib/validation";
 
 /**
- * Nimmt eine Kundennachricht aus dem Website-Widget entgegen, führt das Gespräch weiter
- * und legt den Beratungsfall an bzw. aktualisiert ihn. Die Antwort enthält keine gespeicherten Falldaten –
- * nur die Antworttexte und ggf. den Upload-Link für angeforderte Dokumente.
+ * Beantwortet eine Kundennachricht aus dem Website-Widget. Der Website-Chat ist ein reiner Frage-Antwort-Assistent:
+ * Es wird kein Beratungsfall angelegt und nichts gespeichert – Anfragen und Termine laufen per E-Mail oder Telefon.
  */
 export const POST = publicRoute("widget-message", 40, async (req) => {
   const body = await parseBody(req, widgetMessageSchema);
   if (!body.ok) return body.res;
   const store = await getPublicStore(body.data.companyId);
   if (!store) return apiError("Unbekannte Company", 404);
-  try {
-    const turn = await processIntakeMessage(store, { companyId: body.data.companyId, sessionId: body.data.sessionId, text: body.data.text, source: "widget", channel: "website" });
-    // Erste echte Widget-Anfrage dieses Falls: Kanal "Website" gilt erst jetzt als wirklich eingebunden.
-    // Nur wenn die Seite tatsächlich in einem iframe läuft (echtes Einbinden über widget.js) – ruft das
-    // Büro die Seite nur zum Testen direkt auf (z. B. der Vorschau-Link im Onboarding), bleibt der Kanal
-    // zu Recht "nicht verbunden".
-    if (turn.created && body.data.embedded) await store.setChannelStatus("website", "connected");
-    return json({
-      sessionId: turn.sessionId,
-      replies: turn.replies,
-      quickReplies: turn.quickReplies,
-      done: turn.done,
-      completeness: turn.completeness,
-      upload: turn.upload,
-    });
-  } catch (err) {
-    if (err instanceof SessionNotFoundError) return apiError("Sitzung nicht gefunden", 404);
-    if (err instanceof CaseLimitReachedError) {
-      return json({ sessionId: null, replies: [CASE_LIMIT_REACHED_TEXT], quickReplies: [], done: true, completeness: 0, upload: null });
-    }
-    throw err;
-  }
+  const history = body.data.history ?? [];
+  // Erste Nachricht über ein echt eingebundenes Widget (iframe via widget.js): Kanal "Website" gilt als verbunden.
+  // Ruft das Büro die Seite nur direkt auf (z. B. Vorschau-Link im Onboarding), bleibt er "nicht verbunden".
+  if (body.data.embedded && history.length === 0) await store.setChannelStatus("website", "connected");
+  return json(chatTurnOf(await answerWebsiteChat(store, body.data.text, history)));
 });
