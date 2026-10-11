@@ -97,10 +97,12 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           }
         }
         const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
-        // Ein PDF-Anhang (z. B. die ausgefüllt zurückgeschickte Vollmacht) ist eindeutig fallrelevant, auch
-        // wenn der Mailtext selbst knapp ist ("siehe Anhang") – dann die KI-Einschätzung nicht erst fragen.
-        const hasPdfAttachment = mail.attachments.length > 0 || (mail.skippedAttachments?.length ?? 0) > 0;
-        if (!hasPdfAttachment && !(await isCustomerInquiry(fullText))) {
+        // Mails von Kunden mit bestehendem Fall kommen immer durch (auch ein knappes "Danke!" oder "Dienstag passt").
+        // Neue Absender prüft die KI immer – auch mit Anhang, sonst würde z. B. eine Lieferantenrechnung als PDF zum Fall.
+        // Die Dateinamen gehen mit in die Prüfung, damit "siehe Anhang" + grundriss.pdf trotzdem als Anfrage erkannt wird.
+        const fileNames = [...mail.attachments.map((a) => a.filename), ...(mail.skippedAttachments ?? [])];
+        const classifyText = fileNames.length ? `${fullText}\n\n[Anhänge: ${fileNames.join(", ")}]` : fullText;
+        if (!existing && !(await isCustomerInquiry(classifyText))) {
           skipped++;
           await persistSeenIds();
           continue;
