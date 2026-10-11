@@ -4,7 +4,7 @@ import type { Store } from "@/lib/data/store";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { saveFile } from "@/lib/documents/storage";
-import { emailSubjectFor, matchServiceMaterials, receiveCaseDocument, receiveEmailAttachments, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
+import { emailSubjectFor, matchServiceMaterials, noteSkippedAttachments, receiveCaseDocument, receiveEmailAttachments, receiveFilledTemplate, refreshCase, syncServiceQuestionOptions } from "./case-ops";
 
 // Ohne AI_API_KEY faellt verifyFilledTemplate immer auf {filled: null} zurueck - fuer den "nicht ausgefuellt"-Pfad
 // wird hier deterministisch gemockt, statt einen echten KI-Key fuer den Test zu brauchen.
@@ -352,5 +352,18 @@ describe("syncServiceQuestionOptions", () => {
     await syncServiceQuestionOptions(store, ["Energieberatung", "Sonstiges"]);
     const question = (await store.listQuestions()).find((q) => q.key === "service");
     expect(question?.options).toEqual(["Energieberatung", "Sonstiges"]);
+  });
+});
+
+describe("noteSkippedAttachments", () => {
+  it("merkt sich nicht übernehmbare Anhänge für den Hinweis in der Fallakte (ohne Doppelungen)", async () => {
+    const store = freshStore();
+    const c = await store.createCase({ source: "email", status: "NEW", assignedTo: null, summary: "", fields: { service: "iSFP" }, customerName: "Max", service: "iSFP" });
+    await noteSkippedAttachments(store, c.id, ["IMG_0001.heic"]);
+    await noteSkippedAttachments(store, c.id, ["IMG_0001.heic", "Angebot.docx"]);
+    const updated = await store.getCase(c.id);
+    expect(updated?.fields.skippedAttachments).toBe("IMG_0001.heic\nAngebot.docx");
+    expect(updated?.fields.service).toBe("iSFP");
+    expect((await store.listEvents(c.id)).some((e) => e.text.includes("bitte selbst im Postfach"))).toBe(true);
   });
 });

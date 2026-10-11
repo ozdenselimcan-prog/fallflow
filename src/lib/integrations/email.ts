@@ -18,6 +18,8 @@ export interface InboundEmail {
   body: string;
   receivedAt: string;
   attachments: InboundAttachment[];
+  /** Dateinamen von Anhängen, die nicht übernommen werden konnten (z. B. HEIC-Foto, Word-Datei, über 10 MB). */
+  skippedAttachments?: string[];
   /** true = die Mail trägt selbst einen Auto-Antwort-Header (RFC 3834, z. B. "Auto-Submitted: auto-replied").
    * Verhindert Endlosschleifen mit Abwesenheitsnotizen oder einem ANDEREN automatisch antwortenden System
    * (z. B. einem anderen Energieberatungsbüro, das ebenfalls FallFlow nutzt). */

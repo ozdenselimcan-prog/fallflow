@@ -2,7 +2,7 @@ import { isCustomerInquiry } from "@/lib/ai/classify";
 import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
-import { receiveEmailAttachments } from "@/lib/intake/case-ops";
+import { noteSkippedAttachments, receiveEmailAttachments } from "@/lib/intake/case-ops";
 import { findCaseByIdentity } from "@/lib/intake/identity";
 import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
@@ -99,7 +99,7 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
         const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
         // Ein PDF-Anhang (z. B. die ausgefüllt zurückgeschickte Vollmacht) ist eindeutig fallrelevant, auch
         // wenn der Mailtext selbst knapp ist ("siehe Anhang") – dann die KI-Einschätzung nicht erst fragen.
-        const hasPdfAttachment = mail.attachments.length > 0;
+        const hasPdfAttachment = mail.attachments.length > 0 || (mail.skippedAttachments?.length ?? 0) > 0;
         if (!hasPdfAttachment && !(await isCustomerInquiry(fullText))) {
           skipped++;
           await persistSeenIds();
@@ -115,6 +115,7 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           messages++;
           // Alle Anhänge dieser Mail gemeinsam verarbeiten (Vorlagen, Grundriss, Energieausweis, Fotos) und danach
           // genau einmal antworten – Abschluss-Nachricht oder kurze Bestätigung, was noch fehlt.
+          if (mail.skippedAttachments?.length) await noteSkippedAttachments(store, turn.sessionId, mail.skippedAttachments);
           await receiveEmailAttachments(store, turn.sessionId, mail.attachments).catch((err) => {
             console.error(`[${provider.id}] Anhänge konnten nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
           });

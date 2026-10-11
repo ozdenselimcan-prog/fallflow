@@ -252,6 +252,21 @@ export async function receiveCaseDocument(store: Store, caseId: string, bytes: U
   await refreshCase(store, caseId, { hint: "waiting" });
 }
 
+export const SKIPPED_ATTACHMENTS_KEY = "skippedAttachments";
+
+/**
+ * Anhänge, die nicht übernommen werden konnten (z. B. HEIC-Fotos, Word-Dateien, über 10 MB): Das Büro bekommt in der
+ * Fallakte den Hinweis, selbst im Postfach nachzusehen. Die Dateinamen werden gesammelt (eine Zeile je Datei).
+ */
+export async function noteSkippedAttachments(store: Store, caseId: string, fileNames: string[]): Promise<void> {
+  const c = await store.getCase(caseId);
+  if (!c || !fileNames.length) return;
+  const known = (c.fields[SKIPPED_ATTACHMENTS_KEY] ?? "").split("\n").filter(Boolean);
+  const merged = [...new Set([...known, ...fileNames.map((n) => n.replace(/[\r\n]+/g, " ").slice(0, 120))])].slice(-30);
+  await store.updateCase(caseId, { fields: { ...c.fields, [SKIPPED_ATTACHMENTS_KEY]: merged.join("\n") }, keepTimestamp: true });
+  await store.addEvent(caseId, "document", `Kunde hat Dateien geschickt, die nicht übernommen werden konnten (${fileNames.join(", ")}) – bitte selbst im Postfach ansehen.`);
+}
+
 /** Normalisiert einen Dateinamen für den Vergleich: Endung weg, nur Buchstaben/Zahlen, in Wörter zerlegt. */
 const normalizeFileName = (s: string) =>
   s

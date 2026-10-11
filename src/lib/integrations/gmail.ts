@@ -90,8 +90,15 @@ export const gmailProvider: MailSyncProvider = {
           // ("%PDF") bzw. an der Endung .pdf erkennen, sonst landet die PDF des Kunden nicht in der Fallakte.
           const isPdf = (a: { contentType: string; filename?: string; content?: Buffer }) =>
             a.contentType === "application/pdf" || /\.pdf$/i.test(a.filename ?? "") || a.content?.subarray(0, 5).toString("latin1") === "%PDF-";
+          const accepted = (a: { contentType: string; contentDisposition?: string; filename?: string; content?: Buffer }) =>
+            (isPdf(a) || isImage(a)) && Boolean(a.content) && (a.content?.length ?? 0) > 0 && (a.content?.length ?? 0) <= MAX_ATTACHMENT_BYTES;
+          // Vom Kunden bewusst angehängte Dateien, die nicht übernommen werden können (HEIC-Fotos, Word, zu groß …) –
+          // das Büro bekommt in der Fallakte einen Hinweis. Kleine Bilder (Logos in Signaturen) zählen nicht.
+          const skippedAttachments = (parsed.attachments ?? [])
+            .filter((a) => !accepted(a) && (a.content?.length ?? 0) >= 20_000 && (a.contentDisposition === "attachment" || !a.contentType.startsWith("image/")))
+            .map((a) => a.filename || "Datei ohne Namen");
           const attachments: InboundAttachment[] = (parsed.attachments ?? [])
-            .filter((a) => (isPdf(a) || isImage(a)) && a.content && a.content.length > 0 && a.content.length <= MAX_ATTACHMENT_BYTES)
+            .filter(accepted)
             .map((a) => {
               const pdf = isPdf(a);
               return { filename: a.filename || (pdf ? "dokument.pdf" : "foto"), mime: pdf ? "application/pdf" : a.contentType, bytes: new Uint8Array(a.content) };
@@ -109,6 +116,7 @@ export const gmailProvider: MailSyncProvider = {
             body: (parsed.text ?? stripHtml(typeof parsed.html === "string" ? parsed.html : "")).slice(0, 4000),
             receivedAt: (parsed.date ?? new Date()).toISOString(),
             attachments,
+            skippedAttachments,
             autoSubmitted,
           });
         }

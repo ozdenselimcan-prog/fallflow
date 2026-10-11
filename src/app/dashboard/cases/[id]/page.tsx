@@ -11,6 +11,7 @@ import { DocumentsPanel } from "@/components/dashboard/documents-panel";
 import { KiToolsCard } from "@/components/dashboard/ki-tools-card";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Card, CardHeader } from "@/components/ui/card";
+import { Notice } from "@/components/ui/states";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
 import { hasAiTools } from "@/lib/billing/limits";
@@ -18,7 +19,7 @@ import { FIELD_GROUPS } from "@/lib/cases/fields";
 import { FORM_ENTRIES_KEY, parseFormEntries } from "@/lib/cases/form-entries";
 import { getStore } from "@/lib/data";
 import { publicDocument } from "@/lib/documents/public";
-import { currentUploadLink } from "@/lib/intake/case-ops";
+import { currentUploadLink, SKIPPED_ATTACHMENTS_KEY } from "@/lib/intake/case-ops";
 import { buildChecklist, documentRequirements, readinessOf } from "@/lib/intake/checklist";
 import { formatDateTime, timeAgo } from "@/lib/utils";
 
@@ -55,6 +56,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const extra = questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
   const requiredKeys = questions.filter((q) => q.active && q.required).map((q) => q.key);
   const formEntries = parseFormEntries(c.fields[FORM_ENTRIES_KEY]);
+  const skippedFiles = (c.fields[SKIPPED_ATTACHMENTS_KEY] ?? "").split("\n").filter(Boolean);
   const showPrepared = c.status === "COMPLETE" || c.status === "READY_FOR_REVIEW" || c.status === "CONVERTED";
 
   return (
@@ -113,6 +115,12 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
                 ))}
               </dl>
             </Card>
+          )}
+          {skippedFiles.length > 0 && (
+            <Notice>
+              <span className="font-medium">Kunde hat Bilder bzw. Dateien geschickt, die hier nicht angezeigt werden können</span> ({skippedFiles.join(", ")}). Bitte
+              schauen Sie selbstständig in Ihren E-Mails nach.
+            </Notice>
           )}
           <DocumentsPanel
             caseId={c.id}
