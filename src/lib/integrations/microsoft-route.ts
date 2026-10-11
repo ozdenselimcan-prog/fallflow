@@ -60,7 +60,7 @@ export const handleMicrosoftCallback = withSession(async (req: NextRequest, { st
 export const GET = withSession(async (req, ctx) => {
   if (req.nextUrl.searchParams.has("code") || req.nextUrl.searchParams.has("error")) return handleMicrosoftCallback(req);
   const connection = await getConnection(ctx.session.companyId, "microsoft");
-  return json({ available: microsoftProvider.missingConfig().length === 0, connected: connection?.status === "connected", connection: connection ? toStatus(connection) : null });
+  return json({ available: microsoftProvider.missingConfig().length === 0, missingConfig: microsoftProvider.missingConfig(), connected: connection?.status === "connected", connection: connection ? toStatus(connection) : null });
 });
 
 /** POST: Anmeldung starten – liefert die Microsoft-Anmeldeseite. */
