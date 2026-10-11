@@ -208,7 +208,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
-  if (turn.pendingKey && !turn.done && turn.pendingKey !== pendingBefore) await store.addEvent(caseId, "question", `KI fragt nach: ${label(turn.pendingKey)}`);
+  // "KI fragt nach" nur im Chat – per E-Mail stellt die KI keine einzelnen Rückfragen.
+  if (isInteractive(input.channel) && turn.pendingKey && !turn.done && turn.pendingKey !== pendingBefore) await store.addEvent(caseId, "question", `KI fragt nach: ${label(turn.pendingKey)}`);
   if (turn.handoff) await store.addEvent(caseId, "handoff", "Kunde wünscht persönlichen Kontakt");
   if (turn.appointmentRequested) await store.addEvent(caseId, "appointment", "Kunde wünscht einen Termin");
 
@@ -225,13 +226,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     // Per E-Mail gibt es kein laufendes Gespräch: Hat die KI dem Kunden gerade Vorlage/Nachricht geschickt, liegt der
     // Ball beim Kunden ("Warten auf Kunde") statt dauerhaft "wird qualifiziert" zu zeigen.
     hint: turn.handoff || (input.channel === "email" && (existing || (material && (material.texts.length > 0 || material.attachments.length > 0)))) ? "waiting" : "chat",
-    autoRequestDocs: settings.autoReply && !turn.handoff,
+    autoRequestDocs: settings.autoReply && !turn.handoff && !attention,
   });
   const { checklist } = refreshed;
 
   // Per E-Mail: Ist der Fall durch diese Antwort (z. B. nachgereichte Telefonnummer) vollständig geworden, die
   // Abschluss-Nachricht schicken – außer der Kunde bekommt in diesem Zug ohnehin die Büro-Nachricht/Vorlage.
-  if (input.channel === "email" && !attention && refreshed.becamePrepared && !material && !turn.done) replies.push(await completionTextFor(store, refreshed.caseRecord.fields.service));
+  const completionIndex = input.channel === "email" && !attention && refreshed.becamePrepared && !material && !turn.done ? replies.length : -1;
+  if (completionIndex >= 0) replies.push(await completionTextFor(store, refreshed.caseRecord.fields.service));
 
   let upload: UploadPrompt | null = null;
   // Nur klassische (vom Kunden angeforderte) Dokumentarten – Vorlagen-Rückläufer haben keinen festen
@@ -328,7 +330,11 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       replies.push(availabilityQuestion(settings.workingDays));
     } else if (stage === "" && !isInteractive(input.channel) && (turn.appointmentRequested || checklist.missing.length === 0)) {
-      if (await autoBookNextSlot(store, refreshed.caseRecord)) replies.push(appointmentPendingReviewText);
+      if (await autoBookNextSlot(store, refreshed.caseRecord)) {
+        // Abschluss-Nachricht und Terminhinweis in einem Satz statt doppeltem "Vielen Dank … ein Mitarbeiter …".
+        if (completionIndex >= 0) replies[completionIndex] = await completionTextFor(store, refreshed.caseRecord.fields.service, { appointmentProposed: true });
+        else replies.push(appointmentPendingReviewText);
+      }
     }
     // stage "proposed"/"confirmed"/"failed": liegt beim Team bzw. ist bereits final – die KI sagt dazu nichts Neues mehr.
   }

@@ -248,6 +248,8 @@ export function availabilityQuestion(workingDays: number[]): string {
 // Der konkrete Termin wird dem Kunden bewusst NICHT direkt von der KI genannt – ein Mitarbeiter bestätigt
 // erst im Kalender (oder waehlt selbst einen anderen Zeitpunkt), danach erst erfaehrt der Kunde das Datum.
 export const appointmentPendingReviewText = "Vielen Dank! Ich habe einen passenden Termin für Sie vorbereitet. Ein Mitarbeiter bestätigt Ihnen den genauen Termin in Kürze.";
+/** Zusatz, wenn der Terminvorschlag in derselben Nachricht wie die Abschluss-Nachricht steht (ohne doppeltes "Vielen Dank"). */
+export const appointmentAddonText = "Wir haben bereits einen passenden Termin für Sie vorbereitet – ein Mitarbeiter bestätigt Ihnen den genauen Termin in Kürze.";
 export const APPOINTMENT_PLACEHOLDER = "(Termin)";
 export const DEFAULT_APPOINTMENT_CONFIRMED_TEMPLATE = `Termin bestätigt: ${APPOINTMENT_PLACEHOLDER}. Wir freuen uns auf das Gespräch!`;
 /**

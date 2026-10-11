@@ -104,7 +104,7 @@ const NUMBER_FILLER = /baujahr|gebaut|jahr|ca\.?|circa|etwa|ungefähr|rund|m²|m
 const CORRECTION = /korrigier|berichtig|stimmt nicht|nicht richtig|falsch|eigentlich|vielmehr|richtig ist|nein,|nicht \d/i;
 // Bewusst nicht die blossen Woerter "mitarbeiter"/"mensch" allein (z. B. "Bist du ein Mensch oder ein Bot?"
 // loeste damit faelschlich eine sofortige Uebergabe aus) - erst in Verbindung mit einer klaren Kontakt-Absicht.
-const HANDOFF = /mit (einem |einer |dem |der )?(mitarbeiter|berater|menschen|person)\b[^.?!]{0,20}(sprechen|telefonieren|reden)|(mitarbeiter|berater)[^.?!]{0,20}(sprechen|kontaktieren|erreichen|melden)|echten? menschen|jemanden sprechen|rückruf|zurückrufen|anrufen/i;
+const HANDOFF = /mit (einem |einer |dem |der )?(mitarbeiter|berater|menschen|person)\b[^.?!]{0,20}(sprechen|telefonieren|reden)|(mitarbeiter|berater)[^.?!]{0,20}(sprechen|kontaktieren|erreichen|melden)|echten? menschen|jemanden sprechen|rückruf|zurückrufen|anrufen|rufen sie (mich|uns)\b[^.?!]{0,40}\ban\b|telefonisch (bei mir )?melden|persönliche[sn]? gespräch/i;
 const SKIP = /^(überspringen|weiß ich nicht|weiss ich nicht|keine ahnung|k\. ?a\.?|-|—)$/i;
 export const SKIP_LABEL_REQUIRED = "Weiß ich nicht";
 export const SKIP_LABEL_OPTIONAL = "Überspringen";

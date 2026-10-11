@@ -9,6 +9,9 @@ Entscheide, ob der Kunde dem Büro eine echte FRAGE stellt, die ein Mitarbeiter 
 einem Termin oder einem Formular).
 Antworte AUSSCHLIESSLICH mit JSON: {"question": true|false, "summary": "<die Frage in max. 120 Zeichen, sonst leer>"}.
 
+question=true auch, wenn der Kunde ausdrücklich einen Rückruf, ein Telefonat oder ein persönliches Gespräch wünscht
+(summary dann z. B. "Bittet um Rückruf").
+
 question=false bei:
 - reiner Anfrage/Beauftragung ohne eigene Frage ("Ich möchte einen iSFP für mein Haus", "Bitte um ein Angebot")
 - Höflichkeitsfloskeln ("Können Sie mir helfen?", "Würden Sie sich bitte melden?") ohne konkreten Inhalt

@@ -35,6 +35,14 @@ describe("E-Mail: Aufmerksamkeit benötigt (keine automatische Antwort)", () => 
     expect(c?.fields.needsAttention).toMatch(/^Frage des Kunden: Wie lange dauert/);
   });
 
+  it("Rückrufwunsch: keine automatische Antwort", async () => {
+    const turn = await email(store, "Ich brauche einen iSFP. Bitte rufen Sie mich an: 0151 999888.");
+    expect(turn.replies).toEqual([]);
+    expect((await store.getCase(turn.sessionId))?.fields.needsAttention).toBe("Kunde wünscht persönlichen Kontakt");
+    // Keine Dokumente angefordert, solange der Energieberater selbst antworten soll.
+    expect(await store.listDocuments(turn.sessionId)).toEqual([]);
+  });
+
   it("normale Anfrage ohne Frage: KI antwortet wie gewohnt mit der Leistungs-Nachricht", async () => {
     const turn = await email(store, "Hallo, ich möchte einen individuellen Sanierungsfahrplan für mein Einfamilienhaus.");
     expect(turn.replies.join(" ")).toContain("iSFP-Anfrage");

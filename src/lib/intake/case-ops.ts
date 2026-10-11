@@ -15,7 +15,7 @@ import { readFile, saveFile, sniffMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
-import { appointmentConfirmedText, appointmentPendingReviewText, findNextSlot, formatSlot } from "./scheduling";
+import { appointmentAddonText, appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
 
@@ -389,9 +389,11 @@ export async function emailSubjectFor(store: Store, service: string | undefined)
 }
 
 /** Text der Abschluss-Nachricht: eigener Text des Büros für diese Leistung, sonst Standard. */
-export async function completionTextFor(store: Store, service: string | undefined): Promise<string> {
+export async function completionTextFor(store: Store, service: string | undefined, opts: { appointmentProposed?: boolean } = {}): Promise<string> {
   const serviceMessages = await store.listServiceMessages();
-  return serviceMessages.find((m) => m.service === service)?.appointmentNote?.trim() || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";
+  const own = serviceMessages.find((m) => m.service === service)?.appointmentNote?.trim();
+  if (opts.appointmentProposed) return own ? `${own} ${appointmentAddonText}` : `Vielen Dank, damit haben wir alle Angaben. ${appointmentAddonText}`;
+  return own || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";
 }
 
 /**
@@ -400,9 +402,8 @@ export async function completionTextFor(store: Store, service: string | undefine
  */
 export async function sendCompletionMessage(store: Store, refreshed: RefreshResult): Promise<void> {
   const c = refreshed.caseRecord;
-  const completionText = await completionTextFor(store, c.fields.service);
   const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, c));
-  const text = booked ? `${completionText} ${appointmentPendingReviewText}` : completionText;
+  const text = await completionTextFor(store, c.fields.service, { appointmentProposed: booked });
   const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
