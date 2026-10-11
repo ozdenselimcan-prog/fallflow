@@ -1,5 +1,7 @@
 import { extractFields } from "@/lib/ai/case-extractor";
-import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
+import { answerCustomerQuestion, looksLikeQuestion } from "@/lib/ai/answer-question";
+import { applyTurn, isInteractive, nextPending, parseAnswer, type TurnResult } from "@/lib/ai/conversation";
+import { WEEKDAY_LABELS } from "@/lib/cases/fields";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { canCreateCase } from "@/lib/billing/usage";
 import type { Store } from "@/lib/data/store";
@@ -106,13 +108,49 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   const turnSettings = settings.autoReply ? settings : { ...settings, autoFollowUp: false };
   const pendingBefore = nextPending(questions, startFields)?.key ?? null;
-  const turn: TurnResult = applyTurn({ questions, settings: turnSettings, fields: startFields, text: input.text, first, extracted, documents, channel: input.channel, foerderOverrides });
+  // Website-Chat: Stellt der Kunde eine Frage ("Welche Leistungen bieten Sie an?", "Was ist ein iSFP?"), beantwortet
+  // die KI sie und stellt erst danach wieder die nächste Frage zur Anfrage – statt stur den Frage-Flow abzuspulen.
+  // Kurze Antworten mit Fragezeichen auf eine Zahl-/Auswahlfrage ("1985?", "Gas?") bleiben Antworten.
+  const pendingQuestion = pendingBefore ? questions.find((q) => q.key === pendingBefore) : undefined;
+  const isQuestion =
+    isInteractive(input.channel) &&
+    settings.autoReply &&
+    (existing?.fields.apptStage ?? "") !== "ask" &&
+    looksLikeQuestion(input.text) &&
+    !(pendingQuestion && pendingQuestion.type !== "text" && input.text.trim().length <= 20 && parseAnswer(pendingQuestion, input.text.replaceAll("?", "")).ok);
+  const turn: TurnResult = applyTurn({ questions, settings: turnSettings, fields: startFields, text: input.text, first, extracted, documents, channel: input.channel, foerderOverrides, isQuestion });
 
   // Eigener Termin-Hinweis je Leistung ersetzt die sonst feste, tonabhängige Standardformulierung
   // ("Ein Mitarbeiter meldet sich..."), sobald der Fall für diese Leistung fertig ist.
   if (turn.done && turn.fields.service && turn.replies.length) {
     const note = serviceMessages.find((m) => m.service === turn.fields.service)?.appointmentNote?.trim();
     if (note) turn.replies[turn.replies.length - 1] = note;
+  }
+
+  if (isQuestion) {
+    const answer = await answerCustomerQuestion(input.text, {
+      companyName: company.name,
+      assistantName: settings.name,
+      tone: settings.tone,
+      services: company.services,
+      address: company.address,
+      phone: company.phone,
+      website: company.website,
+      serviceNotes: serviceMessages.map((m) => ({ service: m.service, text: m.body })),
+      availability: settings.appointmentBooking ? `${settings.workingDays.map((d) => WEEKDAY_LABELS[d]).join(", ")}, ${settings.slotStart}–${settings.slotEnd} Uhr` : "",
+    });
+    if (answer) {
+      const noted = turn.recognizedKeys
+        .filter((k) => turn.fields[k])
+        .map((k) => `${questions.find((q) => q.key === k)?.label ?? k} ${turn.fields[k]}`)
+        .join(", ");
+      const next = !turn.done && turn.pendingKey ? questions.find((q) => q.key === turn.pendingKey)?.prompt : undefined;
+      turn.replies = [
+        answer,
+        ...(noted ? [`Notiert: ${noted}.`] : []),
+        ...(next ? [`${first ? "Wenn Sie möchten, nehme ich Ihre Anfrage gleich auf. " : "Zurück zu Ihrer Anfrage: "}${next}`] : []),
+      ];
+    }
   }
 
   const draft = {

@@ -25,6 +25,9 @@ export interface TurnInput {
   extracted?: Record<string, string>;
   /** Bereits vorhandene Dokumente (für den Vollständigkeitswert) */
   documents?: CaseDocument[];
+  /** true = der Kunde stellt eine Frage (z. B. "Welche Leistungen bieten Sie an?") – dann NICHT als Antwort auf
+   * die offene Frage werten (sonst landete die Frage z. B. als Name in der Fallakte). Die Antwort darauf gibt engine.ts. */
+  isQuestion?: boolean;
   /** Kanal dieses Zuges. Ohne Angabe (z. B. Dashboard-Vorschau) gilt „interaktiv“ wie beim Website-Chat. */
   channel?: MessageChannel;
   /** Bei Fördermittelberatung: Energieausweis/Grundriss zusätzlich verlangen? Ohne Angabe: nein. */
@@ -253,7 +256,7 @@ export function applyTurn(input: TurnInput): TurnResult {
   }
 
   // Korrektur einer bereits erfassten Angabe („Baujahr ist eigentlich 1988“): nur bei ausdrücklichem Korrekturwunsch überschreiben.
-  if (!input.first && CORRECTION.test(text)) {
+  if (!input.first && !input.isQuestion && CORRECTION.test(text)) {
     const changed: string[] = [];
     for (const [k, v] of Object.entries(input.extracted ?? {})) {
       if (!v || FREE_TEXT_KEYS.has(k) || !isAnswered(fields, k) || fields[k] === SKIPPED || fields[k] === v) continue;
@@ -292,7 +295,7 @@ export function applyTurn(input: TurnInput): TurnResult {
     }
     return result(input, fields, { replies: ["Ihre Anfrage liegt bereits vor. Ein Mitarbeiter meldet sich bei Ihnen."], done: true });
   } else {
-    const parsed = parseAnswer(pendingBefore, text);
+    const parsed: Parsed = input.isQuestion ? { ok: false } : parseAnswer(pendingBefore, text);
     if (parsed.ok) {
       fields[pendingBefore.key] = parsed.value;
       recognized.push(pendingBefore.key);
@@ -301,7 +304,7 @@ export function applyTurn(input: TurnInput): TurnResult {
     } else {
       const gained = mergeExtracted(fields, input.extracted, { allowFreeText: false }, questions);
       if (gained.length === 0) {
-        const asksQuestion = text.includes("?");
+        const asksQuestion = input.isQuestion || text.includes("?");
         const ask = missingPrompt(questions, fields, input.channel);
         return result(input, fields, {
           replies: [asksQuestion ? p.question : p.retry, ask.text],
