@@ -92,6 +92,7 @@ export async function setCancelAtPeriodEnd(customerId: string, cancel: boolean):
 export function verifyStripeWebhook(raw: string, signature: string | null): Stripe.Event {
   const stripe = getStripeClient();
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!stripe || !secret || !signature) throw new Error("Stripe-Webhook ist nicht konfiguriert");
+  if (!stripe || !secret) throw new Error("Stripe-Webhook ist nicht konfiguriert (STRIPE_WEBHOOK_SECRET fehlt)");
+  if (!signature) throw new Error("Anfrage ohne Stripe-Signatur");
   return stripe.webhooks.constructEvent(raw, signature, secret);
 }
