@@ -81,7 +81,7 @@ export default function DatenschutzPage() {
             <List
               items={[
                 "Supabase (Datenbank, Authentifizierung, Dateispeicher). Speicherort des Projekts: Region eu-west-1 (Irland, EU).",
-                "Vercel Inc. (Hosting und Auslieferung der Anwendung, Server-Logs).",
+                "Vercel Inc. (Hosting und Auslieferung der Anwendung, Server-Logs). Die Anwendung selbst läuft in einem Rechenzentrum in der EU (Dublin, Irland).",
                 "OpenAI (nur wenn die KI-Auswertung aktiviert ist): Chat- und E-Mail-Texte werden zur Erkennung von Angaben (z. B. Baujahr, Heizung), zur Erstellung einer Kurzzusammenfassung, zur Beantwortung von Fragen im Website-Chat, zur groben Einschätzung ob eine eingehende E-Mail überhaupt eine Kundenanfrage ist sowie zur Prüfung zurückgeschickter, ausgefüllter Büro-Vorlagen (Text aus hochgeladenen PDF-Dokumenten) an die OpenAI-Schnittstelle übermittelt. Über die API übermittelte Daten werden nach den Bedingungen von OpenAI nicht zum Training von KI-Modellen genutzt und höchstens 30 Tage zur Missbrauchserkennung gespeichert.",
                 "Stripe (Zahlungsabwicklung): Zur Abrechnung der Büro-Abonnements verarbeitet Stripe Rechnungs- und Kontaktdaten des Büros (Name, E-Mail, Zahlungsmethode, Transaktionsdaten). FallFlow selbst speichert keine vollständigen Zahlungsdaten (z. B. Kartennummern) – diese liegen ausschließlich bei Stripe.",
                 "Sentry (Fehler-Überwachung, nur soweit aktiviert): Bei technischen Fehlern werden Diagnosedaten (z. B. Stacktrace, aufgerufene Seite/Route, grob anonymisierte technische Kontextdaten) übermittelt, um Störungen zu beheben. Die Datenverarbeitung erfolgt in einer EU-Region (Frankfurt).",
