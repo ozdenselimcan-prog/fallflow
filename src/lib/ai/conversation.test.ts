@@ -54,6 +54,12 @@ describe("parseAnswer", () => {
   const phoneQ = q({ key: "phone", label: "Telefon", prompt: "?", type: "phone" });
   const textQ = q({ key: "name", label: "Name", prompt: "?", type: "text" });
 
+  it("weicht nicht auf 'Sonstiges' aus, wenn die Antwort offensichtlich zu einer anderen Frage gehört", () => {
+    const buildingQ = q({ key: "buildingType", label: "Gebäudetyp", prompt: "?", type: "choice", options: ["Einfamilienhaus", "Mehrfamilienhaus", "Sonstiges"] });
+    expect(parseAnswer(buildingQ, "iSFP")).toEqual({ ok: false });
+    expect(parseAnswer(buildingQ, "Bürogebäude")).toEqual({ ok: true, value: "Sonstiges" });
+  });
+
   it("erkennt den Überspringen-Marker unabhängig vom Fragetyp", () => {
     expect(parseAnswer(numberQ, "weiß ich nicht")).toEqual({ ok: true, value: "—" });
   });

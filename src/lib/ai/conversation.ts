@@ -141,7 +141,14 @@ export function parseAnswer(q: Question, raw: string): Parsed {
         q.key === "buildingType" ? detectBuildingType(text) : q.key === "heating" ? detectHeating(text) : q.key === "service" ? detectService(text) : q.key === "ownerStatus" ? detectOwnerStatus(text) : "";
       const hit = direct || (opts.includes(viaKeyword) ? viaKeyword : "");
       if (hit) return { ok: true, value: hit };
-      return opts.includes("Sonstiges") && text.length <= 80 && !text.includes("?") && !CORRECTION.test(text) ?{ ok: true, value: "Sonstiges" } : fail;
+      // Nicht auf "Sonstiges" ausweichen, wenn die Antwort offensichtlich zu einer ANDEREN Frage gehört (z. B. "iSFP"
+      // auf die Gebäudetyp-Frage, "Einfamilienhaus" auf die Heizungsfrage) – dann lieber nochmal nachfragen.
+      const belongsElsewhere =
+        (q.key !== "service" && detectService(text) !== "") ||
+        (q.key !== "buildingType" && detectBuildingType(text) !== "") ||
+        (q.key !== "heating" && detectHeating(text) !== "") ||
+        (q.key !== "ownerStatus" && detectOwnerStatus(text) !== "");
+      return opts.includes("Sonstiges") && text.length <= 80 && !text.includes("?") && !CORRECTION.test(text) && !belongsElsewhere ? { ok: true, value: "Sonstiges" } : fail;
     }
     case "number": {
       // Zahlen nur akzeptieren, wenn der Text im Wesentlichen eine Angabe ist („1987“, „Baujahr 1987“, „ca. 160 qm“) – nicht z. B. „Gartenweg 12“.
