@@ -18,6 +18,9 @@ const settings = (overrides: Partial<AssistantSettings> = {}): AssistantSettings
   vacationFrom: null,
   vacationUntil: null,
   appointmentConfirmedTemplate: "",
+  notifyAttention: true,
+  notifyReady: true,
+  notifyEmail: "",
   ...overrides,
 });
 

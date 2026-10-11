@@ -11,7 +11,7 @@ export function CompletenessCard({ checklist, readiness }: { checklist: Checklis
   const complete = percent >= 100;
   return (
     <Card>
-      <CardHeader title="Case Completeness Score" description={missingLabel(missing.length)} action={<Badge tone={complete || readiness === "ready" ? "success" : readiness === "almost" ? "warning" : "neutral"}>{READINESS_LABELS[readiness]}</Badge>} />
+      <CardHeader title="Vollständigkeit" description={missingLabel(missing.length)} action={<Badge tone={complete || readiness === "ready" ? "success" : readiness === "almost" ? "warning" : "neutral"}>{READINESS_LABELS[readiness]}</Badge>} />
       <div className="space-y-5 px-5 py-5">
         <div>
           <div className="flex items-end justify-between">

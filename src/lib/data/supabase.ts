@@ -394,6 +394,9 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         vacationFrom: r.vacation_from ?? null,
         vacationUntil: r.vacation_until ?? null,
         appointmentConfirmedTemplate: r.appointment_confirmed_template ?? "",
+        notifyAttention: r.notify_attention ?? true,
+        notifyReady: r.notify_ready ?? true,
+        notifyEmail: r.notify_email ?? "",
       };
     },
     async saveAssistant(s) {
@@ -414,6 +417,9 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         vacation_from: s.vacationFrom,
         vacation_until: s.vacationUntil,
         appointment_confirmed_template: s.appointmentConfirmedTemplate,
+        notify_attention: s.notifyAttention,
+        notify_ready: s.notifyReady,
+        notify_email: s.notifyEmail,
       });
       fail(error, "assistant save");
       return s;

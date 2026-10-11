@@ -47,7 +47,7 @@ const flow = [
   { title: "Kundenanfrage", text: "Per E-Mail – Fragen beantwortet der Website-Chat" },
   { title: "KI-Qualifizierung", text: "Bekannte Angaben werden erkannt" },
   { title: "Fehlende Daten", text: "Die KI fordert per Mail nur an, was noch fehlt" },
-  { title: "Dokumente", text: "Grundriss & Energieausweis per sicherem Upload" },
+  { title: "Dokumente", text: "Formulare, Grundriss & Energieausweis kommen per Mail-Antwort" },
   { title: "Termin", text: "Terminvorschlag zum fertigen Fall" },
   { title: "Fertiger Beratungsfall", text: "Der Berater übernimmt nur noch den fertigen Fall" },
 ];
@@ -124,9 +124,9 @@ export function ProblemSection() {
 
 const steps = [
   { n: "01", title: "KI versteht die Anfrage", text: "„Einfamilienhaus von 1987, 160 qm, iSFP“ – Gebäudetyp, Baujahr, Fläche und Leistung werden sofort erkannt und übernommen." },
-  { n: "02", title: "Nur Fehlendes wird gefragt", text: "Die KI arbeitet keinen starren Fragebogen ab, sondern fragt nur die für diesen Fall relevanten fehlenden Angaben." },
-  { n: "03", title: "Dokumente kommen automatisch", text: "Fehlt der Grundriss oder Energieausweis, fordert FallFlow ihn an – mit sicherem Upload-Link – und fasst bei Bedarf nach." },
-  { n: "04", title: "Fertige Fallakte", text: "Der Berater erhält eine geprüfte Fallakte mit Vollständigkeitswert, Dokumenten, Verlauf und Zusammenfassung." },
+  { n: "02", title: "Ihre Antwort, automatisch", text: "Die KI schickt Ihre eigene Nachricht zur Leistung samt Ihren PDF-Formularen und sagt dem Kunden genau, welche Unterlagen noch fehlen." },
+  { n: "03", title: "Unterlagen kommen per Mail", text: "Ausgefüllte Formulare, Grundriss und Energieausweis schickt der Kunde einfach als Antwort – FallFlow prüft sie, liest die Angaben aus und legt alles in der Fallakte ab." },
+  { n: "04", title: "Fertige Fallakte", text: "Sie erhalten eine Fallakte mit Vollständigkeit, Dokumenten, Verlauf, Zusammenfassung und Terminvorschlag. Fragen von Kunden beantworten Sie selbst – die KI erfindet keine Antworten." },
 ];
 
 export function SolutionSection() {
@@ -161,17 +161,18 @@ export function DemoSection() {
 }
 
 const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = [
-  { icon: Workflow, title: "AI Intake", text: "Alle laufenden Qualifizierungen mit klarem Status von NEW bis READY_FOR_REVIEW." },
-  { icon: MessageCircleQuestion, title: "Automatische Rückfragen", text: "Erkennt Bekanntes und fordert per Mail nur an, was wirklich noch fehlt." },
-  { icon: ClipboardCheck, title: "Case Completeness Score", text: "Jeder Fall zeigt 0–100 %, was vorliegt und was fehlt." },
+  { icon: Workflow, title: "AI Intake", text: "Alle laufenden Anfragen mit klarem Status – von „Neu“ bis „Bereit zur Prüfung“." },
+  { icon: MessageCircleQuestion, title: "Aufmerksamkeit benötigt", text: "Stellt ein Kunde eine Frage oder ist die Leistung unklar, antwortet nicht die KI, sondern Sie – FallFlow sagt Ihnen Bescheid." },
+  { icon: ClipboardCheck, title: "Vollständigkeit in %", text: "Jeder Fall zeigt auf einen Blick, was vorliegt und was noch fehlt." },
   { icon: FileText, title: "Fallakte", text: "Kunde, Gebäude, Anliegen, Dokumente, Kommunikation und Zusammenfassung an einem Ort." },
-  { icon: FileUp, title: "Dokumenten-Upload", text: "Sicherer Link zum Hochladen von Grundriss, Energieausweis und Fotos – privat gespeichert." },
-  { icon: Inbox, title: "Zentrale Inbox", text: "Website, E-Mail und Telefonnotizen – automatisch dem richtigen Fall zugeordnet." },
+  { icon: FileUp, title: "Ausgefüllte PDFs auslesen", text: "Was der Kunde ins Formular einträgt, landet automatisch in der Fallakte – die PDF selbst natürlich auch." },
+  { icon: Inbox, title: "Posteingang", text: "Alle Mails und Telefonnotizen, automatisch dem richtigen Kunden und Fall zugeordnet." },
   { icon: Globe, title: "Website-Chat", text: "Die KI beantwortet Besucherfragen zu Ihren Leistungen – eingebunden mit einem Script-Tag." },
   { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook und praktisch jedem Postfach." },
   { icon: CalendarCheck, title: "Terminübergabe", text: "Vorbereitete Fälle lassen sich direkt mit einem Terminvorschlag weitergeben." },
   { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },
-  { icon: FileText, title: "PDF-Vorlagen je Leistung", text: "Passende Vollmachten & Formulare werden automatisch per Mail mitgeschickt – inklusive eigenem Nachrichtentext." },
+  { icon: FileText, title: "PDF-Vorlagen je Leistung", text: "Passende Vollmachten & Formulare gehen automatisch mit – zum Ausfüllen oder nur zur Info (z. B. Preisliste)." },
+  { icon: Mail, title: "Testmail ausprobieren", text: "Sehen Sie vor dem Start genau, was Ihre Kunden bekommen – ohne dass etwas verschickt wird." },
   { icon: Sparkles, title: "KI-Voreinschätzung", text: "Erste fachliche Einordnung des Falls auf Basis der Fallakte – der Berater prüft und entscheidet." },
   { icon: PiggyBank, title: "Förderschätzung (BAFA/KfW)", text: "Grobe Förderquote als Entwurf – das Büro prüft und versendet erst nach Freigabe." },
   { icon: Ruler, title: "Bauteilwerte-Richtwerte", text: "U-Werte für Wand, Fenster & Dach nach Baualtersklasse, einzeln übernehmbar in die Fallakte." },
@@ -227,7 +228,7 @@ export function NoCrmSection() {
 const audiences = [
   { size: "1–2 Mitarbeiter", text: "Weniger Rückfragen-Ping-Pong, mehr Zeit für Beratungen." },
   { size: "3–5 Mitarbeiter", text: "Einheitlich vorbereitete Fälle, die sich im Team klar zuordnen lassen." },
-  { size: "6–10 Mitarbeiter", text: "Gemeinsame Fragen, Rollen und ein zentraler Überblick über alle Anfragen und Dokumente." },
+  { size: "6–10 Mitarbeiter", text: "Gemeinsame Vorlagen, Rollen und ein zentraler Überblick über alle Anfragen und Dokumente." },
 ];
 
 export function AudienceSection() {

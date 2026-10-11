@@ -94,6 +94,9 @@ export const assistantSchema = z
     vacationFrom: dateSchema.nullable(),
     vacationUntil: dateSchema.nullable(),
     appointmentConfirmedTemplate: str(500),
+    notifyAttention: z.boolean().default(true),
+    notifyReady: z.boolean().default(true),
+    notifyEmail: z.string().trim().toLowerCase().email("Bitte gültige E-Mail eingeben").or(z.literal("")).default(""),
   })
   .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] })
   .refine((v) => !v.vacationFrom || !v.vacationUntil || v.vacationFrom <= v.vacationUntil, { message: "Enddatum darf nicht vor dem Startdatum liegen", path: ["vacationUntil"] });

@@ -104,9 +104,9 @@ export default function DatenschutzPage() {
             </p>
           </Section>
 
-          <Section title="7. Dokumenten-Upload">
+          <Section title="7. Dokumente">
             <p>
-              Dokumente werden über einen persönlichen, zeitlich befristeten Link hochgeladen, der nur das Hochladen erlaubt. Zulässig sind PDF, JPG, PNG und WebP bis 10 MB. Die Dateien liegen in einem privaten Speicher ohne öffentliche Adresse und sind nur für Mitarbeiter des jeweiligen Büros abrufbar. Der Transport ist verschlüsselt (HTTPS).
+              Dokumente (z. B. ausgefüllte Formulare, Grundriss, Energieausweis, Fotos) erhält das Büro als Anhang einer E-Mail; FallFlow übernimmt PDF, JPG, PNG und WebP bis 10 MB in die Fallakte. Die Dateien liegen in einem privaten Speicher ohne öffentliche Adresse und sind nur für Mitarbeiter des jeweiligen Büros abrufbar. Der Transport ist verschlüsselt (HTTPS).
             </p>
           </Section>
 

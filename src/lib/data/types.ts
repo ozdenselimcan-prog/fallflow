@@ -160,6 +160,12 @@ export interface AssistantSettings {
   vacationUntil: string | null;
   /** Nachricht an den Kunden, sobald ein Mitarbeiter den Termin bestätigt. "(Termin)" wird durch Datum/Uhrzeit ersetzt (Platzhalter weglassen = kein Datum per Mail nennen, z. B. bei telefonischer Terminabstimmung). Leer = Standardtext. */
   appointmentConfirmedTemplate: string;
+  /** E-Mail an das Büro, wenn ein Kunde eine Frage stellt / die Leistung unklar ist ("Aufmerksamkeit benötigt"). */
+  notifyAttention: boolean;
+  /** E-Mail an das Büro, wenn ein Fall fertig vorbereitet ist ("Bereit zur Prüfung"). */
+  notifyReady: boolean;
+  /** Empfänger der Benachrichtigungen. Leer = alle Inhaber und Admins des Büros. */
+  notifyEmail: string;
 }
 
 export interface Appointment {

@@ -124,6 +124,30 @@ export function AssistantForm({ initial, canEdit }: { initial: AssistantSettings
           )}
 
           <div className="space-y-3 rounded-xl border border-border p-4">
+            <p className="text-sm font-medium">Benachrichtigungen per E-Mail</p>
+            <p className="text-xs text-muted-foreground">
+              FallFlow schreibt Ihnen eine kurze E-Mail (über Ihr verbundenes Postfach), damit nichts im Dashboard liegen bleibt.
+            </p>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm">Kunde hat eine Frage / Leistung unklar</p>
+                <p className="text-xs text-muted-foreground">Die KI antwortet dann bewusst nicht – Sie sollten zeitnah selbst antworten.</p>
+              </div>
+              <Switch checked={s.notifyAttention} onChange={(v) => set("notifyAttention", v)} label="Benachrichtigung bei Aufmerksamkeit benötigt" />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm">Fall fertig vorbereitet</p>
+                <p className="text-xs text-muted-foreground">Alle Angaben und Unterlagen liegen vor, ggf. wartet ein Terminvorschlag auf Ihre Bestätigung.</p>
+              </div>
+              <Switch checked={s.notifyReady} onChange={(v) => set("notifyReady", v)} label="Benachrichtigung bei fertigem Fall" />
+            </div>
+            <Field label="Empfänger (optional)" hint="Leer lassen = an alle Inhaber und Admins Ihres Teams.">
+              <Input type="email" value={s.notifyEmail} onChange={(e) => set("notifyEmail", e.target.value)} placeholder="z. B. buero@ihre-domain.de" maxLength={200} />
+            </Field>
+          </div>
+
+          <div className="space-y-3 rounded-xl border border-border p-4">
             <p className="text-sm font-medium">Urlaub / Pause</p>
             <p className="text-xs text-muted-foreground">
               In diesem Zeitraum schlägt die KI keine Termine vor (bei einem genannten Wunschdatum sagt sie klar, dass in dieser Zeit Urlaub ist, und sucht automatisch den nächsten freien Termin danach).

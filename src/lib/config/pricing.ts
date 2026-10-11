@@ -15,11 +15,12 @@ export const plans: Plan[] = [
     priceEur: 99,
     caseLimit: 100,
     features: [
-      "Automatische Mail-/Website-Antworten",
       "100 Kundenanfragen/Monat",
-      "Fallakte mit Completeness Score",
-      "PDF-Vorlagen & Nachrichtentexte je Leistung",
-      "Sicherer Dokumenten-Upload",
+      "Automatische E-Mail-Antworten mit Ihren Texten & PDF-Vorlagen",
+      "Website-Chat für Besucherfragen",
+      "Fallakte mit Vollständigkeit in %",
+      "Ausgefüllte PDFs werden automatisch ausgelesen",
+      "Mehrere Mitarbeiter",
       "Monatlich kündbar",
     ],
   },
@@ -31,9 +32,8 @@ export const plans: Plan[] = [
     highlighted: true,
     features: [
       "500 Kundenanfragen/Monat",
+      "Alle Funktionen von Starter",
       "KI-Voreinschätzung, Förder- & Bauteilwerte-Schätzung",
-      "Zentrale Inbox",
-      "Mehrere Mitarbeiter",
       "Monatlich kündbar",
     ],
   },
@@ -42,7 +42,7 @@ export const plans: Plan[] = [
     name: "Business",
     priceEur: 199,
     caseLimit: null,
-    features: ["Unbegrenzte Kundenanfragen", "Alle Funktionen von Pro", "Mehrere Kanäle", "Prioritätssupport", "Monatlich kündbar"],
+    features: ["Unbegrenzte Kundenanfragen", "Alle Funktionen von Pro", "Prioritätssupport", "Monatlich kündbar"],
   },
 ];
 

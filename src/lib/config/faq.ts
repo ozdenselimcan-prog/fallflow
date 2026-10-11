@@ -12,8 +12,8 @@ export const faqs = [
     a: "Ja. Das Chat-Widget wird mit einem kleinen Script-Tag in Ihre bestehende Website eingebunden. Ihre Seite muss dafür nicht neu aufgebaut werden.",
   },
   {
-    q: "Was passiert mit hochgeladenen Dokumenten?",
-    a: "Kunden laden Grundriss, Energieausweis oder Fotos über einen persönlichen, zeitlich begrenzten Link hoch. Zulässig sind PDF, JPG, PNG und WebP bis 10 MB; der Dateityp wird am Inhalt geprüft. Die Dateien liegen in einem privaten Speicher und sind nur für Mitarbeiter Ihres Büros abrufbar – es gibt keine öffentlichen Datei-Links.",
+    q: "Was passiert mit den Dokumenten der Kunden?",
+    a: "Kunden schicken ausgefüllte Formulare, Grundriss, Energieausweis oder Fotos einfach als Antwort auf die E-Mail. FallFlow ordnet sie dem richtigen Fall zu, prüft ausgefüllte Formulare und übernimmt die eingetragenen Angaben in die Fallakte. Übernommen werden PDF, JPG, PNG und WebP bis 10 MB; bei anderen Dateien (z. B. iPhone-Fotos im HEIC-Format) zeigt die Fallakte einen Hinweis. Die Dateien liegen in einem privaten Speicher und sind nur für Mitarbeiter Ihres Büros abrufbar – es gibt keine öffentlichen Datei-Links.",
   },
   {
     q: "Kann FallFlow automatisch antworten?",

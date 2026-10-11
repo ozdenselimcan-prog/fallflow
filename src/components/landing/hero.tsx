@@ -61,7 +61,7 @@ export function Hero() {
             </ul>
             <div className="mt-4">
               <div className="mb-1.5 flex justify-between text-sm">
-                <span className="text-muted-foreground">Completeness Score</span>
+                <span className="text-muted-foreground">Vollständigkeit</span>
                 <span className="font-semibold">92 %</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">

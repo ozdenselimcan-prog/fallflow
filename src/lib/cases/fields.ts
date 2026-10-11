@@ -117,6 +117,9 @@ export const DEFAULT_ASSISTANT: AssistantSettings = {
   vacationFrom: null,
   vacationUntil: null,
   appointmentConfirmedTemplate: "",
+  notifyAttention: true,
+  notifyReady: true,
+  notifyEmail: "",
 };
 
 export const WEEKDAY_LABELS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"] as const;

@@ -15,6 +15,7 @@ import { readFile, saveFile, sniffMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { officeAlreadyRequests } from "./document-mentions";
+import { notifyOffice } from "./notify";
 import { buildChecklist, deriveFields, deriveStatus, documentRequirements, type Checklist, type StatusHint } from "./checklist";
 import { appointmentAddonText, appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
 
@@ -644,6 +645,12 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   else if (status !== previous) await store.addEvent(caseId, "status", `Status: ${STATUS_LABELS[status]}`);
 
   const result = updated ?? { ...c, status, completeness: checklist.percent, summary };
+  // Büro per E-Mail informieren, damit nichts im Dashboard liegen bleibt – nur bei Anfragen, die per E-Mail kamen
+  // (manuelle Fälle legt das Büro selbst an), und nur beim Wechsel in den jeweiligen Status.
+  if (result.source === "email") {
+    if (becamePrepared) await notifyOffice(store, result, "ready");
+    else if (status === "NEEDS_REPLY" && previous !== "NEEDS_REPLY") await notifyOffice(store, result, "attention");
+  }
   return { caseRecord: result, checklist, documents, requestedNow, uploadLink, becamePrepared };
 }
 
