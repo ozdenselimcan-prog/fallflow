@@ -30,6 +30,8 @@ export interface Company {
   /** Bei der Leistung "Fördermittelberatung": zusätzlich Energieausweis/Grundriss verlangen? Standard: nein. */
   foerderEnergyCertificate: boolean;
   foerderFloorplan: boolean;
+  /** Anlagezeitpunkt (ISO). */
+  createdAt: string;
 }
 
 export interface Profile {

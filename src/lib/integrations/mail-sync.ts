@@ -2,6 +2,7 @@ import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { findCaseByIdentity } from "@/lib/intake/identity";
+import { needsPaymentSetup } from "@/lib/billing/access";
 import { listActiveConnections, saveConnection } from "./connections-store";
 import type { MailSyncProvider } from "./email";
 import { handleInboundMail } from "./inbound-mail";
@@ -46,7 +47,10 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
       const store = await getPublicStore(connection.companyId);
       if (!store) return;
       // Abo beendet: keine Mails mehr abrufen oder beantworten (der Vertrag ist vorbei, die Daten werden bald gelöscht).
-      if ((await store.getSubscription()).status === "canceled") return;
+      const [subscription, company] = await Promise.all([store.getSubscription(), store.getCompany()]);
+      if (subscription.status === "canceled") return;
+      // Neues Büro ohne Zahlungsmethode (Bezahlseite abgebrochen): erst nach Start der Testphase.
+      if (needsPaymentSetup(company, subscription)) return;
 
       const seenIds = new Set<string>(Array.isArray(connection.metadata.seenMailIds) ? (connection.metadata.seenMailIds as string[]) : []);
       // Nach jeder Mail sofort sichern (nicht erst am Ende aller Mails dieses Postfachs): bricht der Cron-Lauf

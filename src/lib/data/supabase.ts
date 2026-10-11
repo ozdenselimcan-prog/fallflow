@@ -38,6 +38,7 @@ const mapCompany = (r: Row): Company => ({
   onboardingCompleted: r.onboarding_completed,
   foerderEnergyCertificate: r.foerder_energy_certificate ?? false,
   foerderFloorplan: r.foerder_floorplan ?? false,
+  createdAt: r.created_at ?? new Date(0).toISOString(),
 });
 
 const mapDocumentTemplate = (r: Row): DocumentTemplate => ({
