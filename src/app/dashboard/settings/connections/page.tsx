@@ -15,5 +15,6 @@ export default async function ConnectionsPage({ searchParams }: PageProps<"/dash
   const { integration } = await searchParams;
   const session = await requireSession();
   const data = await loadSettingsData(session, await getStore(session));
-  return <SettingsBoard data={data} initialTab="connections" integrationNotice={integration === "not-ready"} />;
+  const result = typeof integration === "string" ? integration : undefined;
+  return <SettingsBoard data={{ ...data, connections: { ...data.connections, integrationResult: result } }} initialTab="connections" integrationNotice={integration === "not-ready"} />;
 }

@@ -5,10 +5,12 @@ import { requireSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
 import { getStore } from "@/lib/data";
 import { listConnections, toStatus } from "@/lib/integrations/connections-store";
+import { microsoftProvider } from "@/lib/integrations/microsoft";
 
 export const metadata: Metadata = { title: "Onboarding" };
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({ searchParams }: PageProps<"/onboarding">) {
+  const { integration } = await searchParams;
   const session = await requireSession();
   const store = await getStore(session);
   const [company, channels, connections, documentTemplates, serviceMessages] = await Promise.all([
@@ -30,7 +32,8 @@ export default async function OnboardingPage() {
         appUrl={siteConfig.appUrl}
         initial={{ name: company.name, website: company.website, phone: company.phone, address: company.address, services: company.services }}
         widgetReceived={channels.some((c) => c.kind === "website" && c.status === "connected")}
-        connections={{ gmail: byProvider.get("gmail") ?? null }}
+        integrationResult={typeof integration === "string" ? integration : undefined}
+        connections={{ gmail: byProvider.get("microsoft") ?? byProvider.get("gmail") ?? null, microsoftAvailable: microsoftProvider.missingConfig().length === 0 }}
         documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
       />

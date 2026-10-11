@@ -11,7 +11,7 @@ import { formatDateTime } from "@/lib/utils";
 import { WidgetSnippet } from "./widget-snippet";
 
 export interface ConnectionView {
-  provider: "gmail";
+  provider: "gmail" | "microsoft";
   status: "connected" | "error" | "disconnected";
   accountName: string;
   accountEmail: string;
@@ -62,12 +62,34 @@ function AppPasswordLink({ imapHost }: { imapHost: string }) {
 /** E-Mail per IMAP/SMTP verbinden – eigene Zugangsdaten des Büros, kein OAuth, keine "App nicht von
  * Google geprüft"-Warnung. Funktioniert mit Gmail (per App-Passwort), Outlook und praktisch jedem
  * Anbieter, der IMAP/SMTP anbietet. */
-function EmailCard({ connection, canManage }: { connection: ConnectionView | null; canManage: boolean }) {
+const MICROSOFT_NOTICES: Record<string, { tone: "success" | "error"; text: string }> = {
+  "microsoft-connected": { tone: "success", text: "Ihr Microsoft-Postfach ist verbunden." },
+  "microsoft-denied": { tone: "error", text: "Die Anmeldung bei Microsoft wurde abgebrochen." },
+  "microsoft-error": { tone: "error", text: "Die Anmeldung bei Microsoft hat nicht geklappt. Bitte erneut versuchen – bei Firmenkonten muss ggf. Ihre IT FallFlow einmal freigeben." },
+  "microsoft-failed": { tone: "error", text: "Die Verbindung zu Microsoft konnte nicht gespeichert werden. Bitte erneut versuchen." },
+};
+
+function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integrationResult }: { connection: ConnectionView | null; canManage: boolean; microsoftAvailable: boolean; returnTo: string; integrationResult?: string }) {
   const { pending, error, run } = useMutation();
   const [testPending, setTestPending] = useState(false);
-  const [notice, setNotice] = useState<{ tone: "info" | "success" | "error"; text: string } | null>(null);
+  // Rückmeldung nach der Microsoft-Anmeldung (?integration=microsoft-…) direkt anzeigen.
+  const [notice, setNotice] = useState<{ tone: "info" | "success" | "error"; text: string } | null>(() => MICROSOFT_NOTICES[integrationResult ?? ""] ?? null);
   const [form, setForm] = useState(DEFAULT_FORM);
   const connected = connection?.status === "connected";
+  const provider = connection?.provider ?? "gmail";
+  const [msPending, setMsPending] = useState(false);
+
+  const connectMicrosoft = async () => {
+    setNotice(null);
+    setMsPending(true);
+    try {
+      const res = await apiFetch<{ authUrl: string }>("POST", "/api/integrations/microsoft", { returnTo });
+      window.location.href = res.authUrl;
+    } catch (e) {
+      setNotice({ tone: "error", text: e instanceof Error ? e.message : "Anmeldung konnte nicht gestartet werden." });
+      setMsPending(false);
+    }
+  };
 
   const applyPreset = (label: string) => {
     const preset = PRESETS.find((p) => p.label === label);
@@ -81,13 +103,13 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
     else setNotice({ tone: "error", text: error ?? "Verbindung fehlgeschlagen." });
   };
 
-  const disconnect = () => run(() => apiFetch("DELETE", "/api/integrations/gmail"));
+  const disconnect = () => run(() => apiFetch("DELETE", `/api/integrations/${provider}`));
 
   const test = async () => {
     setTestPending(true);
     setNotice(null);
     try {
-      await apiFetch("POST", "/api/integrations/gmail/test");
+      await apiFetch("POST", `/api/integrations/${provider}/test`);
       setNotice({ tone: "success", text: "Verbindung funktioniert." });
     } catch (e) {
       setNotice({ tone: "error", text: e instanceof Error ? e.message : "Test fehlgeschlagen." });
@@ -105,8 +127,13 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
           </span>
           <div>
             <h2 className="font-semibold">E-Mail</h2>
-            <p className="text-sm text-muted-foreground">Neue Anfragen aus Ihrem Postfach übernehmen und beantworten – per IMAP/SMTP, ohne Google-/Microsoft-Freigabe.</p>
-            {connected && connection.accountEmail && <p className="mt-1 text-sm font-medium">{connection.accountEmail}</p>}
+            <p className="text-sm text-muted-foreground">Neue Anfragen aus Ihrem Postfach übernehmen und beantworten.</p>
+            {connected && connection.accountEmail && (
+              <p className="mt-1 text-sm font-medium">
+                {connection.accountEmail}
+                {provider === "microsoft" && <span className="font-normal text-muted-foreground"> · über Microsoft angemeldet</span>}
+              </p>
+            )}
             {connected && connection.lastSyncedAt && <p className="text-xs text-muted-foreground">Zuletzt synchronisiert: {formatDateTime(connection.lastSyncedAt)}</p>}
             {connection?.status === "error" && connection.lastError && <p className="mt-1 text-xs text-danger">{connection.lastError}</p>}
           </div>
@@ -126,6 +153,16 @@ function EmailCard({ connection, canManage }: { connection: ConnectionView | nul
       ) : (
         canManage && (
           <div className="mt-4 space-y-3">
+            {microsoftAvailable && (
+              <div className="space-y-2 rounded-xl border border-border p-4">
+                <p className="text-sm font-medium">Outlook / Microsoft 365</p>
+                <p className="text-xs text-muted-foreground">Einfach mit Ihrem Microsoft-Konto anmelden – kein Passwort und keine Server-Einstellungen nötig.</p>
+                <Button size="sm" loading={msPending} onClick={connectMicrosoft}>
+                  Mit Microsoft anmelden
+                </Button>
+              </div>
+            )}
+            {microsoftAvailable && <p className="text-sm font-medium">Andere Anbieter (Gmail, GMX, Web.de, IONOS, Strato, eigene Domain …)</p>}
             <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
               <Lock className="mt-0.5 size-3.5 shrink-0" />
               Ihre Zugangsdaten werden verschlüsselt (AES-256) gespeichert und ausschließlich automatisiert für den Mail-Abruf und -Versand genutzt. Niemand sieht Ihr Passwort im Klartext – auch wir als Betreiber nicht. Wir als Betreiber haben keinen manuellen Zugriff auf Ihr Postfach: Niemand bei uns liest Ihre E-Mails mit – der Abruf und Versand läuft ausschließlich automatisiert über das System.
@@ -193,13 +230,20 @@ interface Props {
   appUrl: string;
   companyId: string;
   canManage: boolean;
+  /** Verbundenes Postfach (per IMAP/SMTP oder über Microsoft). */
   gmail: ConnectionView | null;
+  /** Ist die Anmeldung über Microsoft bei FallFlow eingerichtet? */
+  microsoftAvailable?: boolean;
+  /** Wohin nach der Microsoft-Anmeldung zurückgeleitet wird. */
+  returnTo?: string;
+  /** Ergebnis der Microsoft-Anmeldung aus der Rückleitung (?integration=…). */
+  integrationResult?: string;
   websiteConnected: boolean;
   /** Im Onboarding gibt es die Website-Karte schon als eigenen Schritt – dort ausblenden. */
   showWebsite?: boolean;
 }
 
-export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, websiteConnected, showWebsite = true }: Props) {
+export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsoftAvailable = false, returnTo = "/dashboard/settings/connections", integrationResult, websiteConnected, showWebsite = true }: Props) {
   return (
     <div className="space-y-4">
       {showWebsite && (
@@ -224,7 +268,7 @@ export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, websiteC
       )}
 
       <div className="max-w-xl">
-        <EmailCard connection={gmail} canManage={canManage} />
+        <EmailCard connection={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
       </div>
     </div>
   );

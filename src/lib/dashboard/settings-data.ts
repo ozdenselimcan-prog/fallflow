@@ -1,3 +1,4 @@
+import { microsoftProvider } from "@/lib/integrations/microsoft";
 import { can } from "@/lib/auth/permissions";
 import type { Session } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
@@ -32,7 +33,10 @@ export async function loadSettingsData(session: Session, store: Store) {
       appUrl: siteConfig.appUrl,
       companyId: session.companyId,
       canManage: can(session.role, "company:manage"),
-      gmail: byProvider.get("gmail") ?? null,
+      gmail: byProvider.get("microsoft") ?? byProvider.get("gmail") ?? null,
+      microsoftAvailable: microsoftProvider.missingConfig().length === 0,
+      /** Ergebnis der Microsoft-Anmeldung, setzt die Verbindungen-Seite aus ?integration=… */
+      integrationResult: undefined as string | undefined,
       websiteConnected: website,
     },
     billing: {

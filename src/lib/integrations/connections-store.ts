@@ -9,7 +9,8 @@ import { decryptSecret, encryptionAvailable, encryptSecret } from "@/lib/crypto"
  * Modul nie unverschlüsselt in Richtung Client (siehe `toStatus`, das nur sichere Felder exportiert).
  */
 
-export type ConnectionProvider = "gmail";
+/** "gmail" = Postfach per IMAP/SMTP (historischer Name), "microsoft" = Anmeldung über Microsoft (Outlook / Microsoft 365). */
+export type ConnectionProvider = "gmail" | "microsoft";
 
 export interface Connection {
   id: string;

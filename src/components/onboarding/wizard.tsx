@@ -19,7 +19,9 @@ interface Props {
   appUrl: string;
   initial: { name: string; website: string; phone: string; address: string; services: string[] };
   widgetReceived: boolean;
-  connections: { gmail: ConnectionView | null };
+  connections: { gmail: ConnectionView | null; microsoftAvailable: boolean };
+  /** Ergebnis der Microsoft-Anmeldung (?integration=…) – dann direkt beim Schritt "E-Mail verbinden" weitermachen. */
+  integrationResult?: string;
   documentTemplates: ServiceTemplateView[];
   serviceMessages: ServiceMessageView[];
 }
@@ -38,12 +40,13 @@ const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Vorlagen & Nachrichten", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages }: Props) {
-  const [step, setStep] = useState(0);
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages, integrationResult }: Props) {
+  // Zurück von der Microsoft-Anmeldung: Angaben davor sind schon gespeichert, weiter beim letzten Schritt.
+  const [step, setStep] = useState(integrationResult ? STEPS.length - 1 : 0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
   const [services, setServices] = useState<string[]>(initial.services);
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(Boolean(integrationResult));
   const { pending, error, run } = useMutation();
 
   const toggle = (list: string[], value: string, on: boolean) => (on ? [...list, value] : list.filter((x) => x !== value));
@@ -223,6 +226,9 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
               companyId={companyId}
               canManage
               gmail={connections.gmail}
+              microsoftAvailable={connections.microsoftAvailable}
+              returnTo="/onboarding"
+              integrationResult={integrationResult}
               websiteConnected={false}
               showWebsite={false}
             />

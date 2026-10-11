@@ -4,6 +4,7 @@ import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { getValidTokens } from "./tokens";
 import { IntegrationNotReadyError, type InboundAttachment } from "./email";
 import { gmailProvider } from "./gmail";
+import { microsoftProvider } from "./microsoft";
 
 export interface DeliveryResult {
   delivered: boolean;
@@ -11,7 +12,7 @@ export interface DeliveryResult {
   reason: string;
 }
 
-const EMAIL_PROVIDERS = [gmailProvider];
+const EMAIL_PROVIDERS = [gmailProvider, microsoftProvider];
 
 /** Test-Simulation (siehe /api/simulate/email): Alles, was innerhalb läuft, versendet garantiert keine echte Mail. */
 const simulation = new AsyncLocalStorage<boolean>();

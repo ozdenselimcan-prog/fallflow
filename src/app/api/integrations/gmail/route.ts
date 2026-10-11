@@ -49,6 +49,8 @@ export const POST = withSession(
       lastSyncedAt: null,
       lastError: "",
     });
+    // Ein Büro hat genau EIN verbundenes Postfach: eine ältere Microsoft-Verbindung wird ersetzt.
+    await deleteConnection(session.companyId, "microsoft");
     await store.setChannelStatus("gmail", "connected", body.data.email);
     return json({ ok: true }, 201);
   },

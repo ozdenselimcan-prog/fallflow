@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { listAllStores } from "@/lib/data";
 import { gmailProvider } from "@/lib/integrations/gmail";
+import { microsoftProvider } from "@/lib/integrations/microsoft";
 import { syncMailbox } from "@/lib/integrations/mail-sync";
 import { purgeStaleCases } from "@/lib/intake/retention";
 
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
   }
 
   // E-Mail-Postfächer haben keinen Push-Webhook – neue Nachrichten werden hier für alle Büros abgeholt.
-  const gmail = await syncMailbox(gmailProvider);
+  const [gmail, microsoft] = await Promise.all([syncMailbox(gmailProvider), syncMailbox(microsoftProvider)]);
 
-  return NextResponse.json({ ...totals, mail: { gmail } });
+  return NextResponse.json({ ...totals, mail: { gmail, microsoft } });
 }

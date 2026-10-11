@@ -108,7 +108,7 @@ export const gmailProvider: MailSyncProvider = {
           // niemals wieder automatisch beantwortet werden, sonst entsteht eine Endlosschleife (z. B. mit einer
           // Abwesenheitsnotiz oder einem anderen Büro, das ebenfalls FallFlow nutzt).
           const autoSubmittedHeader = parsed.headers.get("auto-submitted");
-          const autoSubmitted = typeof autoSubmittedHeader === "string" && autoSubmittedHeader.toLowerCase() !== "no";
+          const autoSubmitted = (typeof autoSubmittedHeader === "string" && autoSubmittedHeader.toLowerCase() !== "no") || parsed.headers.has("x-fallflow-auto");
           out.push({
             externalId: String(msg.uid),
             from: parsed.from?.text ?? "",

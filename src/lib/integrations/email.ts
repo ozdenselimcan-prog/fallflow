@@ -49,11 +49,11 @@ export const stripHtml = (html: string) =>
 
 /** Schnittstelle, die der Mail-Abruf (mail-sync.ts) und der Versand (outbound.ts) brauchen. */
 export interface MailSyncProvider {
-  readonly id: "gmail";
+  readonly id: "gmail" | "microsoft";
   readonly label: string;
   /** Environment Variables der FallFlow-App-Identität, die fehlen (leer = konfiguriert). Bei IMAP/SMTP immer leer. */
   missingConfig(): string[];
-  /** Nur bei OAuth-Anbietern vorhanden (aktuell keiner mehr). */
+  /** Nur bei OAuth-Anbietern vorhanden (Microsoft). */
   refreshTokens?(refreshToken: string): Promise<RefreshedTokens>;
   /** Leichter Aufruf, um zu prüfen, ob die gespeicherten Zugangsdaten noch funktionieren. Wirft bei Fehler. */
   testConnection(tokens: ProviderTokens): Promise<void>;
