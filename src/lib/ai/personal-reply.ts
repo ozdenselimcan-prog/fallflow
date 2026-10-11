@@ -53,7 +53,7 @@ export function withoutProcessQuestions(text: string): string {
   return sentencesOf(text)
     .flatMap((s) => (PROCESS_QUESTION.test(s) ? s.split(/,|;|\s+(?:und|oder|sowie)\s+/i).map((p) => p.trim()) : [s]))
     .filter((s) => s && !PROCESS_QUESTION.test(s))
-    .join(" ");
+    .join("\n");
 }
 
 /**
