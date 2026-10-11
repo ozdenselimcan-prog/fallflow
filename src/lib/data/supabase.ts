@@ -49,6 +49,7 @@ const mapDocumentTemplate = (r: Row): DocumentTemplate => ({
   storagePath: r.storage_path,
   createdAt: r.created_at,
   alwaysInclude: r.always_include ?? false,
+  requiresReturn: r.requires_return ?? true,
 });
 
 const mapTemplateDocument = (r: Row): TemplateDocument => ({
@@ -469,6 +470,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
     async saveDocumentTemplate(t) {
       const row: Row = { company_id: companyId, service: t.service, title: t.title, file_name: t.fileName, storage_path: t.storagePath };
       if (t.alwaysInclude !== undefined) row.always_include = t.alwaysInclude;
+      if (t.requiresReturn !== undefined) row.requires_return = t.requiresReturn;
       const { data, error } = t.id
         ? await db.from("document_templates").update(row).eq("id", t.id).eq("company_id", companyId).select("*").single()
         : await db.from("document_templates").insert(row).select("*").single();

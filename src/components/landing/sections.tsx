@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
-import { DemoWorkbench } from "@/components/chat/demo-workbench";
+import { MailDemo } from "@/components/landing/mail-demo";
 import { MailFlowAnimation } from "@/components/landing/mail-flow-animation";
 import { buttonStyles } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
@@ -149,8 +149,8 @@ export function SolutionSection() {
 
 export function DemoSection() {
   return (
-    <Section id="demo" title="Probieren Sie den Ablauf selbst aus." intro="Links schreibt der Interessent, rechts entsteht live die Fallakte – inklusive Vollständigkeitswert und Dokumentenanforderung. Die Demo läuft ohne Anmeldung.">
-      <DemoWorkbench compact />
+    <Section id="demo" title="Probieren Sie den Ablauf selbst aus." intro="Links der E-Mail-Verlauf zwischen Kunde und KI, rechts entsteht die Fallakte – Schritt für Schritt. Die Demo läuft ohne Anmeldung.">
+      <MailDemo />
       <div className="mt-6">
         <Link href="/demo" className={buttonStyles({ variant: "secondary" })}>
           Demo im Vollbild öffnen

@@ -9,6 +9,7 @@ const statusTone: Record<CaseStatus, "accent" | "warning" | "success" | "neutral
   NEW: "accent",
   QUALIFYING: "accent",
   WAITING_FOR_CUSTOMER: "warning",
+  NEEDS_REPLY: "warning",
   COMPLETE: "success",
   READY_FOR_REVIEW: "success",
   CONVERTED: "neutral",

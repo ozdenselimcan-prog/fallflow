@@ -46,6 +46,9 @@ export async function sendTeamMessage(
   const message = await store.addMessage(caseId, "staff", input.text, { channel: input.channel, delivery: result.delivered ? "delivered" : "not_sent" });
   await store.addEvent(caseId, "note", result.delivered ? "Nachricht an den Kunden gesendet" : "Nachricht gespeichert – nicht versendet (Kanal nicht verbunden)");
   // Persönliche Antwort des Büros erledigt "Aufmerksamkeit benötigt".
-  if (result.delivered && attentionOf(c.fields)) await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true });
+  if (result.delivered && attentionOf(c.fields)) {
+    await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true });
+    await refreshCase(store, caseId, { hint: "waiting", touch: false });
+  }
   return { message, delivered: result.delivered, reason: result.reason };
 }

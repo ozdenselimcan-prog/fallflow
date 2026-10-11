@@ -71,6 +71,7 @@ export async function matchServiceMaterials(
 
   const attachments: InboundAttachment[] = [];
   const titles: string[] = [];
+  const infoTitles: string[] = [];
   for (const tpl of pending) {
     // Erst die Datei laden und NUR bei Erfolg als "gesendet" markieren bzw. im Text behaupten, sie liege
     // im Anhang – sonst würde bei einem Speicherfehler eine Vorlage als erledigt gelten, obwohl beim
@@ -80,12 +81,14 @@ export async function matchServiceMaterials(
       await store.addEvent(c.id, "document", `Vorlage „${tpl.title}“ konnte nicht aus dem Speicher geladen werden – bitte unter Vorlagen & Nachrichten erneut hochladen.`);
       continue;
     }
-    await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+    // Nur-Info-Vorlagen (Preisliste, Datenschutzhinweis …) werden mitgeschickt, aber nicht zurückerwartet.
+    const infoOnly = tpl.requiresReturn === false;
+    await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: infoOnly ? "info" : "sent", storagePath: "", aiNote: "", receivedAt: null });
     attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
-    titles.push(tpl.title);
-    await store.addEvent(c.id, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
+    (infoOnly ? infoTitles : titles).push(tpl.title);
+    await store.addEvent(c.id, "document", infoOnly ? `Dokument zur Information an Kunden gesendet: ${tpl.title}` : `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
   }
-  if (!introDue && !titles.length) return null;
+  if (!introDue && !titles.length && !infoTitles.length) return null;
 
   const parts: string[] = [];
   if (introDue) parts.push(own || `Vielen Dank für Ihre Anfrage zur Leistung „${service}“.`);
@@ -99,6 +102,10 @@ export async function matchServiceMaterials(
     parts.push(`Im Anhang finden Sie das Formular „${titles[0]}“ – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`);
   } else if (titles.length > 1) {
     parts.push(`Im Anhang finden Sie folgende Formulare: ${titles.map((t) => `„${t}“`).join(", ")} – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit den ausgefüllten Dokumenten als Anhang zurücksenden.`);
+  }
+  if (infoTitles.length && !(ownMentionsAttachment && !titles.length)) {
+    const list = infoTitles.map((t) => `„${t}“`).join(", ");
+    parts.push(`Zu Ihrer Information finden Sie außerdem ${infoTitles.length === 1 ? `das Dokument ${list}` : `die Dokumente ${list}`} im Anhang – ${infoTitles.length === 1 ? "es muss" : "sie müssen"} nicht zurückgeschickt werden.`);
   }
   if (introDue) {
     const company = await store.getCompany();
@@ -126,7 +133,7 @@ async function matchServiceMaterialsLink(
   const texts: string[] = [];
   for (const tpl of pending) {
     const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
-    await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: tpl.requiresReturn === false ? "info" : "sent", storagePath: "", aiNote: "", receivedAt: null });
     const token = await ensureUploadToken(store, c);
     const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
     texts.push(
@@ -609,7 +616,8 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   }
 
   const previous = c.status;
-  const status = deriveStatus(previous, checklist, opts.hint);
+  // "Aufmerksamkeit benötigt": Das Büro ist am Zug (eigener Status statt "Wartet auf Kunde").
+  const status = attentionOf(c.fields) && previous !== "CONVERTED" ? "NEEDS_REPLY" : deriveStatus(previous, checklist, opts.hint);
   // "Vorbereitet" heißt: wirklich alles liegt vor (READY_FOR_REVIEW). Alte Fälle mit dem früheren Zwischenstatus
   // COMPLETE zählen beim Übergang ebenfalls als neu vorbereitet.
   const becamePrepared = status === "READY_FOR_REVIEW" && previous !== "READY_FOR_REVIEW" && previous !== "CONVERTED";

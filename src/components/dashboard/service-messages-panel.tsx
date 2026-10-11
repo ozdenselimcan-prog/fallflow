@@ -26,6 +26,8 @@ export interface ServiceTemplateView {
   title: string;
   fileName: string;
   alwaysInclude?: boolean;
+  /** false = nur zur Information mitschicken (Preisliste, Datenschutzhinweis …), kommt nicht ausgefüllt zurück. */
+  requiresReturn?: boolean;
 }
 
 const DEFAULT_BODY = (service: string) => `Für Ihr Anliegen (${service}) benötigen wir zusätzlich die ausgefüllte Vorlage. Bitte laden Sie sich das Dokument herunter, füllen es aus und schicken es uns wieder zu.`;
@@ -38,11 +40,24 @@ const FALLBACK_SERVICE = "Sonstiges";
  * alwaysInclude-Flag am Dokument statt über die service-Zuordnung. */
 const ALWAYS_ROW = "__always__";
 
-function PdfChip({ title, canEdit, onRemove }: { title: string; canEdit: boolean; onRemove: () => void }) {
+function PdfChip({ title, canEdit, requiresReturn, onToggleReturn, onRemove }: { title: string; canEdit: boolean; requiresReturn: boolean; onToggleReturn: () => void; onRemove: () => void }) {
   return (
     <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-background py-1 pr-1.5 pl-2.5 text-xs font-medium">
       <FileText className="size-3 shrink-0 text-muted-foreground" />
       <span className="truncate">{title}</span>
+      <button
+        type="button"
+        disabled={!canEdit}
+        onClick={onToggleReturn}
+        title={requiresReturn ? "Kunde soll das Formular ausgefüllt zurückschicken – zum Umschalten klicken" : "Wird nur zur Information mitgeschickt – zum Umschalten klicken"}
+        className={cn(
+          "shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+          requiresReturn ? "bg-accent-soft text-accent" : "bg-muted text-muted-foreground",
+          canEdit && "hover:ring-1 hover:ring-border",
+        )}
+      >
+        {requiresReturn ? "ausgefüllt zurück" : "nur zur Info"}
+      </button>
       {canEdit && (
         <button type="button" onClick={onRemove} className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-danger" aria-label={`${title} entfernen`}>
           <X className="size-3" />
@@ -158,6 +173,17 @@ export function ServiceMessagesPanel({
     }
   };
 
+  const toggleReturn = async (t: ServiceTemplateView) => {
+    setError(null);
+    const requiresReturn = t.requiresReturn === false;
+    try {
+      await apiFetch("PUT", `/api/document-templates/${t.id}`, { requiresReturn });
+      setTemplates((prev) => prev.map((x) => (x.id === t.id ? { ...x, requiresReturn } : x)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
+    }
+  };
+
   const removeTemplate = async (id: string) => {
     setError(null);
     await fetch(`/api/document-templates/${id}`, { method: "DELETE" });
@@ -197,7 +223,14 @@ export function ServiceMessagesPanel({
             <div className="space-y-3 px-5 pb-5">
               <div className="flex flex-wrap items-center gap-1.5">
                 {rowTemplates.map((t) => (
-                  <PdfChip key={t.id} title={t.title} canEdit={canEdit} onRemove={() => removeTemplate(t.id)} />
+                  <PdfChip
+                    key={t.id}
+                    title={t.title}
+                    canEdit={canEdit}
+                    requiresReturn={t.requiresReturn !== false}
+                    onToggleReturn={() => void toggleReturn(t)}
+                    onRemove={() => removeTemplate(t.id)}
+                  />
                 ))}
                 {canEdit && (
                   <>

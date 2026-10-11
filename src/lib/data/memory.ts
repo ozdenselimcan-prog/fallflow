@@ -247,11 +247,12 @@ export function createMemoryStore(): Store {
       if (t.id) {
         const existing = d.documentTemplates.find((x) => x.id === t.id);
         if (existing) {
-          Object.assign(existing, t);
+          // Nicht mitgeschickte Optionen (undefined) behalten ihren bisherigen Wert.
+          Object.assign(existing, Object.fromEntries(Object.entries(t).filter(([, v]) => v !== undefined)));
           return existing;
         }
       }
-      const created: DocumentTemplate = { ...t, alwaysInclude: t.alwaysInclude ?? false, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
+      const created: DocumentTemplate = { ...t, alwaysInclude: t.alwaysInclude ?? false, requiresReturn: t.requiresReturn ?? true, id: uid(), companyId: DEMO_COMPANY_ID, createdAt: now() };
       d.documentTemplates.push(created);
       return created;
     },

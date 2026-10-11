@@ -125,3 +125,26 @@ describe("E-Mail: kein doppelter Anhang-Hinweis", () => {
     expect(turn2.replies[0]).toBe("Anbei unser Formular – bitte ausgefüllt zurückschicken.");
   });
 });
+
+describe("Nur-Info-PDFs und Status 'Antwort durch Büro nötig'", () => {
+  it("eine Nur-Info-PDF wird mitgeschickt, aber nicht zurückerwartet", async () => {
+    const store = freshStore();
+    const { saveFile } = await import("@/lib/documents/storage");
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new TextEncoder().encode("%PDF-1.4\n"), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "Fördermittelberatung", title: "Preisliste", fileName: "preise.pdf", storagePath: path, requiresReturn: false });
+    await store.saveServiceMessage({ service: "Fördermittelberatung", body: "Danke für Ihre Anfrage.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false });
+    const turn = await email(store, "Hallo, ich möchte eine Fördermittelberatung für mein Haus.");
+    expect(turn.replies[0]).toContain("Zu Ihrer Information finden Sie außerdem das Dokument „Preisliste“ im Anhang");
+    expect(turn.replies[0]).not.toContain("bitte ausfüllen");
+    const [td] = await store.listTemplateDocuments(turn.sessionId);
+    expect(td.status).toBe("info");
+    // Die Preisliste blockiert den Fall nicht.
+    expect((await store.getCase(turn.sessionId))?.status).toBe("READY_FOR_REVIEW");
+  });
+
+  it("Frage des Kunden → Status 'Antwort durch Büro nötig'", async () => {
+    const store = freshStore();
+    const turn = await email(store, "Hallo, ich interessiere mich für einen iSFP. Wie lange dauert das?");
+    expect((await store.getCase(turn.sessionId))?.status).toBe("NEEDS_REPLY");
+  });
+});

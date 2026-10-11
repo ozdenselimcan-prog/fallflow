@@ -31,7 +31,7 @@ export default async function OnboardingPage() {
         initial={{ name: company.name, website: company.website, phone: company.phone, address: company.address, services: company.services }}
         widgetReceived={channels.some((c) => c.kind === "website" && c.status === "connected")}
         connections={{ gmail: byProvider.get("gmail") ?? null }}
-        documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
+        documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
       />
     </main>

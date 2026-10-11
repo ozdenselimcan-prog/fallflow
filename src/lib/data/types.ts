@@ -4,7 +4,7 @@
  * → COMPLETE (Pflichtangaben da, Dokumentenlage offen) → READY_FOR_REVIEW (Angaben da, Dokumente erhalten oder angefordert)
  * → CONVERTED (vom Berater übernommen).
  */
-export const CASE_STATUSES = ["NEW", "QUALIFYING", "WAITING_FOR_CUSTOMER", "COMPLETE", "READY_FOR_REVIEW", "CONVERTED"] as const;
+export const CASE_STATUSES = ["NEW", "QUALIFYING", "WAITING_FOR_CUSTOMER", "NEEDS_REPLY", "COMPLETE", "READY_FOR_REVIEW", "CONVERTED"] as const;
 export type CaseStatus = (typeof CASE_STATUSES)[number];
 
 export const ROLES = ["OWNER", "ADMIN", "MEMBER"] as const;
@@ -196,6 +196,9 @@ export interface DocumentTemplate {
   /** true = wird bei jeder neuen Anfrage mitgeschickt, unabhängig von der erkannten Leistung (z. B. eine
    * Datenschutz-Einwilligung, die jeder Kunde ausfüllen muss). */
   alwaysInclude: boolean;
+  /** true = der Kunde soll die Vorlage ausgefüllt zurückschicken (zählt zur Vollständigkeit); false = wird nur zur
+   * Information mitgeschickt (z. B. Preisliste, Datenschutzhinweis). */
+  requiresReturn: boolean;
 }
 
 /** Individuell editierbarer Nachrichtentext pro Leistung – wird zusätzlich zu den Vorlagen-Links verschickt,
@@ -216,13 +219,14 @@ export interface ServiceMessage {
   subject: string;
 }
 
-/** Rückweg einer Büro-PDF-Vorlage: 'sent' = an den Kunden geschickt, 'received' = ausgefüllt zurück. */
+/** Rückweg einer Büro-PDF-Vorlage: 'sent' = an den Kunden geschickt, 'received' = ausgefüllt zurück,
+ * 'info' = nur zur Information mitgeschickt (kommt nicht zurück). */
 export interface TemplateDocument {
   id: string;
   companyId: string;
   caseId: string;
   templateId: string;
-  status: "sent" | "received";
+  status: "sent" | "received" | "info";
   storagePath: string;
   /** Kurzer KI-Hinweis, ob das zurückgeschickte Dokument ausgefüllt wirkt. */
   aiNote: string;

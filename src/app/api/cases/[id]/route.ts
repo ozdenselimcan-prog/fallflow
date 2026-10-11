@@ -2,6 +2,7 @@ import { apiError, json, parseBody, withSession } from "@/lib/api";
 import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { STATUS_LABELS } from "@/lib/cases/fields";
 import { saveCaseFields } from "@/lib/cases/service";
+import { refreshCase } from "@/lib/intake/case-ops";
 import { publicDocument } from "@/lib/documents/public";
 import { casePatchSchema, caseIdSchema as idSchema } from "@/lib/validation";
 
@@ -29,6 +30,7 @@ export const PATCH = withSession(
     if (resolveAttention && attentionOf(c.fields)) {
       c = (await store.updateCase(id, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true })) ?? c;
       await store.addEvent(id, "note", "„Aufmerksamkeit benötigt“ als erledigt markiert");
+      c = (await refreshCase(store, id, { hint: "waiting", touch: false })).caseRecord;
     }
 
     // „Fall übernehmen“ = Fall wird dem Benutzer zugewiesen und gilt als übernommen (CONVERTED).

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AppointmentConfirmationCard } from "@/components/dashboard/appointment-confirmation-card";
 import { ServiceMessagesPanel } from "@/components/dashboard/service-messages-panel";
+import { TestMailCard } from "@/components/dashboard/test-mail-card";
 import { PageHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
@@ -26,7 +27,13 @@ export default async function AssistantTemplatesPage() {
       <Link href="/dashboard/assistant" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> KI-Assistent
       </Link>
-      <PageHeader title="Vorlagen & Nachrichten" description="Pro Leistung: PDF-Vorlagen anhängen und den Nachrichtentext festlegen, den der Assistent dazu verschickt." />
+      <PageHeader title="Vorlagen & Nachrichten" description="Pro Leistung: PDF-Vorlagen anhängen und den Nachrichtentext festlegen, den der Assistent dazu verschickt. Bei jeder PDF legen Sie per Klick fest, ob der Kunde sie „ausgefüllt zurück“ schicken soll oder ob sie „nur zur Info“ dabei ist (z. B. Preisliste)." />
+      {can(session.role, "cases:write") && (
+        <>
+          <TestMailCard />
+          <div className="h-4" />
+        </>
+      )}
       <AppointmentConfirmationCard initial={assistant} canEdit={can(session.role, "assistant:manage")} />
       <div className="h-4" />
       <ServiceMessagesPanel
@@ -39,7 +46,7 @@ export default async function AssistantTemplatesPage() {
           requiresEnergyCertificate: m.requiresEnergyCertificate,
           subject: m.subject,
         }))}
-        initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude }))}
+        initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         canEdit={canEdit}
       />
     </>
