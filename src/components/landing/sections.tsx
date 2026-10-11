@@ -22,7 +22,7 @@ import {
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { MailDemo } from "@/components/landing/mail-demo";
-import { MailFlowAnimation } from "@/components/landing/mail-flow-animation";
+import { CaseFilm } from "@/components/landing/case-film";
 import { buttonStyles } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { faqs } from "@/lib/config/faq";
@@ -86,10 +86,8 @@ export function FlowSection() {
  * selbsterklärendes "Kurzvideo" ohne echte Videodatei, direkt unter dem Hero. */
 export function MailFlowSection() {
   return (
-    <Section title="So sieht ein echter Fall aus – in Echtzeit." intro="Eine Mail kommt rein. Der Assistent erkennt die Leistung, schickt Ihre eigene Nachricht samt passender Vorlage als Anhang – und meldet sich erst wieder, wenn alles da ist.">
-      <div className="mx-auto max-w-xl">
-        <MailFlowAnimation />
-      </div>
+    <Section title="So sieht ein echter Fall aus – in Echtzeit." intro="Von der ersten Kundenmail bis zum bestätigten Termin – in 25 Sekunden. Links Ihr Postfach, rechts die Fallakte, die FallFlow dabei automatisch füllt.">
+      <CaseFilm />
     </Section>
   );
 }
