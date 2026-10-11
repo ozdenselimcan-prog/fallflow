@@ -56,6 +56,21 @@ export function withoutProcessQuestions(text: string): string {
     .join(" ");
 }
 
+/**
+ * Fragen, die IMMER ein Mensch beantworten soll – Preis, Dauer, Förderung, Verfügbarkeit. Werden fest erkannt (ohne KI),
+ * weil das Modell z. B. "Ich möchte einen iSFP. Was kostet das?" sonst manchmal als reine Anfrage durchgehen ließ.
+ */
+const HUMAN_TOPIC = /kost|preis|teuer|günstig|honorar|gebühr|wie lange|dauer|wann (können|könnten|hätten|haben|wäre|ist)|termin frei|förder|zuschuss|bafa|kfw|lohnt|rentiert|sinnvoll|empfehlen|empfehlung/i;
+const QUESTION_START_WORD = /^(wie|was|wann|wo|warum|wieso|weshalb|welche[rsmn]?|wer|wieviel|kann|können|könnten|bieten|machen|gibt|ist|sind|brauche|muss|lohnt|haben)\b/i;
+
+export function obviousHumanQuestion(text: string): string | null {
+  const question = text
+    .split(/(?<=[?.!])\s+|\n+/)
+    .map((s) => s.trim())
+    .find((s) => (s.endsWith("?") || QUESTION_START_WORD.test(s)) && HUMAN_TOPIC.test(s));
+  return question ? question.slice(0, 120) : null;
+}
+
 const QUESTION_WORD = /(^|[.!\n]\s*)(wie|was|wann|wo|warum|wieso|weshalb|welche[rsmn]?|wer|wieviel|kann man|können sie|könnten sie|bieten sie|machen sie|gibt es|ist es|brauche ich|muss ich|lohnt)\b/i;
 function looksLikeQuestionText(text: string): boolean {
   return text.includes("?") || QUESTION_WORD.test(text);
@@ -83,6 +98,8 @@ export async function customerQuestion(fullText: string): Promise<string | null>
   // Ohne Fragezeichen und ohne Fragesatz ("Wie lange dauert …") ist es keine Frage, sondern eine Anfrage/Angabe –
   // dafür die KI gar nicht erst fragen (sie hielt reine Beratungswünsche sonst manchmal für Fragen).
   if (!looksLikeQuestionText(text)) return null;
+  const obvious = obviousHumanQuestion(text);
+  if (obvious) return obvious;
   // Rückrufwunsch ohne Frage erkennt bereits die Gesprächslogik (Handoff).
   const provider = getAiProvider(CLASSIFIER_MODEL);
   if (!provider) return heuristicQuestion(text);

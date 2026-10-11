@@ -167,3 +167,16 @@ describe("Fragen, die die Standard-Antwort beantwortet", () => {
     expect(withoutProcessQuestions("Was muss ich Ihnen alles schicken und wie geht es dann weiter?")).toBe("");
   });
 });
+
+describe("Preis-, Dauer- und Förderfragen gehen immer ans Büro", () => {
+  it.each([
+    ["Hallo, ich möchte einen iSFP. Was kostet das?", true],
+    ["Ich brauche einen Energieausweis. Wie lange dauert das bei Ihnen?", true],
+    ["Bekomme ich dafür eine Förderung?", true],
+    ["Hallo, ich hätte gern eine Heizlastberechnung für unser Haus.", false],
+    ["Hallo, ich möchte einen iSFP. Welche Angaben benötigen Sie noch?", false],
+  ])("%s → %s", async (text, expected) => {
+    const { obviousHumanQuestion, withoutProcessQuestions } = await import("@/lib/ai/personal-reply");
+    expect(Boolean(obviousHumanQuestion(withoutProcessQuestions(text)))).toBe(expected);
+  });
+});
