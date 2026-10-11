@@ -15,6 +15,9 @@ export interface Session {
   role: Role;
   /** true = kein Supabase konfiguriert, Demo-Daten im Arbeitsspeicher */
   demo: boolean;
+  /** Bei der Registrierung gewählter Plan und Testzeitraum (für "Zahlungsmethode hinterlegen" nach dem Onboarding). */
+  signupPlan?: string;
+  trialDays?: number;
 }
 
 export const getSession = cache(async (): Promise<Session | null> => {
@@ -51,6 +54,8 @@ export const getSession = cache(async (): Promise<Session | null> => {
     companyId: member.company_id,
     role: member.role as Role,
     demo: false,
+    signupPlan: typeof user.user_metadata?.signup_plan === "string" ? user.user_metadata.signup_plan : undefined,
+    trialDays: Number.isInteger(user.user_metadata?.trial_days) ? user.user_metadata.trial_days : undefined,
   };
 });
 

@@ -48,7 +48,7 @@ export async function createCheckoutSession({ companyId, planId, customerEmail, 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price, quantity: 1 }],
-    success_url: successUrl ?? `${siteConfig.appUrl}/dashboard/settings/billing?checkout=success`,
+    success_url: successUrl ?? `${siteConfig.appUrl}/api/billing/confirm?next=billing&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl ?? `${siteConfig.appUrl}/dashboard/settings/billing?checkout=cancelled`,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: customerEmail }),
     client_reference_id: companyId,

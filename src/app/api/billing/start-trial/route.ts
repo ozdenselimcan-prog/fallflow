@@ -5,8 +5,8 @@ import { createCheckoutSession } from "@/lib/integrations/stripe";
 import { checkoutSchema } from "@/lib/validation";
 
 /**
- * Testphase nachholen: für Büros, die bei der Registrierung die Bezahlseite abgebrochen haben. 7 Tage kostenlos,
- * Zahlungsmethode wird hinterlegt; ohne Kündigung geht es danach in den gewählten Plan über.
+ * Testphase starten (nach dem Onboarding bzw. wenn die Bezahlseite abgebrochen wurde). 7 Tage kostenlos (oder der
+ * Testzeitraum aus dem Registrierungslink), Zahlungsmethode wird hinterlegt; ohne Kündigung geht es danach in den Plan über.
  */
 export const POST = withSession(
   async (req, { session, store }) => {
@@ -20,8 +20,9 @@ export const POST = withSession(
         planId: body.data.plan,
         customerEmail: session.email,
         existingCustomerId: null,
-        trialDays: 7,
-        successUrl: `${siteConfig.appUrl}/dashboard?checkout=success`,
+        trialDays: session.trialDays && session.trialDays >= 1 && session.trialDays <= 30 ? session.trialDays : 7,
+        // Rückkehr prüft den Checkout sofort selbst bei Stripe (unabhängig vom Webhook).
+        successUrl: `${siteConfig.appUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${siteConfig.appUrl}/dashboard`,
       });
       return json({ url });

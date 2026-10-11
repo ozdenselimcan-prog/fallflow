@@ -25,7 +25,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       {/* Neues Büro ohne hinterlegte Zahlungsmethode (Bezahlseite abgebrochen): erst die Testphase starten. */}
       {!session.demo && needsPaymentSetup(company, subscription) ? (
         <Suspense>
-          <PaymentSetup canManage={can(session.role, "billing:manage")} />
+          <PaymentSetup canManage={can(session.role, "billing:manage")} preferredPlan={session.signupPlan} trialDays={session.trialDays ?? 7} />
         </Suspense>
       ) : (
         children
