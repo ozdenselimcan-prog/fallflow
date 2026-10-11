@@ -148,3 +148,20 @@ describe("Nur-Info-PDFs und Status 'Antwort durch Büro nötig'", () => {
     expect((await store.getCase(turn.sessionId))?.status).toBe("NEEDS_REPLY");
   });
 });
+
+describe("Fragen, die die Standard-Antwort beantwortet", () => {
+  it("'Welche Angaben benötigen Sie noch von mir?' → normale Antwort mit Nachricht und Vorlage, keine Aufmerksamkeit", async () => {
+    const store = freshStore();
+    await store.saveServiceMessage({ service: "iSFP", body: "Vielen Dank für Ihre iSFP-Anfrage.", appointmentNote: "", requiresFloorplan: true, requiresEnergyCertificate: false });
+    const turn = await email(store, "Hallo wollte einen individuellensanierungsfahrplan machen. Hier meine\nNummer 015203071089. Welche Angaben benötigen sie noch von mir?");
+    expect((await store.getCase(turn.sessionId))?.fields.needsAttention ?? "").toBe("");
+    expect(turn.replies[0]).toContain("Vielen Dank für Ihre iSFP-Anfrage.");
+    expect(turn.replies[0]).toContain("Grundriss");
+  });
+
+  it("eine echte Frage daneben bleibt eine Frage", async () => {
+    const { withoutProcessQuestions } = await import("@/lib/ai/personal-reply");
+    expect(withoutProcessQuestions("Welche Unterlagen brauchen Sie? Was kostet das?")).toBe("Was kostet das?");
+    expect(withoutProcessQuestions("Was muss ich Ihnen schicken? Wie geht es weiter?")).toBe("");
+  });
+});
