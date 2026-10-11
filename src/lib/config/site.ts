@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: "FallFlow",
   description:
-    "FallFlow sammelt automatisch die fehlenden Informationen, fordert Dokumente an und bereitet neue Kundenfälle für Energieberater vor.",
+    "FallFlow beantwortet E-Mail-Anfragen an Energieberater mit Ihren eigenen Texten und Vorlagen, sammelt Unterlagen ein und bereitet fertige Beratungsfälle samt Terminvorschlag vor.",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   supportEmail: "fallflow.support@gmail.com",
 };

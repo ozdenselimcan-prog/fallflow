@@ -113,6 +113,8 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
         }
         await persistSeenIds();
       }
+      // Auch ohne neue Mails festhalten, dass der Abruf geklappt hat ("Zuletzt synchronisiert", Betreiber-Übersicht).
+      await persistSeenIds();
     } catch (err) {
       errors++;
       const message = err instanceof Error ? err.message : "Abruf fehlgeschlagen";
