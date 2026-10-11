@@ -16,6 +16,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       userName={[session.firstName, session.lastName].filter(Boolean).join(" ") || session.email}
       userEmail={session.email}
       openRequests={stats.newRequests}
+      attentionCount={stats.needsAttention}
       demo={session.demo}
     >
       {children}

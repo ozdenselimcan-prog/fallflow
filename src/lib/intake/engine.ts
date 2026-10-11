@@ -1,6 +1,8 @@
 import { extractFields } from "@/lib/ai/case-extractor";
 import { answerCustomerQuestion, looksLikeQuestion } from "@/lib/ai/answer-question";
 import { applyTurn, isInteractive, nextPending, parseAnswer, type TurnResult } from "@/lib/ai/conversation";
+import { customerQuestion } from "@/lib/ai/personal-reply";
+import { ATTENTION_KEY } from "@/lib/cases/attention";
 import { WEEKDAY_LABELS } from "@/lib/cases/fields";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { canCreateCase } from "@/lib/billing/usage";
@@ -153,6 +155,20 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     }
   }
 
+  // E-Mail: Ist die Leistung unklar, stellt der Kunde eine Frage oder wünscht er persönlichen Kontakt, antwortet die
+  // KI NICHT automatisch (keine Leistungs-Nachricht, keine Vorlage, kein Termin). Der Fall erscheint im Posteingang
+  // unter "Aufmerksamkeit benötigt", und der Energieberater antwortet selbst.
+  let attention: string | null = null;
+  if (input.channel === "email" && settings.autoReply) {
+    const service = turn.fields.service ?? "";
+    if (turn.handoff) attention = "Kunde wünscht persönlichen Kontakt";
+    else if (!service || service === "Sonstiges") attention = "Leistung nicht erkannt";
+    else {
+      const question = await customerQuestion(input.text);
+      if (question) attention = `Frage des Kunden: ${question}`;
+    }
+  }
+
   const draft = {
     fields: turn.fields,
     customerName: turn.fields.name ?? existing?.customerName ?? "Unbekannt",
@@ -169,6 +185,11 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     await store.addEvent(caseId, "received", eventForSource(input.source, input.simulated));
   }
 
+  if (attention) {
+    await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: attention } });
+    await store.addEvent(caseId, "handoff", `Aufmerksamkeit benötigt (${attention}) – keine automatische Antwort, bitte selbst antworten.`);
+  }
+
   const meta = { channel: input.channel, simulated: Boolean(input.simulated) };
   await store.addMessage(caseId, "user", input.text.slice(0, 2000), { ...meta, delivery: "delivered" });
 
@@ -183,7 +204,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // + ggf. PDF-Anhang raus, keine automatisch generierte Rückfrage-Liste ("Welche Art Gebäude...", "Baujahr...").
   // Sobald der Fall aber abgeschlossen ist (turn.done = true: Abschluss-Nachricht, Handoff, Terminbestätigung
   // o. Ä.), soll genau diese Abschlussmeldung auch per Mail raus – siehe Termin-Hinweis-Override oben.
-  const replies = inAppointmentFlow || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
+  const replies = attention || inAppointmentFlow || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
@@ -195,7 +216,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // (Nachricht und Vorlage kommen vom Büro selbst, keine automatisch generierte Angaben-Checkliste). Vor refreshCase, damit der Fall
   // nicht in diesem Zug schon als "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht.
   const caseNow = (await store.getCase(caseId))!;
-  const material = await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
+  const material = attention ? null : await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
   const attachments: InboundAttachment[] = material?.attachments ?? [];
   if (material) replies.push(...material.texts);
 
@@ -210,7 +231,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   // Per E-Mail: Ist der Fall durch diese Antwort (z. B. nachgereichte Telefonnummer) vollständig geworden, die
   // Abschluss-Nachricht schicken – außer der Kunde bekommt in diesem Zug ohnehin die Büro-Nachricht/Vorlage.
-  if (input.channel === "email" && refreshed.becamePrepared && !material && !turn.done) replies.push(await completionTextFor(store, refreshed.caseRecord.fields.service));
+  if (input.channel === "email" && !attention && refreshed.becamePrepared && !material && !turn.done) replies.push(await completionTextFor(store, refreshed.caseRecord.fields.service));
 
   let upload: UploadPrompt | null = null;
   // Nur klassische (vom Kunden angeforderte) Dokumentarten – Vorlagen-Rückläufer haben keinen festen
@@ -233,7 +254,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // erst wenn ein Mitarbeiter den Vorschlag im Kalender akzeptiert (oder selbst einen anderen Termin
   // wählt), geht die Terminbestätigung per Mail an den Kunden raus (siehe /api/appointments/[id]/accept
   // und .../decline).
-  if (settings.appointmentBooking && !turn.handoff) {
+  if (settings.appointmentBooking && !turn.handoff && !attention) {
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
     const vacation = settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null;
     const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay, vacation };

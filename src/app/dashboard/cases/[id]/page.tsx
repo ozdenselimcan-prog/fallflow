@@ -17,6 +17,7 @@ import { requireSession } from "@/lib/auth/session";
 import { hasAiTools } from "@/lib/billing/limits";
 import { FIELD_GROUPS } from "@/lib/cases/fields";
 import { FORM_ENTRIES_KEY, parseFormEntries } from "@/lib/cases/form-entries";
+import { attentionOf } from "@/lib/cases/attention";
 import { getStore } from "@/lib/data";
 import { publicDocument } from "@/lib/documents/public";
 import { currentUploadLink, SKIPPED_ATTACHMENTS_KEY } from "@/lib/intake/case-ops";
@@ -80,6 +81,16 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
 
       <div className="grid gap-6 lg:grid-cols-3">
         <aside className="space-y-4 lg:order-2">
+          {attentionOf(c.fields) && (
+            <Notice>
+              <span className="font-medium">Aufmerksamkeit benötigt: </span>
+              {attentionOf(c.fields)}. Die KI hat nicht automatisch geantwortet – bitte antworten Sie dem Kunden selbst. Danach im{" "}
+              <Link href="/dashboard/inbox" className="font-medium underline">
+                Posteingang
+              </Link>{" "}
+              auf „Erledigt“ klicken (passiert automatisch, wenn Sie aus FallFlow antworten).
+            </Notice>
+          )}
           <CompletenessCard checklist={checklist} readiness={readiness} />
           {showPrepared && <PreparedCard checklist={checklist} fields={c.fields} summary={c.summary} />}
           <Card>

@@ -36,11 +36,13 @@ interface Props {
   userName: string;
   userEmail: string;
   openRequests: number;
+  /** Anzahl "Aufmerksamkeit benötigt" – als Zahl am Posteingang */
+  attentionCount?: number;
   demo: boolean;
   children: ReactNode;
 }
 
-export function DashboardShell({ companyName, userName, userEmail, openRequests, demo, children }: Props) {
+export function DashboardShell({ companyName, userName, userEmail, openRequests, attentionCount = 0, demo, children }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -71,6 +73,11 @@ export function DashboardShell({ companyName, userName, userEmail, openRequests,
                 >
                   <item.icon className="size-4.5" />
                   {item.label}
+                  {item.href === "/dashboard/inbox" && attentionCount > 0 && (
+                    <span className="ml-auto rounded-full bg-warning px-2 py-0.5 text-xs font-semibold text-white" aria-label={`${attentionCount} benötigen Aufmerksamkeit`}>
+                      {attentionCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}

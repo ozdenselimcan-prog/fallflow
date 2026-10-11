@@ -269,6 +269,8 @@ export interface DashboardStats {
   appointmentsToday: number;
   /** Ohne Zutun des Büros durch KI-Intake bis zur Bearbeitungsreife qualifiziert */
   autoQualified: number;
+  /** E-Mails, auf die der Energieberater selbst antworten soll ("Aufmerksamkeit benötigt") */
+  needsAttention: number;
 }
 
 export type CaseInput = Omit<CaseRecord, "id" | "createdAt" | "updatedAt" | "companyId" | "uploadToken" | "uploadTokenExpiresAt"> & {

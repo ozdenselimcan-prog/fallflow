@@ -1,3 +1,4 @@
+import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { extractFields } from "@/lib/ai/case-extractor";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { isAnswered } from "@/lib/cases/completeness";
@@ -44,5 +45,7 @@ export async function sendTeamMessage(
   const result = await deliverToCustomer({ companyId: c.companyId, channel: input.channel, email: c.fields.email, phone: c.fields.phone, text: input.text, subject: input.subject });
   const message = await store.addMessage(caseId, "staff", input.text, { channel: input.channel, delivery: result.delivered ? "delivered" : "not_sent" });
   await store.addEvent(caseId, "note", result.delivered ? "Nachricht an den Kunden gesendet" : "Nachricht gespeichert – nicht versendet (Kanal nicht verbunden)");
+  // Persönliche Antwort des Büros erledigt "Aufmerksamkeit benötigt".
+  if (result.delivered && attentionOf(c.fields)) await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true });
   return { message, delivered: result.delivered, reason: result.reason };
 }

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { extractFromFilledForm } from "@/lib/ai/form-extractor";
 import { mergeExtracted } from "@/lib/ai/conversation";
 import { FORM_ENTRIES_KEY, mergeFormEntries } from "@/lib/cases/form-entries";
+import { attentionOf } from "@/lib/cases/attention";
 import { summarizeCase } from "@/lib/ai/summary";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
@@ -350,6 +351,12 @@ export async function receiveFilledTemplate(
     }
   }
 
+  // Wartet der Fall auf eine persönliche Antwort des Energieberaters ("Aufmerksamkeit benötigt"), schreibt die KI
+  // dem Kunden nichts automatisch – die PDF ist trotzdem abgelegt und geprüft.
+  if ((wrongDocument || filled === false) && attentionOf(c.fields)) {
+    await refreshCase(store, caseId, { hint: "waiting" });
+    return true;
+  }
   if (wrongDocument || filled === false) {
     const requestText = wrongDocument
       ? `Vielen Dank für Ihre Rückmeldung. ${note || "Das zurückgeschickte Dokument scheint nicht die erwartete Vorlage zu sein."} Bitte schicken Sie uns stattdessen das Formular „${title}“ (im Anhang) ausgefüllt als Antwort auf diese E-Mail zurück.`
@@ -371,7 +378,7 @@ export async function receiveFilledTemplate(
   // Zeitpunkt die Vorlage noch als "sent" galt; die KI konnte den Fall also in diesem Zug noch nicht als
   // fertig erkennen – das muss hier nachgeholt werden, sonst bleibt die Abschluss-Nachricht ganz aus.
   const refreshed = await refreshCase(store, caseId, { hint: "waiting" });
-  if (refreshed.becamePrepared && !opts.quiet) await sendCompletionMessage(store, refreshed);
+  if (refreshed.becamePrepared && !opts.quiet && !attentionOf(refreshed.caseRecord.fields)) await sendCompletionMessage(store, refreshed);
   return true;
 }
 
@@ -448,6 +455,8 @@ export async function receiveEmailAttachments(store: Store, caseId: string, atta
   }
 
   const refreshed = await refreshCase(store, caseId, { hint: "waiting" });
+  // "Aufmerksamkeit benötigt": Dateien sind abgelegt, aber der Energieberater antwortet selbst.
+  if (attentionOf(refreshed.caseRecord.fields)) return;
   const nowPrepared = refreshed.caseRecord.status === "READY_FOR_REVIEW" && previousStatus !== "READY_FOR_REVIEW" && previousStatus !== "CONVERTED";
   if (nowPrepared) {
     await sendCompletionMessage(store, refreshed);

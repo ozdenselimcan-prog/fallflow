@@ -1,4 +1,5 @@
 import { apiError, json, parseBody, withSession } from "@/lib/api";
+import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { STATUS_LABELS } from "@/lib/cases/fields";
 import { saveCaseFields } from "@/lib/cases/service";
 import { publicDocument } from "@/lib/documents/public";
@@ -19,12 +20,16 @@ export const PATCH = withSession(
     if (!idSchema.safeParse(id).success) return apiError("Nicht gefunden", 404);
     const body = await parseBody(req, casePatchSchema);
     if (!body.ok) return body.res;
-    const { status, fields, assign } = body.data;
+    const { status, fields, assign, resolveAttention } = body.data;
 
     let c = await store.getCase(id);
     if (!c) return apiError("Nicht gefunden", 404);
 
     if (fields && Object.keys(fields).length) c = await saveCaseFields(store, c, fields);
+    if (resolveAttention && attentionOf(c.fields)) {
+      c = (await store.updateCase(id, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true })) ?? c;
+      await store.addEvent(id, "note", "„Aufmerksamkeit benötigt“ als erledigt markiert");
+    }
 
     // „Fall übernehmen“ = Fall wird dem Benutzer zugewiesen und gilt als übernommen (CONVERTED).
     const nextStatus = assign ? "CONVERTED" : status;

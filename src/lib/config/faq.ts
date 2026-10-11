@@ -17,7 +17,7 @@ export const faqs = [
   },
   {
     q: "Kann FallFlow automatisch antworten?",
-    a: "Ja. Auf E-Mail-Anfragen schickt FallFlow die von Ihnen hinterlegte Nachricht je Leistung inklusive passender PDF-Vorlage – damit es sich wie eine echte Antwort aus Ihrem Büro liest. Im Website-Chat beantwortet die KI Fragen von Besuchern zu Ihren Leistungen und zur Energieberatung; für Anfragen und Termine verweist sie auf Ihre E-Mail-Adresse und Telefonnummer. Es gibt keine verbindliche Energie-, Förder- oder Rechtsberatung. Bei Unsicherheit oder auf Wunsch wird die Anfrage an einen Mitarbeiter übergeben. Automatische Antworten lassen sich jederzeit abschalten.",
+    a: "Ja. Auf E-Mail-Anfragen schickt FallFlow die von Ihnen hinterlegte Nachricht je Leistung inklusive passender PDF-Vorlage – damit es sich wie eine echte Antwort aus Ihrem Büro liest. Im Website-Chat beantwortet die KI Fragen von Besuchern zu Ihren Leistungen und zur Energieberatung; für Anfragen und Termine verweist sie auf Ihre E-Mail-Adresse und Telefonnummer. Ist bei einer E-Mail die gewünschte Leistung unklar oder stellt der Kunde eine Frage, antwortet die KI bewusst nicht automatisch – die Mail erscheint im Posteingang unter „Aufmerksamkeit benötigt“, und Sie antworten selbst. Es gibt keine verbindliche Energie-, Förder- oder Rechtsberatung. Bei Unsicherheit oder auf Wunsch wird die Anfrage an einen Mitarbeiter übergeben. Automatische Antworten lassen sich jederzeit abschalten.",
   },
   {
     q: "Kann ich festlegen, welche Angaben und Unterlagen ich brauche?",

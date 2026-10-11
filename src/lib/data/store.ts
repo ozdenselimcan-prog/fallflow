@@ -1,3 +1,4 @@
+import { attentionOf } from "@/lib/cases/attention";
 import { effectiveStatus } from "@/lib/intake/checklist";
 import type {
   Appointment,
@@ -155,5 +156,6 @@ export function computeStats(cases: CaseRecord[], appointments: Appointment[]): 
     waitingForCustomer: cases.filter((c) => c.status === "WAITING_FOR_CUSTOMER").length,
     appointmentsToday: appointments.filter((a) => berlinDay(a.startsAt) === today).length,
     autoQualified: cases.filter((c) => AUTO_SOURCES.includes(c.source) && ["COMPLETE", "READY_FOR_REVIEW", "CONVERTED"].includes(c.status)).length,
+    needsAttention: cases.filter((c) => attentionOf(c.fields)).length,
   };
 }

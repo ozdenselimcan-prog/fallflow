@@ -36,6 +36,8 @@ export const casePatchSchema = z.object({
   fields: caseFieldsSchema.optional(),
   /** true = dem aktuellen Benutzer zuweisen und auf "Übernommen" setzen */
   assign: z.boolean().optional(),
+  /** true = "Aufmerksamkeit benötigt" als erledigt markieren */
+  resolveAttention: z.boolean().optional(),
 });
 
 export const caseQuerySchema = z.object({
