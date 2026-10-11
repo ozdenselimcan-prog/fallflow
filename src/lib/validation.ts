@@ -65,7 +65,7 @@ export const questionSchema = z.object({
   label: str(80).min(1, "Bezeichnung erforderlich"),
   prompt: str(300).min(1, "Fragetext erforderlich"),
   type: z.enum(QUESTION_TYPES),
-  options: z.array(str(80).min(1)).max(20).default([]),
+  options: z.array(str(80).min(1)).max(50).default([]),
   required: z.boolean(),
   active: z.boolean(),
 });
@@ -101,7 +101,7 @@ export const companySchema = z.object({
   website: str(200).default(""),
   phone: str(40).default(""),
   address: str(300).default(""),
-  services: z.array(str(60)).max(20).optional(),
+  services: z.array(str(60)).max(50).optional(),
   foerderEnergyCertificate: z.boolean().optional(),
   foerderFloorplan: z.boolean().optional(),
 });
@@ -118,7 +118,7 @@ export const availabilitySchema = z
   .refine((v) => v.slotStart < v.slotEnd, { message: "Beginn muss vor dem Ende liegen", path: ["slotEnd"] });
 
 export const onboardingSchema = companySchema.extend({
-  services: z.array(str(60)).max(20),
+  services: z.array(str(60)).max(50),
   /** Veraltet (früherer Onboarding-Schritt "Erfassungsfelder"), wird nur noch übernommen, falls mitgeschickt. */
   activeFieldKeys: z.array(str(40)).max(50).optional(),
   availability: availabilitySchema,
