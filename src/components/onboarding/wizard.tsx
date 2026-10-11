@@ -135,7 +135,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">PDF-Vorlagen & Nachrichtentexte (optional)</h1>
             <p className="text-sm text-muted-foreground">
-              Schicken Sie Kunden bei bestimmten Leistungen ein auszufüllendes Formular (z. B. eine Vollmacht)? Hier pro Leistung hochladen und den Nachrichtentext dazu festlegen. Nutzen Sie das nicht, überspringen Sie diesen Schritt einfach.
+              Schicken Sie Kunden bei bestimmten Leistungen ein auszufüllendes Formular (z. B. eine Vollmacht)? Hier pro Leistung hochladen und den Nachrichtentext dazu festlegen. Mit einem Klick auf die PDF legen Sie fest, ob sie „ausgefüllt zurück“ kommen soll oder „nur zur Info“ dabei ist (z. B. eine Preisliste). Ohne eigene Nachricht schickt FallFlow einen kurzen Standardtext und nennt die benötigten Unterlagen. Nutzen Sie das nicht, überspringen Sie diesen Schritt einfach.
             </p>
             <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit />
           </div>
@@ -232,6 +232,20 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
               websiteConnected={false}
               showWebsite={false}
             />
+            <div className="space-y-2 rounded-xl bg-accent-soft/50 p-4 text-sm">
+              <p className="font-medium">Gut zu wissen</p>
+              <ul className="list-disc space-y-1.5 pl-5 text-muted-foreground">
+                <li>
+                  <span className="font-medium text-foreground">Testmail ausprobieren:</span> Unter KI-Assistent → Vorlagen & Nachrichten sehen Sie genau, was Ihre Kunden bekommen – ohne dass etwas verschickt wird.
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">Fragen beantworten Sie selbst:</span> Stellt ein Kunde eine Frage (z. B. zum Preis), antwortet die KI nicht. Sie bekommen eine E-Mail und finden die Anfrage im Posteingang unter „Aufmerksamkeit benötigt“.
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">Fertige Fälle:</span> Sobald alle Angaben und Unterlagen da sind, bekommen Sie ebenfalls eine E-Mail. Empfänger und Benachrichtigungen ändern Sie unter KI-Assistent → Einstellungen.
+                </li>
+              </ul>
+            </div>
           </div>
         )}
 

@@ -16,6 +16,7 @@
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.1",
     "clsx": "^2.1.1",
+    "fflate": "^0.8.3",
     "imapflow": "^2.2.3",
     "lucide-react": "^1.48.0",
     "mailparser": "^3.9.33",

@@ -45,6 +45,8 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
       if (!found) return;
       const store = await getPublicStore(connection.companyId);
       if (!store) return;
+      // Abo beendet: keine Mails mehr abrufen oder beantworten (der Vertrag ist vorbei, die Daten werden bald gelöscht).
+      if ((await store.getSubscription()).status === "canceled") return;
 
       const seenIds = new Set<string>(Array.isArray(connection.metadata.seenMailIds) ? (connection.metadata.seenMailIds as string[]) : []);
       // Nach jeder Mail sofort sichern (nicht erst am Ende aller Mails dieses Postfachs): bricht der Cron-Lauf

@@ -257,6 +257,8 @@ export interface Subscription {
   stripeCustomerId: string | null;
   /** true = Abo laeuft bis currentPeriodEnd weiter, verlaengert sich danach aber nicht automatisch. */
   cancelAtPeriodEnd: boolean;
+  /** Wann das Abo endgültig beendet wurde (status "canceled"); 30 Tage danach werden alle Daten gelöscht. */
+  canceledAt: string | null;
 }
 
 export interface CaseFilters {

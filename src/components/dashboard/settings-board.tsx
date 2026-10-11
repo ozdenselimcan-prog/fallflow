@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FileText } from "lucide-react";
+import { Check, Download, FileText } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { Plan } from "@/lib/config/pricing";
@@ -143,7 +143,13 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                 {subscription.currentPeriodEnd && <p className="text-sm text-muted-foreground">Aktuelle Periode bis {formatDate(subscription.currentPeriodEnd)}</p>}
                 {cancelAtPeriodEnd && (
                   <Notice tone="info">
-                    Gekündigt{subscription.currentPeriodEnd ? ` zum ${formatDate(subscription.currentPeriodEnd)}` : ""}. Bis dahin stehen alle Funktionen weiterhin zur Verfügung.
+                    Gekündigt{subscription.currentPeriodEnd ? ` zum ${formatDate(subscription.currentPeriodEnd)}` : ""}. Bis dahin stehen alle Funktionen weiterhin zur Verfügung. 30 Tage nach Vertragsende werden alle Daten gelöscht – laden Sie sie vorher unten herunter.
+                  </Notice>
+                )}
+                {subscription.status === "canceled" && (
+                  <Notice tone="error">
+                    Ihr Abo ist beendet. E-Mails werden nicht mehr abgerufen oder beantwortet.
+                    {subscription.canceledAt ? ` Alle Daten werden am ${formatDate(new Date(Date.parse(subscription.canceledAt) + 30 * 86_400_000).toISOString())} endgültig gelöscht.` : ""} Sie können sie bis dahin unten herunterladen oder wieder ein Abo abschließen.
                   </Notice>
                 )}
                 {billingError && <p className="text-sm text-destructive">{billingError}</p>}
@@ -174,6 +180,16 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                 )}
               </div>
             </Card>
+            {data.connections.canManage && (
+              <Card>
+                <CardHeader title="Ihre Daten" description="Alle Fälle mit Fallakte, Nachrichten und Dokumenten, alle Termine und Ihre Vorlagen als ZIP-Datei – z. B. zur Sicherung oder vor einer Kündigung." />
+                <div className="p-5">
+                  <a href="/api/export" download className={buttonStyles({ variant: "secondary" })}>
+                    <Download className="size-4" /> Alle Daten exportieren
+                  </a>
+                </div>
+              </Card>
+            )}
             <Card>
               <CardHeader title="Rechnungen" />
               <div className="space-y-3 p-5">
@@ -190,7 +206,7 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
             <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} title="Vertrag kündigen?">
               <p className="text-sm text-muted-foreground">
                 Ihr {plan.name}-Plan wird zum Ende der aktuellen Abrechnungsperiode{subscription.currentPeriodEnd ? ` (${formatDate(subscription.currentPeriodEnd)})` : ""} gekündigt. Bis dahin
-                können Sie FallFlow weiterhin uneingeschränkt nutzen. Die Kündigung lässt sich bis dahin jederzeit zurücknehmen.
+                können Sie FallFlow weiterhin uneingeschränkt nutzen. Die Kündigung lässt sich bis dahin jederzeit zurücknehmen. 30 Tage nach Vertragsende werden alle Daten gelöscht; unter „Ihre Daten“ können Sie vorher alles herunterladen.
               </p>
               <div className="mt-5 flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setCancelDialogOpen(false)}>

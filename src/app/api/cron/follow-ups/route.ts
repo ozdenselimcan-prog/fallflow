@@ -5,6 +5,7 @@ import { gmailProvider } from "@/lib/integrations/gmail";
 import { microsoftProvider } from "@/lib/integrations/microsoft";
 import { syncMailbox } from "@/lib/integrations/mail-sync";
 import { purgeStaleCases } from "@/lib/intake/retention";
+import { processCanceledCompanies } from "@/lib/billing/account-deletion";
 
 // Mit wachsender Buero-Anzahl dauert ein Durchlauf laenger als das Standard-Timeout erlaubt – ohne das
 // wird die Funktion mitten im Mail-Abruf abgebrochen (siehe mail-sync.ts fuer die Absicherung dagegen).
@@ -38,5 +39,8 @@ export async function GET(req: NextRequest) {
   // E-Mail-Postfächer haben keinen Push-Webhook – neue Nachrichten werden hier für alle Büros abgeholt.
   const [gmail, microsoft] = await Promise.all([syncMailbox(gmailProvider), syncMailbox(microsoftProvider)]);
 
-  return NextResponse.json({ ...totals, mail: { gmail, microsoft } });
+  // Beendete Abos: 7 Tage vorher warnen, 30 Tage nach Vertragsende alle Daten löschen (AVV § 9).
+  const deletion = await processCanceledCompanies();
+
+  return NextResponse.json({ ...totals, mail: { gmail, microsoft }, deletion });
 }

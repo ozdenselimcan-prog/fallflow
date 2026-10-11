@@ -551,6 +551,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
         currentPeriodEnd: data?.current_period_end ?? null,
         stripeCustomerId: data?.stripe_customer_id ?? null,
         cancelAtPeriodEnd: data?.cancel_at_period_end ?? false,
+        canceledAt: data?.canceled_at ?? null,
       };
     },
     async getStats() {

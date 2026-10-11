@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
             stripe_customer_id: typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null),
             stripe_subscription_id: subscriptionId,
             cancel_at_period_end: false,
+            canceled_at: null,
+            deletion_warning_sent_at: null,
           })
           .eq("company_id", companyId);
         if (error) console.error("[stripe webhook] checkout.session.completed:", error.message);
@@ -88,6 +90,13 @@ export async function POST(req: NextRequest) {
           })
           .eq("company_id", companyId);
         if (error) console.error("[stripe webhook]", event.type, error.message);
+        // Vertragsende festhalten (Grundlage für die Löschung nach 30 Tagen, AVV § 9) – bzw. zurücksetzen, wenn das
+        // Abo wieder läuft.
+        if (status === "canceled") {
+          await admin.from("subscriptions").update({ canceled_at: new Date().toISOString() }).eq("company_id", companyId).is("canceled_at", null);
+        } else {
+          await admin.from("subscriptions").update({ canceled_at: null, deletion_warning_sent_at: null }).eq("company_id", companyId);
+        }
         break;
       }
       default:
