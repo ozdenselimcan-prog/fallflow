@@ -48,8 +48,11 @@ const sentencesOf = (text: string) =>
 
 /** Entfernt Fragen, die die Standard-Antwort beantwortet – übrig bleiben echte Fragen an das Büro. */
 export function withoutProcessQuestions(text: string): string {
+  // Auch innerhalb eines Satzes ("Welche Unterlagen brauchen Sie und was kostet das?") nur den beantworteten Teil
+  // entfernen – die Preisfrage dahinter bleibt eine echte Frage.
   return sentencesOf(text)
-    .filter((s) => !PROCESS_QUESTION.test(s))
+    .flatMap((s) => (PROCESS_QUESTION.test(s) ? s.split(/,|;|\s+(?:und|oder|sowie)\s+/i).map((p) => p.trim()) : [s]))
+    .filter((s) => s && !PROCESS_QUESTION.test(s))
     .join(" ");
 }
 

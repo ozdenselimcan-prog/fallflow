@@ -163,5 +163,7 @@ describe("Fragen, die die Standard-Antwort beantwortet", () => {
     const { withoutProcessQuestions } = await import("@/lib/ai/personal-reply");
     expect(withoutProcessQuestions("Welche Unterlagen brauchen Sie? Was kostet das?")).toBe("Was kostet das?");
     expect(withoutProcessQuestions("Was muss ich Ihnen schicken? Wie geht es weiter?")).toBe("");
+    expect(withoutProcessQuestions("Welche Unterlagen brauchen Sie und was kostet das ungefähr?")).toBe("was kostet das ungefähr?");
+    expect(withoutProcessQuestions("Was muss ich Ihnen alles schicken und wie geht es dann weiter?")).toBe("");
   });
 });
