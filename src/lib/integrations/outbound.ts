@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { MessageChannel } from "@/lib/data/types";
 import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { getValidTokens } from "./tokens";
@@ -11,6 +12,10 @@ export interface DeliveryResult {
 }
 
 const EMAIL_PROVIDERS = [gmailProvider];
+
+/** Test-Simulation (siehe /api/simulate/email): Alles, was innerhalb läuft, versendet garantiert keine echte Mail. */
+const simulation = new AsyncLocalStorage<boolean>();
+export const runSimulated = <T>(fn: () => Promise<T>): Promise<T> => simulation.run(true, fn);
 
 /**
  * Versand an Kunden über die vom jeweiligen Büro verbundenen Kanäle (siehe connections-store.ts).
@@ -29,7 +34,7 @@ export async function deliverToCustomer(input: {
   attachments?: InboundAttachment[];
 }): Promise<DeliveryResult> {
   if (input.channel === "website") return { delivered: true, reason: "" };
-  if (input.simulated) return { delivered: false, reason: "Simulation – es wurde nichts versendet." };
+  if (input.simulated || simulation.getStore()) return { delivered: false, reason: "Simulation – es wurde nichts versendet." };
   if (input.channel === "phone") return { delivered: false, reason: "Telefonnotiz – kein Versand." };
 
   try {

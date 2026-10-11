@@ -1,12 +1,10 @@
-import { isCustomerInquiry } from "@/lib/ai/classify";
 import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
 import { getPublicStore } from "@/lib/data";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
-import { noteSkippedAttachments, receiveEmailAttachments } from "@/lib/intake/case-ops";
 import { findCaseByIdentity } from "@/lib/intake/identity";
-import { routeInbound } from "@/lib/intake/router";
 import { listActiveConnections, saveConnection } from "./connections-store";
 import type { MailSyncProvider } from "./email";
+import { handleInboundMail } from "./inbound-mail";
 import { getValidTokens } from "./tokens";
 
 /** Zuletzt verarbeitete Mail-IDs je Verbindung, um keine Mail doppelt zu bearbeiten (z. B. Gmails `after:`-Suche
@@ -96,31 +94,10 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
             continue;
           }
         }
-        const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
-        // Mails von Kunden mit bestehendem Fall kommen immer durch (auch ein knappes "Danke!" oder "Dienstag passt").
-        // Neue Absender prüft die KI immer – auch mit Anhang, sonst würde z. B. eine Lieferantenrechnung als PDF zum Fall.
-        // Die Dateinamen gehen mit in die Prüfung, damit "siehe Anhang" + grundriss.pdf trotzdem als Anfrage erkannt wird.
-        const fileNames = [...mail.attachments.map((a) => a.filename), ...(mail.skippedAttachments ?? [])];
-        const classifyText = fileNames.length ? `${fullText}\n\n[Anhänge: ${fileNames.join(", ")}]` : fullText;
-        if (!existing && !(await isCustomerInquiry(classifyText))) {
-          skipped++;
-          await persistSeenIds();
-          continue;
-        }
         try {
-          const { turn } = await routeInbound(store, {
-            companyId: connection.companyId,
-            channel: "email",
-            text: fullText.slice(0, 1500),
-            sender: { email: from, name: fromName || undefined },
-          });
-          messages++;
-          // Alle Anhänge dieser Mail gemeinsam verarbeiten (Vorlagen, Grundriss, Energieausweis, Fotos) und danach
-          // genau einmal antworten – Abschluss-Nachricht oder kurze Bestätigung, was noch fehlt.
-          if (mail.skippedAttachments?.length) await noteSkippedAttachments(store, turn.sessionId, mail.skippedAttachments);
-          await receiveEmailAttachments(store, turn.sessionId, mail.attachments).catch((err) => {
-            console.error(`[${provider.id}] Anhänge konnten nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
-          });
+          const outcome = await handleInboundMail(store, connection.companyId, { from, fromName, subject: mail.subject, body: mail.body, attachments: mail.attachments, skippedAttachments: mail.skippedAttachments });
+          if (outcome.handled) messages++;
+          else skipped++;
         } catch (err) {
           if (err instanceof CaseLimitReachedError) {
             await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", CASE_LIMIT_REACHED_TEXT).catch(() => {});
