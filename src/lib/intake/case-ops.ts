@@ -14,6 +14,7 @@ import { extractPdfText } from "@/lib/documents/pdf-text";
 import { readFile, saveFile, sniffMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
+import { officeAlreadyRequests } from "./document-mentions";
 import { buildChecklist, deriveFields, deriveStatus, documentRequirements, type Checklist, type StatusHint } from "./checklist";
 import { appointmentAddonText, appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
 
@@ -111,10 +112,10 @@ export async function matchServiceMaterials(
     const company = await store.getCompany();
     const documents = await store.listDocuments(c.id);
     const needed = documentRequirements(c.fields, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, serviceMessages)
-      .filter((r) => r.required && !documents.some((d) => d.kind === r.kind && d.status === "received"))
-      .map((r) => DOCUMENT_LABELS[r.kind]);
-    // Was das Büro in seiner eigenen Nachricht schon selbst anfordert, nicht noch einmal aufzählen.
-    const unmentioned = needed.filter((label) => !own.toLowerCase().includes(label.toLowerCase()));
+      .filter((r) => r.required && !documents.some((d) => d.kind === r.kind && d.status === "received"));
+    // Was das Büro in seiner eigenen Nachricht schon selbst anfordert (auch als "Baupläne", "Energiepass" …), nicht
+    // noch einmal aufzählen.
+    const unmentioned = needed.filter((r) => !officeAlreadyRequests(own, r.kind)).map((r) => DOCUMENT_LABELS[r.kind]);
     if (unmentioned.length) parts.push(`Damit wir Ihre Anfrage bearbeiten können, schicken Sie uns bitte außerdem: ${unmentioned.join(", ")} – gern als PDF oder Foto, einfach als Antwort auf diese E-Mail.`);
     await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
     await store.addEvent(c.id, "document", `Nachricht automatisch an Kunden gesendet (${service})`);
