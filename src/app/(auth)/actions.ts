@@ -7,6 +7,7 @@ import { createCheckoutSession, stripeConfigured } from "@/lib/integrations/stri
 import { rateLimit } from "@/lib/rate-limit";
 import { createUserClient } from "@/lib/supabase/clients";
 import { isSupabaseConfigured } from "@/lib/utils";
+import { LEGAL_VERSION } from "@/lib/config/legal";
 import { forgotSchema, loginSchema, passwordSchema, signupSchema } from "@/lib/validation";
 
 export interface ActionResult {
@@ -58,7 +59,8 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
       email,
       password,
       options: {
-        data: { first_name: firstName, last_name: lastName, company },
+        // Zustimmung zu AGB/AVV mit Zeitpunkt und Fassung am Konto festhalten (Nachweis).
+        data: { first_name: firstName, last_name: lastName, company, terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_VERSION },
         emailRedirectTo: `${siteConfig.appUrl}/auth/callback?next=/onboarding`,
       },
     });

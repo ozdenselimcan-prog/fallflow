@@ -2,14 +2,6 @@ import { z } from "zod";
 import type { Tone } from "@/lib/data/types";
 import { getAiProvider } from "./provider";
 
-/** Grobe Erkennung, ob eine Chat-Nachricht eine Frage des Kunden ist (statt einer Antwort auf unsere Frage). */
-const QUESTION_START = /^(wer|was|wie|wann|wo|woher|wohin|welche[rsmn]?|warum|wieso|weshalb|kann|können|könnt|darf|dürfen|muss|müssen|brauche|braucht|gibt es|bieten sie|machen sie|haben sie|sind sie|ist das|ist ein|kostet|lohnt)\b/i;
-
-export function looksLikeQuestion(text: string): boolean {
-  const t = text.trim();
-  return t.includes("?") || QUESTION_START.test(t);
-}
-
 export interface QuestionContext {
   companyName: string;
   assistantName: string;

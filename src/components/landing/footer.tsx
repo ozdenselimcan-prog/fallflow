@@ -6,6 +6,8 @@ const links = [
   { label: "Produkt", href: "/#produkt" },
   { label: "Preise", href: "/#preise" },
   { label: "FAQ", href: "/#faq" },
+  { label: "AGB", href: "/agb" },
+  { label: "AVV", href: "/avv" },
   { label: "Datenschutz", href: "/datenschutz" },
   { label: "Impressum", href: "/impressum" },
   { label: "Kontakt", href: `mailto:${siteConfig.supportEmail}` },

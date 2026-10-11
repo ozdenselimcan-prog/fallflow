@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/landing/footer";
 import { Navbar } from "@/components/landing/navbar";
@@ -24,8 +25,7 @@ const List = ({ items }: { items: string[] }) => (
 );
 
 /**
- * Entwurf der Datenschutzerklärung mit den tatsächlich eingesetzten Diensten.
- * Eckige Klammern sind Angaben des Betreibers, die noch fehlen. Der Text ersetzt keine Rechtsberatung.
+ * Datenschutzerklärung mit den tatsächlich eingesetzten Diensten. Der Text ersetzt keine Rechtsberatung.
  */
 export default function DatenschutzPage() {
   return (
@@ -33,9 +33,6 @@ export default function DatenschutzPage() {
       <Navbar />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-semibold tracking-tight">Datenschutzerklärung</h1>
-        <p className="mt-3 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">
-          Entwurf: Bitte ergänzen Sie die Angaben in eckigen Klammern und lassen Sie die Erklärung vor dem Livebetrieb rechtlich prüfen. Sie ersetzt keine Rechtsberatung.
-        </p>
         <div className="prose-sm mt-8 space-y-8 leading-relaxed [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-medium">
           <Section title="1. Verantwortlicher">
             <p>
@@ -48,7 +45,7 @@ export default function DatenschutzPage() {
               E-Mail: {siteConfig.supportEmail}
             </p>
             <p>
-              Für die Daten, die Endkunden in das Chat-Widget eines Energieberatungsbüros eingeben, ist grundsätzlich das jeweilige Büro verantwortlich (Art. 4 Nr. 7 DSGVO). Der Betreiber von FallFlow verarbeitet diese Daten in dessen Auftrag (Art. 28 DSGVO).
+              Für die Daten, die Endkunden in das Chat-Widget eines Energieberatungsbüros eingeben, ist grundsätzlich das jeweilige Büro verantwortlich (Art. 4 Nr. 7 DSGVO). Der Betreiber von FallFlow verarbeitet diese Daten in dessen Auftrag (Art. 28 DSGVO, siehe <Link href="/avv" className="underline">Auftragsverarbeitungsvertrag</Link>).
             </p>
           </Section>
 
@@ -85,7 +82,7 @@ export default function DatenschutzPage() {
               items={[
                 "Supabase (Datenbank, Authentifizierung, Dateispeicher). Speicherort des Projekts: Region eu-west-1 (Irland, EU).",
                 "Vercel Inc. (Hosting und Auslieferung der Anwendung, Server-Logs).",
-                "OpenAI (nur wenn die KI-Auswertung aktiviert ist): Chat- und E-Mail-Texte werden zur Erkennung von Angaben (z. B. Baujahr, Heizung), zur Erstellung einer Kurzzusammenfassung, zur Beantwortung von Fragen im Website-Chat, zur groben Einschätzung ob eine eingehende E-Mail überhaupt eine Kundenanfrage ist sowie zur Prüfung zurückgeschickter, ausgefüllter Büro-Vorlagen (Text aus hochgeladenen PDF-Dokumenten) an die OpenAI-Schnittstelle übermittelt. Die Daten werden nach den Vertragsbedingungen von OpenAI nicht zum Training genutzt [bitte anhand Ihres OpenAI-Vertrags prüfen].",
+                "OpenAI (nur wenn die KI-Auswertung aktiviert ist): Chat- und E-Mail-Texte werden zur Erkennung von Angaben (z. B. Baujahr, Heizung), zur Erstellung einer Kurzzusammenfassung, zur Beantwortung von Fragen im Website-Chat, zur groben Einschätzung ob eine eingehende E-Mail überhaupt eine Kundenanfrage ist sowie zur Prüfung zurückgeschickter, ausgefüllter Büro-Vorlagen (Text aus hochgeladenen PDF-Dokumenten) an die OpenAI-Schnittstelle übermittelt. Über die API übermittelte Daten werden nach den Bedingungen von OpenAI nicht zum Training von KI-Modellen genutzt und höchstens 30 Tage zur Missbrauchserkennung gespeichert.",
                 "Stripe (Zahlungsabwicklung): Zur Abrechnung der Büro-Abonnements verarbeitet Stripe Rechnungs- und Kontaktdaten des Büros (Name, E-Mail, Zahlungsmethode, Transaktionsdaten). FallFlow selbst speichert keine vollständigen Zahlungsdaten (z. B. Kartennummern) – diese liegen ausschließlich bei Stripe.",
                 "Sentry (Fehler-Überwachung, nur soweit aktiviert): Bei technischen Fehlern werden Diagnosedaten (z. B. Stacktrace, aufgerufene Seite/Route, grob anonymisierte technische Kontextdaten) übermittelt, um Störungen zu beheben. Die Datenverarbeitung erfolgt in einer EU-Region (Frankfurt).",
               ]}
@@ -97,7 +94,7 @@ export default function DatenschutzPage() {
 
           <Section title="5. Übermittlung in Drittländer">
             <p>
-              Einzelne Dienstleister (z. B. Vercel, OpenAI, Stripe) haben ihren Sitz in den USA oder verarbeiten Daten auch dort. Die Übermittlung stützt sich auf Angemessenheitsbeschlüsse (EU-US Data Privacy Framework, soweit der Anbieter zertifiziert ist) bzw. Standardvertragsklauseln der EU-Kommission. [Bitte den aktuellen Zertifizierungsstatus der Anbieter prüfen.] Sentry verarbeitet Daten in dieser Konfiguration in einer EU-Region (Frankfurt), es findet insoweit keine Drittlandübermittlung statt.
+              Einzelne Dienstleister (z. B. Vercel, OpenAI, Stripe) haben ihren Sitz in den USA oder verarbeiten Daten auch dort. Die Übermittlung stützt sich auf den Angemessenheitsbeschluss zum EU-US Data Privacy Framework, soweit der Anbieter danach zertifiziert ist, und im Übrigen auf die Standardvertragsklauseln der EU-Kommission (für OpenAI, das nicht zertifiziert ist, im Rahmen des Auftragsverarbeitungsvertrags mit OpenAI). Sentry verarbeitet Daten in dieser Konfiguration in einer EU-Region (Frankfurt), es findet insoweit keine Drittlandübermittlung statt.
             </p>
           </Section>
 

@@ -22,7 +22,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
       </p>
       <SignupForm plan={plan.id} trialDays={trialDays} />
       <p className="mt-4 text-xs text-muted-foreground">
-        Mit der Registrierung nehmen Sie die <Link href="/datenschutz" className="underline">Datenschutzerklärung</Link> zur Kenntnis.
+        Hinweise zum Umgang mit Ihren Daten finden Sie in der <Link href="/datenschutz" className="underline">Datenschutzerklärung</Link>.
       </p>
       <p className="mt-4 text-center text-sm text-muted-foreground">
         Bereits registriert?{" "}

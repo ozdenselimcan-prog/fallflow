@@ -13,13 +13,15 @@ import { forgotSchema, loginSchema, signupSchema } from "@/lib/validation";
 import { forgotPasswordAction, loginAction, resetPasswordAction, signupAction } from "@/app/(auth)/actions";
 
 
-type Values = Record<string, string>;
+type Values = Record<string, string | boolean>;
 
 interface FieldDef {
   name: string;
   label: string;
   type?: string;
   autoComplete?: string;
+  /** Bei type "checkbox": Beschriftung mit Links (z. B. AGB/AVV). */
+  labelNode?: React.ReactNode;
 }
 
 function AuthForm({ schema, fields, action, submitLabel, footer }: { schema: z.ZodType<Values>; fields: FieldDef[]; action: (v: Values) => Promise<ActionResult>; submitLabel: string; footer?: React.ReactNode }) {
@@ -48,11 +50,21 @@ function AuthForm({ schema, fields, action, submitLabel, footer }: { schema: z.Z
         }),
       )}
     >
-      {fields.map((f) => (
-        <Field key={f.name} label={f.label} error={errors[f.name]?.message as string | undefined}>
-          <Input type={f.type ?? "text"} autoComplete={f.autoComplete} {...register(f.name)} />
-        </Field>
-      ))}
+      {fields.map((f) =>
+        f.type === "checkbox" ? (
+          <div key={f.name}>
+            <label className="flex items-start gap-2.5 text-sm">
+              <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" aria-label={f.label} {...register(f.name)} />
+              <span className="text-muted-foreground">{f.labelNode ?? f.label}</span>
+            </label>
+            {errors[f.name]?.message && <p className="mt-1 text-sm text-danger">{errors[f.name]?.message as string}</p>}
+          </div>
+        ) : (
+          <Field key={f.name} label={f.label} error={errors[f.name]?.message as string | undefined}>
+            <Input type={f.type ?? "text"} autoComplete={f.autoComplete} {...register(f.name)} />
+          </Field>
+        ),
+      )}
       {result.error && <Notice tone="error">{result.error}</Notice>}
       {result.message && <Notice tone="success">{result.message}</Notice>}
       <Button type="submit" className="w-full" loading={pending}>
@@ -96,6 +108,24 @@ export function SignupForm({ plan, trialDays }: { plan?: string; trialDays?: num
         { name: "company", label: "Unternehmen", autoComplete: "organization" },
         { name: "email", label: "E-Mail", type: "email", autoComplete: "email" },
         { name: "password", label: "Passwort (mind. 8 Zeichen)", type: "password", autoComplete: "new-password" },
+        {
+          name: "acceptTerms",
+          label: "AGB und AVV akzeptieren",
+          type: "checkbox",
+          labelNode: (
+            <>
+              Ich handle als Unternehmer und akzeptiere die{" "}
+              <Link href="/agb" target="_blank" className="font-medium text-foreground underline">
+                AGB
+              </Link>{" "}
+              und den{" "}
+              <Link href="/avv" target="_blank" className="font-medium text-foreground underline">
+                Auftragsverarbeitungsvertrag (AVV)
+              </Link>
+              .
+            </>
+          ),
+        },
       ]}
     />
   );
@@ -106,7 +136,7 @@ export function ForgotForm() {
 }
 
 export function ResetForm() {
-  const wrapped = (v: Values) => resetPasswordAction(v.password);
+  const wrapped = (v: Values) => resetPasswordAction(String(v.password));
   return (
     <AuthForm
       schema={signupSchema.pick({ password: true }) as unknown as z.ZodType<Values>}
