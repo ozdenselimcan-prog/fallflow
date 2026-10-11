@@ -105,3 +105,23 @@ describe("templateSimilarity", () => {
     expect(templateSimilarity(blank, other)).toBeLessThan(0.3);
   });
 });
+
+describe("E-Mail: kein doppelter Anhang-Hinweis", () => {
+  it("erwähnt das Büro den Anhang selbst, hängt FallFlow keinen zweiten Hinweis an", async () => {
+    const store = freshStore();
+    const { saveFile } = await import("@/lib/documents/storage");
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new TextEncoder().encode("%PDF-1.4\n"), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "iSFP", title: "Datenerfassung", fileName: "daten.pdf", storagePath: path });
+    await store.saveServiceMessage({ service: "iSFP", body: "Vielen Dank! Anbei unser Datenerfassungsblatt.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false });
+    const turn = await email(store, "Hallo, wir möchten einen iSFP für unser Haus.");
+    expect(turn.replies[0]).not.toContain("Im Anhang finden Sie");
+    expect(turn.replies[0]).toContain("Bitte senden Sie das ausgefüllte Formular einfach als Antwort auf diese E-Mail zurück.");
+
+    const store2 = freshStore();
+    const path2 = await saveFile({ companyId: "demo", caseId: "demo", bytes: new TextEncoder().encode("%PDF-1.4\n"), mime: "application/pdf" });
+    await store2.saveDocumentTemplate({ service: "iSFP", title: "Datenerfassung", fileName: "daten.pdf", storagePath: path2 });
+    await store2.saveServiceMessage({ service: "iSFP", body: "Anbei unser Formular – bitte ausgefüllt zurückschicken.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false });
+    const turn2 = await email(store2, "Hallo, wir möchten einen iSFP für unser Haus.");
+    expect(turn2.replies[0]).toBe("Anbei unser Formular – bitte ausgefüllt zurückschicken.");
+  });
+});

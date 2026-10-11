@@ -89,7 +89,13 @@ export async function matchServiceMaterials(
 
   const parts: string[] = [];
   if (introDue) parts.push(own || `Vielen Dank für Ihre Anfrage zur Leistung „${service}“.`);
-  if (titles.length === 1) {
+  // Erwähnt das Büro den Anhang schon selbst ("Anbei unser Formular …"), den eigenen Hinweis nicht doppelt anhängen:
+  // nur noch kurz sagen, wie es zurückgeschickt wird – bzw. gar nichts, wenn auch das schon drinsteht.
+  const ownMentionsAttachment = introDue && /\banbei\b|im anhang|beigefügt|angehängt|anhängend/i.test(own);
+  const ownMentionsReturn = introDue && /zurück(zu)?(senden|schicken)|antwort auf diese/i.test(own);
+  if (titles.length && ownMentionsAttachment) {
+    if (!ownMentionsReturn) parts.push(`Bitte senden Sie ${titles.length === 1 ? "das ausgefüllte Formular" : "die ausgefüllten Formulare"} einfach als Antwort auf diese E-Mail zurück.`);
+  } else if (titles.length === 1) {
     parts.push(`Im Anhang finden Sie das Formular „${titles[0]}“ – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`);
   } else if (titles.length > 1) {
     parts.push(`Im Anhang finden Sie folgende Formulare: ${titles.map((t) => `„${t}“`).join(", ")} – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit den ausgefüllten Dokumenten als Anhang zurücksenden.`);
