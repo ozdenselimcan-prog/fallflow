@@ -14,7 +14,7 @@ import { extractPdfText } from "@/lib/documents/pdf-text";
 import { readFile, saveFile, sniffMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
-import { buildChecklist, deriveFields, deriveStatus, type Checklist, type StatusHint } from "./checklist";
+import { buildChecklist, deriveFields, deriveStatus, documentRequirements, type Checklist, type StatusHint } from "./checklist";
 import { appointmentAddonText, appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
@@ -57,50 +57,81 @@ export async function matchServiceMaterials(
   const service = c.fields.service ?? "";
   const matchingTemplates = [...(service ? templates.filter((t) => t.service && t.service === service) : []), ...templates.filter((t) => t.alwaysInclude)];
   const uniqueTemplates = [...new Map(matchingTemplates.map((t) => [t.id, t])).values()];
-  const texts: string[] = [];
+  const sentIds = uniqueTemplates.length ? new Set((await store.listTemplateDocuments(c.id)).map((td) => td.templateId)) : new Set<string>();
+  const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
+
+  if (channel !== "email") return matchServiceMaterialsLink(store, c, pending, serviceMessages, service);
+
+  // E-Mail: alles in EINER Nachricht – eigene Nachricht des Büros zur Leistung (sonst ein kurzer Standardtext),
+  // Hinweis auf die angehängten Formulare und die benötigten Unterlagen (Grundriss/Energieausweis), damit der
+  // Kunde von Anfang an weiß, was er schicken soll.
+  const introDue = Boolean(service) && c.fields.serviceMessageSentFor !== service;
+  if (!pending.length && !introDue) return null;
+  const own = serviceMessages.find((m) => m.service === service)?.body.trim() ?? "";
+
   const attachments: InboundAttachment[] = [];
-
-  if (uniqueTemplates.length) {
-    const sentIds = new Set((await store.listTemplateDocuments(c.id)).map((td) => td.templateId));
-    const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
-    if (!pending.length) return null;
-    for (const tpl of pending) {
-      const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
-      if (channel === "email") {
-        // Erst die Datei laden und NUR bei Erfolg als "gesendet" markieren bzw. im Text behaupten, sie liege
-        // im Anhang – sonst würde bei einem Speicherfehler eine Vorlage als erledigt gelten, obwohl beim
-        // Kunden nie ein Anhang ankam (und die KI es dann auch nie erneut versucht).
-        const file = await readFile(tpl.storagePath);
-        if (!file) {
-          await store.addEvent(c.id, "document", `Vorlage „${tpl.title}“ konnte nicht aus dem Speicher geladen werden – bitte unter Vorlagen & Nachrichten erneut hochladen.`);
-          continue;
-        }
-        await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
-        attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
-        texts.push(
-          customMessage
-            ? `${customMessage}\n\n(Das Formular „${tpl.title}“ finden Sie im Anhang dieser E-Mail – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.)`
-            : `Für Ihr Anliegen („${tpl.title}“) finden Sie das Formular im Anhang dieser E-Mail. Bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`,
-        );
-      } else {
-        await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
-        const token = await ensureUploadToken(store, c);
-        const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
-        texts.push(
-          customMessage
-            ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`
-            : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`,
-        );
-      }
-      await store.addEvent(c.id, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
+  const titles: string[] = [];
+  for (const tpl of pending) {
+    // Erst die Datei laden und NUR bei Erfolg als "gesendet" markieren bzw. im Text behaupten, sie liege
+    // im Anhang – sonst würde bei einem Speicherfehler eine Vorlage als erledigt gelten, obwohl beim
+    // Kunden nie ein Anhang ankam (und die KI es dann auch nie erneut versucht).
+    const file = await readFile(tpl.storagePath);
+    if (!file) {
+      await store.addEvent(c.id, "document", `Vorlage „${tpl.title}“ konnte nicht aus dem Speicher geladen werden – bitte unter Vorlagen & Nachrichten erneut hochladen.`);
+      continue;
     }
-    return { texts, attachments };
+    await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+    attachments.push({ filename: tpl.fileName, mime: "application/pdf", bytes: file.bytes });
+    titles.push(tpl.title);
+    await store.addEvent(c.id, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
   }
+  if (!introDue && !titles.length) return null;
 
-  // Keine PDF-Vorlage für genau diese Leistung – trotzdem die eigene Nachricht einmalig verschicken, sobald
-  // die Leistung bekannt ist (z. B. "Hydraulischer Abgleich" ohne Formular).
-  const hasServiceSpecificTemplate = service ? templates.some((t) => t.service === service) : false;
-  if (service && !hasServiceSpecificTemplate && c.fields.serviceMessageSentFor !== service) {
+  const parts: string[] = [];
+  if (introDue) parts.push(own || `Vielen Dank für Ihre Anfrage zur Leistung „${service}“.`);
+  if (titles.length === 1) {
+    parts.push(`Im Anhang finden Sie das Formular „${titles[0]}“ – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`);
+  } else if (titles.length > 1) {
+    parts.push(`Im Anhang finden Sie folgende Formulare: ${titles.map((t) => `„${t}“`).join(", ")} – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit den ausgefüllten Dokumenten als Anhang zurücksenden.`);
+  }
+  if (introDue) {
+    const company = await store.getCompany();
+    const documents = await store.listDocuments(c.id);
+    const needed = documentRequirements(c.fields, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, serviceMessages)
+      .filter((r) => r.required && !documents.some((d) => d.kind === r.kind && d.status === "received"))
+      .map((r) => DOCUMENT_LABELS[r.kind]);
+    // Was das Büro in seiner eigenen Nachricht schon selbst anfordert, nicht noch einmal aufzählen.
+    const unmentioned = needed.filter((label) => !own.toLowerCase().includes(label.toLowerCase()));
+    if (unmentioned.length) parts.push(`Damit wir Ihre Anfrage bearbeiten können, schicken Sie uns bitte außerdem: ${unmentioned.join(", ")} – gern als PDF oder Foto, einfach als Antwort auf diese E-Mail.`);
+    await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
+    await store.addEvent(c.id, "document", `Nachricht automatisch an Kunden gesendet (${service})`);
+  }
+  return { texts: [parts.join("\n\n")], attachments };
+}
+
+/** Nicht-E-Mail-Kanäle: Vorlagen als Download-Link statt Anhang (je Vorlage ein Hinweis). */
+async function matchServiceMaterialsLink(
+  store: Store,
+  c: CaseRecord,
+  pending: DocumentTemplate[],
+  serviceMessages: ServiceMessage[],
+  service: string,
+): Promise<{ texts: string[]; attachments: InboundAttachment[] } | null> {
+  const texts: string[] = [];
+  for (const tpl of pending) {
+    const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
+    await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+    const token = await ensureUploadToken(store, c);
+    const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
+    texts.push(
+      customMessage
+        ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`
+        : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`,
+    );
+    await store.addEvent(c.id, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
+  }
+  if (texts.length) return { texts, attachments: [] };
+  if (service && c.fields.serviceMessageSentFor !== service) {
     const standaloneMessage = serviceMessages.find((m) => m.service === service)?.body.trim();
     if (standaloneMessage) {
       await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
@@ -268,6 +299,22 @@ export async function noteSkippedAttachments(store: Store, caseId: string, fileN
   await store.addEvent(caseId, "document", `Kunde hat Dateien geschickt, die nicht übernommen werden konnten (${fileNames.join(", ")}) – bitte selbst im Postfach ansehen.`);
 }
 
+/**
+ * Anteil der Wörter der leeren Vorlage, die auch im zurückgeschickten Dokument stehen (0–1). Ein vom Kunden
+ * ausgefülltes Formular enthält den Vordruck praktisch vollständig – daran ist die richtige Vorlage verlässlich zu
+ * erkennen (die KI ließ sich sonst z. B. vom Büronamen "… Energieberatung" im Briefkopf irritieren).
+ * null = leere Vorlage hat zu wenig Text für einen Vergleich.
+ */
+export function templateSimilarity(blankText: string, text: string): number | null {
+  const words = (s: string) => new Set(s.toLowerCase().match(/[a-zäöüß]{4,}/g) ?? []);
+  const blankWords = words(blankText);
+  if (blankWords.size < 4) return null;
+  const filledWords = words(text);
+  let hits = 0;
+  for (const w of blankWords) if (filledWords.has(w)) hits++;
+  return hits / blankWords.size;
+}
+
 /** Normalisiert einen Dateinamen für den Vergleich: Endung weg, nur Buchstaben/Zahlen, in Wörter zerlegt. */
 const normalizeFileName = (s: string) =>
   s
@@ -318,17 +365,36 @@ export async function receiveFilledTemplate(
   const templates = await store.listDocumentTemplates();
   // Mehrere offene Vorlagen gleichzeitig (z. B. Leistungs-Vorlage UND "bei jeder Anfrage dabei"-Vorlage):
   // nicht blind die erste nehmen, sonst wird ein zurückgeschicktes Dokument der FALSCHEN erwarteten Vorlage
-  // zugeordnet. Stattdessen anhand des zurückgeschickten Dateinamens die naheliegendste Vorlage auswählen.
+  // zugeordnet. Stattdessen anhand des zurückgeschickten Dateinamens die naheliegendste Vorlage auswählen – und
+  // passt kein Dateiname, anhand des Inhalts (welche leere Vorlage steckt im Dokument).
+  const blankTextOf = async (templateId: string) => {
+    const tpl = templates.find((t) => t.id === templateId);
+    const file = tpl ? await readFile(tpl.storagePath) : null;
+    return file ? await extractPdfText(file.bytes.slice()) : "";
+  };
   const forced = opts.pendingId ? pendingList.find((p) => p.id === opts.pendingId) : undefined;
-  const pending = forced ?? (pendingList.length > 1 ? (matchPendingByFileName(pendingList, templates, fileName) ?? pendingList[0]) : pendingList[0]);
+  let pending = forced ?? (pendingList.length > 1 ? matchPendingByFileName(pendingList, templates, fileName) : pendingList[0]);
+  if (!pending) {
+    let best = { score: -1, item: pendingList[0] };
+    for (const p of pendingList) {
+      const score = text ? (templateSimilarity(await blankTextOf(p.templateId), text) ?? 0) : 0;
+      if (score > best.score) best = { score, item: p };
+    }
+    pending = best.item;
+  }
   const template = templates.find((t) => t.id === pending.templateId);
   const title = template?.title ?? fileName;
   // Leere Original-Vorlage einmal lesen: Der Unterschied zum zurückgeschickten Dokument zeigt der Prüfung, was der
   // Kunde wirklich eingetragen hat (sonst rät die KI nur anhand des Gesamttextes, ob etwas fehlt).
-  const blank = template ? await readFile(template.storagePath) : null;
-  const blankText = blank ? await extractPdfText(blank.bytes.slice()) : "";
+  const blankText = await blankTextOf(pending.templateId);
   const newText = diffNewPdfText(blankText, text);
-  const { filled, wrongDocument, note } = text ? await verifyFilledTemplate(title, text, newText) : { filled: null, wrongDocument: false, note: "" };
+  // Enthält das Dokument den Vordruck der Vorlage fast vollständig, ist es sicher die richtige Vorlage.
+  const similarity = text ? templateSimilarity(blankText, text) : null;
+  const sameTemplate = similarity !== null && similarity >= 0.6;
+  const verdict = text ? await verifyFilledTemplate(title, text, newText, sameTemplate) : { filled: null, wrongDocument: false, note: "" };
+  const wrongDocument = verdict.wrongDocument && !sameTemplate;
+  const { filled } = verdict;
+  const note = verdict.wrongDocument && sameTemplate ? "" : verdict.note;
 
   await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled: wrongDocument ? false : filled, receivedAt: new Date().toISOString() });
   await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
@@ -447,8 +513,10 @@ export async function receiveEmailAttachments(store: Store, caseId: string, atta
   for (const att of rest) {
     const pendingList = (await store.listTemplateDocuments(caseId)).filter((t) => t.status === "sent");
     if (att.mime === "application/pdf" && !guessDocumentKind(att.filename) && pendingList.length) {
-      await receiveFilledTemplate(store, caseId, att.bytes, att.filename, { pendingId: pendingList[0].id, quiet: true });
-      const doc = (await store.listTemplateDocuments(caseId)).find((t) => t.id === pendingList[0].id);
+      // Welche offene Vorlage es ist, entscheidet receiveFilledTemplate anhand des Inhalts.
+      await receiveFilledTemplate(store, caseId, att.bytes, att.filename, { quiet: true });
+      const pendingIds = new Set(pendingList.map((p) => p.id));
+      const doc = (await store.listTemplateDocuments(caseId)).find((t) => pendingIds.has(t.id) && t.status === "received");
       if (doc?.filled === false) rejected = true;
     } else {
       await receiveCaseDocument(store, caseId, att.bytes, att.filename);

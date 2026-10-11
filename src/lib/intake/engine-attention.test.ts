@@ -68,3 +68,40 @@ describe("Frage-Erkennung ohne KI", () => {
     expect(Boolean(heuristicQuestion(stripQuoted(text)))).toBe(expected);
   });
 });
+
+describe("E-Mail: eine zusammenhängende Antwort je Leistung", () => {
+  let store: Store;
+  beforeEach(() => {
+    store = freshStore();
+  });
+
+  it("PDF für jede Mail + eigene Nachricht ohne eigene PDF: die eigene Nachricht geht trotzdem raus (einmal)", async () => {
+    const { saveFile } = await import("@/lib/documents/storage");
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new TextEncoder().encode("%PDF-1.4\n"), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "", title: "Datenschutzhinweis", fileName: "datenschutz.pdf", storagePath: path, alwaysInclude: true });
+    await store.saveServiceMessage({ service: "Energieausweis", body: "Danke für Ihre Energieausweis-Anfrage.", appointmentNote: "", requiresFloorplan: true, requiresEnergyCertificate: false });
+    const turn = await email(store, "Guten Tag, ich benötige einen Energieausweis für mein Haus.");
+    expect(turn.replies).toHaveLength(1);
+    const text = turn.replies[0];
+    expect(text.match(/Danke für Ihre Energieausweis-Anfrage/g)).toHaveLength(1);
+    expect(text).toContain("„Datenschutzhinweis“");
+    expect(text).toContain("Grundriss");
+  });
+
+  it("Anfrage ohne Fragezeichen/Fragesatz wird nie als Frage gewertet", async () => {
+    const turn = await email(store, "Hallo, wir suchen eine Beratung zur energetischen Sanierung unseres Hauses.");
+    expect((await store.getCase(turn.sessionId))?.fields.needsAttention ?? "").toBe("");
+    expect(turn.replies).toHaveLength(1);
+  });
+});
+
+describe("templateSimilarity", () => {
+  it("erkennt die richtige Vorlage am Vordruck – unabhängig vom Büronamen", async () => {
+    const { templateSimilarity } = await import("./case-ops");
+    const blank = "Muster Energieberatung - Vollmacht BAFA\nName: ____\nStrasse: ____\nDatum: ____ Unterschrift: ____";
+    const filled = "Muster Energieberatung - Vollmacht BAFA\nName: Max\nStrasse: Gartenweg 1\nDatum: 11.10.2026 Unterschrift: M.";
+    const other = "Elektro Schmidt GmbH Rechnung Nr. 4711 Betrag 1.234,00 EUR";
+    expect(templateSimilarity(blank, filled)).toBeGreaterThanOrEqual(0.9);
+    expect(templateSimilarity(blank, other)).toBeLessThan(0.3);
+  });
+});

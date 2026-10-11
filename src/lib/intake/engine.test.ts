@@ -186,9 +186,13 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
     expect(reply).not.toContain("Gerne!");
   });
 
-  it("per E-Mail ohne passende Leistungs-Vorlage/-Nachricht wird gar keine Mail verschickt", async () => {
-    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Beratung, weiß aber nicht genau was.", source: "email", channel: "email" });
-    expect(first.replies).toHaveLength(0);
+  it("per E-Mail ohne eigene Nachricht/Vorlage: kurze Standard-Antwort mit den benötigten Unterlagen statt Schweigen", async () => {
+    const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Wärmebrückenberechnung für unser Haus.", source: "email", channel: "email" });
+    expect(first.replies).toHaveLength(1);
+    expect(first.replies[0]).toContain("Vielen Dank für Ihre Anfrage zur Leistung „Wärmebrückenberechnung“.");
+    expect(first.replies[0]).toContain("Grundriss");
+    // Keine automatisch generierte Rückfrage-Liste ("Welche Art Gebäude …", "Baujahr …").
+    expect(first.replies[0]).not.toMatch(/Baujahr|Gebäudeart/);
   });
 
   it("per E-Mail wird die Abschluss-Nachricht verschickt, sobald der Fall vollständig ist", async () => {
