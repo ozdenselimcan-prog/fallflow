@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { extractFromFilledForm } from "@/lib/ai/form-extractor";
 import { mergeExtracted } from "@/lib/ai/conversation";
+import { FORM_ENTRIES_KEY, mergeFormEntries } from "@/lib/cases/form-entries";
 import { summarizeCase } from "@/lib/ai/summary";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
@@ -325,7 +326,10 @@ export async function receiveFilledTemplate(
     const extracted = await extractFromFilledForm(blankText, text, newText);
     const questions = await store.listQuestions();
     const merged = { ...c.fields };
-    if (mergeExtracted(merged, extracted, { allowFreeText: false }, questions).length) {
+    const added = mergeExtracted(merged, extracted.fields, { allowFreeText: false }, questions);
+    const entries = mergeFormEntries(merged[FORM_ENTRIES_KEY], extracted.entries, Object.values(merged));
+    if (added.length || entries !== (merged[FORM_ENTRIES_KEY] ?? "")) {
+      if (entries) merged[FORM_ENTRIES_KEY] = entries;
       await store.updateCase(caseId, { fields: merged, keepTimestamp: true });
       c.fields = merged;
     }

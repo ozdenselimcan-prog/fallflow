@@ -15,6 +15,7 @@ import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
 import { hasAiTools } from "@/lib/billing/limits";
 import { FIELD_GROUPS } from "@/lib/cases/fields";
+import { FORM_ENTRIES_KEY, parseFormEntries } from "@/lib/cases/form-entries";
 import { getStore } from "@/lib/data";
 import { publicDocument } from "@/lib/documents/public";
 import { currentUploadLink } from "@/lib/intake/case-ops";
@@ -53,6 +54,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const readiness = readinessOf(c.status, checklist);
   const extra = questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
   const requiredKeys = questions.filter((q) => q.active && q.required).map((q) => q.key);
+  const formEntries = parseFormEntries(c.fields[FORM_ENTRIES_KEY]);
   const showPrepared = c.status === "COMPLETE" || c.status === "READY_FOR_REVIEW" || c.status === "CONVERTED";
 
   return (
@@ -99,6 +101,19 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
           <AiStatusCard checklist={checklist} status={c.status} />
           <SummaryCard summary={c.summary} />
           <CaseEditor caseId={c.id} fields={c.fields} canWrite={canWrite} extra={extra} requiredKeys={requiredKeys} />
+          {formEntries.length > 0 && (
+            <Card>
+              <CardHeader title="Weitere Angaben aus ausgefüllten Formularen" description="Vom Kunden in die zurückgeschickten PDF-Vorlagen eingetragen." />
+              <dl className="divide-y divide-border px-5 text-sm">
+                {formEntries.map((e) => (
+                  <div key={e.label} className="flex justify-between gap-4 py-2">
+                    <dt className="text-muted-foreground">{e.label}</dt>
+                    <dd className="text-right font-medium">{e.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Card>
+          )}
           <DocumentsPanel
             caseId={c.id}
             documents={documents.map(publicDocument)}

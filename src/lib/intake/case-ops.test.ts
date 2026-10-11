@@ -177,6 +177,23 @@ describe("receiveFilledTemplate", () => {
     // "name" war bereits beantwortet (Chat) -> die Vorlage darf das nicht überschreiben.
     expect(updated?.fields.name).toBe("Falscher Name");
   });
+
+  it("legt auch alle übrigen Formulareinträge (Ort, Dachform …) in der Fallakte ab – ohne Doppelungen", async () => {
+    const blankPath = await saveFile({ companyId: "demo", caseId: "demo", bytes: new Uint8Array([1]), mime: "application/pdf" });
+    vi.mocked(extractPdfText)
+      .mockResolvedValueOnce("Datenerfassungsblatt\n[Formularfeld] Name: Max Mustermann\n[Formularfeld] Ort: Musterstadt\n[Formularfeld] Dachform: Satteldach")
+      .mockResolvedValueOnce("Datenerfassungsblatt");
+    vi.mocked(verifyFilledTemplate).mockResolvedValueOnce({ filled: true, wrongDocument: false, note: "" });
+
+    const template = await store.saveDocumentTemplate({ service: "Energieberatung", title: "Datenerfassung", fileName: "daten.pdf", storagePath: blankPath });
+    const c = await store.createCase({ source: "email", status: "QUALIFYING", assignedTo: null, summary: "", fields: { service: "Energieberatung", name: "Max Mustermann" }, customerName: "Max Mustermann", service: "Energieberatung" });
+    await store.saveTemplateDocument({ caseId: c.id, templateId: template.id, status: "sent", storagePath: "", aiNote: "", receivedAt: null });
+
+    await receiveFilledTemplate(store, c.id, new Uint8Array([1, 2, 3]), "daten_ausgefuellt.pdf");
+
+    const updated = await store.getCase(c.id);
+    expect(updated?.fields.formEntries).toBe("Ort: Musterstadt\nDachform: Satteldach");
+  });
 });
 
 describe("refreshCase – Frage-Flow ist eine reine Website-Chat-Funktion", () => {
