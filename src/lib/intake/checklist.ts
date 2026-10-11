@@ -197,6 +197,6 @@ export const READINESS_LABELS: Record<Readiness, string> = {
 export function readinessOf(status: CaseStatus, checklist: Checklist): Readiness {
   if (status === "READY_FOR_REVIEW" || status === "CONVERTED") return "ready";
   if (checklist.percent >= 100) return "complete";
-  if (checklist.missing.length <= 2) return "almost";
+  if (checklist.missing.length <= 2 && checklist.percent >= 50) return "almost";
   return "incomplete";
 }

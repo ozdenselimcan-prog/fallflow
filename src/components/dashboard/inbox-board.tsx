@@ -84,7 +84,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
         >
           Alle ({enriched.length})
         </button>
-        {MESSAGE_CHANNELS.map((ch) => (
+        {MESSAGE_CHANNELS.filter((ch) => ch !== "website" || counts[ch] > 0).map((ch) => (
           <button
             key={ch}
             type="button"
@@ -143,7 +143,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
                 <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm">
                   <p>
                     <span className="font-medium text-warning">Aufmerksamkeit benötigt: </span>
-                    {selected.attention}. Die KI hat bewusst nicht automatisch geantwortet – bitte antworten Sie dem Kunden selbst (unten oder in Ihrem
+                    {selected.attention.replace(/[.?!]+$/, "")}. Die KI hat bewusst nicht automatisch geantwortet – bitte antworten Sie dem Kunden selbst (unten oder in Ihrem
                     E-Mail-Programm).
                   </p>
                   {canWrite && (

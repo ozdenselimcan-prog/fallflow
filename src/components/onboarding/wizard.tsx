@@ -97,7 +97,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
           <div className="space-y-3">
             <h1 className="text-2xl font-semibold tracking-tight">Willkommen bei FallFlow{firstName ? `, ${firstName}` : ""}</h1>
             <p className="text-muted-foreground">
-              In fünf kurzen Schritten richten wir Ihr Büro ein: Firmendaten, Ihre Leistungen, die Angaben für neue Fälle, Ihre Terminvergabe und das Website-Widget. Alles lässt sich später in den Einstellungen ändern.
+              In wenigen Schritten richten wir Ihr Büro ein: Firmendaten, Ihre Leistungen, Ihre Vorlagen &amp; Nachrichten, die Terminvergabe, den Website-Chat und Ihr E-Mail-Postfach. Alles lässt sich später in den Einstellungen ändern.
             </p>
           </div>
         )}

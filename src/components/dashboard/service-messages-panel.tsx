@@ -30,7 +30,8 @@ export interface ServiceTemplateView {
   requiresReturn?: boolean;
 }
 
-const DEFAULT_BODY = (service: string) => `Für Ihr Anliegen (${service}) benötigen wir zusätzlich die ausgefüllte Vorlage. Bitte laden Sie sich das Dokument herunter, füllen es aus und schicken es uns wieder zu.`;
+/** Nur Beispieltext im leeren Feld – leer gespeichert schickt FallFlow einen kurzen Standardtext. */
+const BODY_PLACEHOLDER = (service: string) => `Leer = Standardtext („Vielen Dank für Ihre Anfrage zur Leistung „${service}“.“). Beispiel: „Vielen Dank für Ihre Anfrage! Bitte nennen Sie uns noch Ihre Telefonnummer.“`;
 const DEFAULT_APPOINTMENT_NOTE = "Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen bezüglich eines Termins.";
 
 /** "Sonstiges" ist bereits ein regulärer Wert in SERVICES (lib/cases/fields.ts) – hier nur sichergestellt,
@@ -90,7 +91,7 @@ export function ServiceMessagesPanel({
     const map: Record<string, string> = {};
     for (const s of rows) {
       if (s === ALWAYS_ROW) continue;
-      map[s] = initialMessages.find((m) => m.service === s)?.body ?? (s === FALLBACK_SERVICE ? "Vielen Dank für Ihre Anfrage! Bitte laden Sie sich das Dokument herunter, füllen es aus und schicken es uns wieder zu." : DEFAULT_BODY(s));
+      map[s] = initialMessages.find((m) => m.service === s)?.body ?? "";
     }
     return map;
   });
@@ -269,7 +270,7 @@ export function ServiceMessagesPanel({
                     <p className="mb-1 text-xs font-medium text-muted-foreground">
                       Nachricht – Tipp: Schreiben Sie hier, was Sie vom Kunden brauchen (z. B. „Bitte senden Sie uns Ihre Telefonnummer und E-Mail-Adresse“). Das zählt per E-Mail automatisch als benötigte Angabe. Den Hinweis auf angehängte Formulare und benötigte Unterlagen (Grundriss, Energieausweis) ergänzt FallFlow automatisch.
                     </p>
-                    <Textarea rows={2} disabled={!canEdit} value={bodies[row] ?? ""} onChange={(e) => setBodies({ ...bodies, [row]: e.target.value })} />
+                    <Textarea rows={3} disabled={!canEdit} placeholder={BODY_PLACEHOLDER(row)} value={bodies[row] ?? ""} onChange={(e) => setBodies({ ...bodies, [row]: e.target.value })} />
                   </div>
                   <div>
                     <p className="mb-1 text-xs font-medium text-muted-foreground">

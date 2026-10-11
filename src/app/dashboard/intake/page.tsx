@@ -150,7 +150,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
               ))}
             </Panel>
 
-            <Panel title="Automatisch angeforderte Dokumente" description="Vom Kunden noch nicht hochgeladen" count={requestedDocs.length} empty="Keine offenen Dokumentenanforderungen.">
+            <Panel title="Automatisch angeforderte Dokumente" description="Vom Kunden noch nicht geschickt" count={requestedDocs.length} empty="Keine offenen Dokumentenanforderungen.">
               {requestedDocs.slice(0, 5).map((d) => {
                 const c = nameOf.get(d.caseId)!;
                 return (

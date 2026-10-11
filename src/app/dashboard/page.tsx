@@ -68,11 +68,11 @@ export default async function DashboardPage() {
 
       <section aria-labelledby="attention-title">
         <h2 id="attention-title" className="mb-3 text-lg font-semibold">
-          Anfragen, die deine Aufmerksamkeit brauchen
+          Anfragen, die Ihre Aufmerksamkeit brauchen
         </h2>
         {attention.length === 0 ? (
           <Card className="flex items-center gap-3 px-5 py-6 text-sm text-muted-foreground">
-            <PartyPopper className="size-5 text-success" aria-hidden /> Alles erledigt – im Moment gibt es nichts, das deine Aufmerksamkeit braucht.
+            <PartyPopper className="size-5 text-success" aria-hidden /> Alles erledigt – im Moment gibt es nichts, das Ihre Aufmerksamkeit braucht.
           </Card>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">

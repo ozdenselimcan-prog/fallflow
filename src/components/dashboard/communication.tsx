@@ -79,7 +79,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
 
   return (
     <Card>
-      <CardHeader title={title} description="Website-Chat, E-Mail und Telefonnotizen in einem Verlauf" />
+      <CardHeader title={title} description="E-Mails und Telefonnotizen in einem Verlauf" />
       <div className="space-y-4 px-5 py-4">
         <MessageThread messages={messages} className="max-h-96" />
         {canWrite && (
@@ -115,7 +115,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
               <p className="text-xs text-muted-foreground">
                 {mode === "phone_note" ? "Interne Notiz – wird nicht an den Kunden gesendet." : "Wird nur versendet, wenn der Kanal verbunden ist – sonst nur gespeichert."}
               </p>
-              <Button type="submit" size="sm" loading={pending} disabled={!text.trim() || !channelReady}>
+              <Button type="submit" size="sm" className="shrink-0 whitespace-nowrap" loading={pending} disabled={!text.trim() || !channelReady}>
                 {mode === "phone_note" ? <Phone className="size-3.5" /> : <Send className="size-3.5" />}
                 {mode === "phone_note" ? "Notiz speichern" : "Senden"}
               </Button>

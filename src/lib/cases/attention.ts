@@ -4,4 +4,4 @@
  */
 export const ATTENTION_KEY = "needsAttention";
 
-export const attentionOf = (fields: Record<string, string>): string => fields[ATTENTION_KEY]?.trim() ?? "";
+export const attentionOf = (fields: Record<string, string>): string => (fields[ATTENTION_KEY] ?? "").trim().replace(/[.?!]+$/, "");
