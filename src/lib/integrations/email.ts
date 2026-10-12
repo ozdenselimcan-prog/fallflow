@@ -50,6 +50,9 @@ export function friendlyMailError(message: string): string {
   if (/service abuse|ErrorAccountSuspend|Account suspended/i.test(message)) {
     return "Microsoft hat Ihr Postfach vorübergehend gesperrt (Verdacht auf Missbrauch – passiert vor allem bei neuen, privaten Outlook-Adressen). Bitte melden Sie sich im Browser bei Outlook an und bestätigen Sie Ihr Konto (meist per SMS-Code). Danach hier erneut „Mit Microsoft anmelden“ klicken.";
   }
+  if (/ErrorExceededMessageLimit|limit exceeded/i.test(message)) {
+    return "Ihr Postfach hat das Tageslimit für gesendete E-Mails erreicht (bei neuen Outlook-Adressen sehr niedrig, bis das Konto bestätigt ist). Bitte später erneut senden.";
+  }
   if (/AADSTS(70000|700082|50173|50076|50079)|invalid_grant/i.test(message)) {
     return "Die Anmeldung bei Microsoft ist abgelaufen oder wurde zurückgesetzt (z. B. nach einer Passwortänderung). Bitte hier erneut „Mit Microsoft anmelden“ klicken.";
   }

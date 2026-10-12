@@ -290,6 +290,11 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       return mapMessage(data!);
     },
 
+    async setMessageDelivery(messageId, delivery) {
+      const { error } = await db.from("case_messages").update({ delivery }).eq("id", messageId).eq("company_id", companyId);
+      fail(error, "message delivery update");
+    },
+
     async listDocuments(caseId): Promise<CaseDocument[]> {
       let q = db.from("case_documents").select("*").eq("company_id", companyId).order("requested_at");
       if (caseId) q = q.eq("case_id", caseId);

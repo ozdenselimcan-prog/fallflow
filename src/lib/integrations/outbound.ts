@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { MessageChannel } from "@/lib/data/types";
 import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { getValidTokens } from "./tokens";
-import { IntegrationNotReadyError, type InboundAttachment, type ReplyTarget } from "./email";
+import { friendlyMailError, IntegrationNotReadyError, type InboundAttachment, type ReplyTarget } from "./email";
 import { gmailProvider } from "./gmail";
 import { microsoftProvider } from "./microsoft";
 
@@ -58,7 +58,9 @@ export async function deliverToCustomer(input: {
     return { delivered: false, reason: "Für dieses Büro ist kein E-Mail-Postfach verbunden." };
   } catch (err) {
     if (err instanceof IntegrationNotReadyError) return { delivered: false, reason: err.message };
-    console.error("[outbound] Versand fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
-    return { delivered: false, reason: "Versand fehlgeschlagen." };
+    const message = err instanceof Error ? err.message : "unbekannt";
+    console.error("[outbound] Versand fehlgeschlagen:", message);
+    const friendly = friendlyMailError(message);
+    return { delivered: false, reason: friendly === message ? "Versand fehlgeschlagen." : friendly };
   }
 }

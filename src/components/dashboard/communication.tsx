@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, Send } from "lucide-react";
+import { Phone, RotateCw, Send } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -13,8 +13,27 @@ import { ChannelBadge } from "./badges";
 
 const ROLE_LABEL = { user: "Kunde", assistant: "KI", staff: "Team" } as const;
 
+/** „Erneut senden“ für eine E-Mail, die nicht versendet werden konnte (z. B. Tageslimit des Postfachs erreicht). */
+function ResendButton({ caseId, messageId }: { caseId: string; messageId: string }) {
+  const { pending, error, run } = useMutation();
+  const [reason, setReason] = useState<string | null>(null);
+  async function resend() {
+    setReason(null);
+    const res = await run(() => apiFetch<{ delivered: boolean; reason: string }>("POST", `/api/cases/${caseId}/resend`, { messageId }));
+    if (res && !res.delivered) setReason(res.reason || "Versand fehlgeschlagen.");
+  }
+  return (
+    <>
+      <button type="button" onClick={resend} disabled={pending} className="inline-flex items-center gap-1 font-medium text-accent hover:underline disabled:opacity-50">
+        <RotateCw className={cn("size-3", pending && "animate-spin")} aria-hidden /> Erneut senden
+      </button>
+      {(reason || error) && <span className="basis-full text-warning">{reason ?? error}</span>}
+    </>
+  );
+}
+
 /** Chronologischer Gesprächsverlauf über alle Kanäle mit Zustellstatus – nichts wird als „gesendet“ gezeigt, was nicht versendet wurde. */
-export function MessageThread({ messages, className }: { messages: CaseMessage[]; className?: string }) {
+export function MessageThread({ messages, className, resendCaseId }: { messages: CaseMessage[]; className?: string; /** gesetzt = „Erneut senden“ anbieten */ resendCaseId?: string }) {
   if (messages.length === 0) return <p className="text-sm text-muted-foreground">Noch keine Nachrichten.</p>;
   return (
     <div className={cn("space-y-3 overflow-y-auto", className)}>
@@ -24,6 +43,7 @@ export function MessageThread({ messages, className }: { messages: CaseMessage[]
             <span className="font-medium">{ROLE_LABEL[m.role]}</span>
             <ChannelBadge channel={m.channel} simulated={m.simulated} />
             {m.delivery === "not_sent" && <span className="text-warning">nicht versendet</span>}
+            {m.delivery === "not_sent" && resendCaseId && m.channel === "email" && m.role !== "user" && !m.simulated && <ResendButton caseId={resendCaseId} messageId={m.id} />}
             {m.delivery === "internal" && <span>interne Notiz</span>}
             <span>{formatDateTime(m.createdAt)}</span>
           </div>
@@ -81,7 +101,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
     <Card>
       <CardHeader title={title} description="E-Mails und Telefonnotizen in einem Verlauf" />
       <div className="space-y-4 px-5 py-4">
-        <MessageThread messages={messages} className="max-h-96" />
+        <MessageThread messages={messages} className="max-h-96" resendCaseId={canWrite && hasEmail ? caseId : undefined} />
         {canWrite && (
           <form onSubmit={submit} className="space-y-2 border-t border-border pt-4">
             <div className="flex flex-wrap items-center gap-2">

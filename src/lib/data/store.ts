@@ -63,6 +63,8 @@ export interface Store {
   listMessages(caseId: string): Promise<CaseMessage[]>;
   listRecentMessages(limit?: number): Promise<CaseMessage[]>;
   addMessage(caseId: string, role: CaseMessage["role"], content: string, meta?: MessageMeta): Promise<CaseMessage>;
+  /** Zustellstatus einer Nachricht ändern (z. B. nach "Erneut senden"). */
+  setMessageDelivery(messageId: string, delivery: CaseMessage["delivery"]): Promise<void>;
 
   /** Ohne caseId: alle Dokumente des Büros. */
   listDocuments(caseId?: string): Promise<CaseDocument[]>;

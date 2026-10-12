@@ -149,6 +149,10 @@ export function createMemoryStore(): Store {
       db().messages.push(m);
       return m;
     },
+    async setMessageDelivery(messageId, delivery) {
+      const m = db().messages.find((x) => x.id === messageId);
+      if (m) m.delivery = delivery;
+    },
 
     async listDocuments(caseId) {
       return db().documents.filter((d) => !caseId || d.caseId === caseId);
