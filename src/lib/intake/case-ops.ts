@@ -97,7 +97,7 @@ export async function matchServiceMaterials(
   // Erwähnt das Büro den Anhang schon selbst ("Anbei unser Formular …"), den eigenen Hinweis nicht doppelt anhängen:
   // nur noch kurz sagen, wie es zurückgeschickt wird – bzw. gar nichts, wenn auch das schon drinsteht.
   const ownMentionsAttachment = introDue && /\banbei\b|im anhang|beigefügt|angehängt|anhängend/i.test(own);
-  const ownMentionsReturn = introDue && /zurück(zu)?(senden|schicken)|antwort auf diese/i.test(own);
+  const ownMentionsReturn = introDue && /zurück(zu)?(senden|schicken)|(senden|schicken|mailen)\b[^.!?]{0,40}\bzurück|antwort auf diese/i.test(own);
   if (titles.length && ownMentionsAttachment) {
     if (!ownMentionsReturn) parts.push(`Bitte senden Sie ${titles.length === 1 ? "das ausgefüllte Formular" : "die ausgefüllten Formulare"} einfach als Antwort auf diese E-Mail zurück.`);
   } else if (titles.length === 1) {

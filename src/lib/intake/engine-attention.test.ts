@@ -182,3 +182,15 @@ describe("Preis-, Dauer- und Förderfragen gehen immer ans Büro", () => {
     expect(Boolean(obviousHumanQuestion(withoutProcessQuestions(text)))).toBe(expected);
   });
 });
+
+describe("Rücksende-Hinweis bei anderer Wortstellung", () => {
+  it("'… schicken es uns zurück' wird erkannt – kein doppelter Hinweis", async () => {
+    const store = freshStore();
+    const { saveFile } = await import("@/lib/documents/storage");
+    const path = await saveFile({ companyId: "demo", caseId: "demo", bytes: new TextEncoder().encode("%PDF-1.4\n"), mime: "application/pdf" });
+    await store.saveDocumentTemplate({ service: "iSFP", title: "Datenerfassung", fileName: "daten.pdf", storagePath: path });
+    await store.saveServiceMessage({ service: "iSFP", body: "Anbei unser Datenerfassungsblatt – bitte füllen Sie es aus und schicken es uns zurück.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false });
+    const turn = await email(store, "Hallo, wir möchten einen iSFP für unser Haus.");
+    expect(turn.replies[0]).not.toContain("Bitte senden Sie das ausgefüllte Formular");
+  });
+});
