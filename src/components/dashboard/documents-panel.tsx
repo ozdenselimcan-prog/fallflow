@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clipboard, Download, FileWarning, Mail, Send } from "lucide-react";
+import { Check, Clipboard, Download, Eye, FileWarning, Mail, Send } from "lucide-react";
 import { useState } from "react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
@@ -141,9 +141,14 @@ export function DocumentsPanel({ caseId, documents, requirements, customerName, 
                     <span className="min-w-0 truncate">
                       {f.fileName} <span className="text-xs text-muted-foreground">· {size(f.size)} · {f.receivedAt ? formatDateTime(f.receivedAt) : ""}</span>
                     </span>
-                    <a href={`/api/documents/${f.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
-                      <Download className="size-3.5" aria-hidden /> Herunterladen
-                    </a>
+                    <span className="flex gap-3">
+                      <a href={`/api/documents/${f.id}?view=1`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+                        <Eye className="size-3.5" aria-hidden /> Ansehen
+                      </a>
+                      <a href={`/api/documents/${f.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+                        <Download className="size-3.5" aria-hidden /> Herunterladen
+                      </a>
+                    </span>
                   </div>
                 ))}
               </li>

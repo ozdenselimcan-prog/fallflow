@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, Eye } from "lucide-react";
 import { ReadinessBadge, StatusBadge } from "@/components/dashboard/badges";
 import { CaseActions } from "@/components/dashboard/case-actions";
 import { CaseEditor } from "@/components/dashboard/case-editor";
@@ -10,7 +10,7 @@ import { CommunicationPanel } from "@/components/dashboard/communication";
 import { DocumentsPanel } from "@/components/dashboard/documents-panel";
 import { KiToolsCard } from "@/components/dashboard/ki-tools-card";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Badge, Card, CardHeader } from "@/components/ui/card";
 import { Notice } from "@/components/ui/states";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
@@ -59,6 +59,14 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   const formEntries = parseFormEntries(c.fields[FORM_ENTRIES_KEY]);
   const skippedFiles = (c.fields[SKIPPED_ATTACHMENTS_KEY] ?? "").split("\n").filter(Boolean);
   const showPrepared = c.status === "COMPLETE" || c.status === "READY_FOR_REVIEW" || c.status === "CONVERTED";
+  // Vorlagen, die der Kunde ausgefüllt zurückschicken soll – mit allen Dateien, die er dazu geschickt hat (auch frühere Versionen).
+  const returnForms = templateDocs
+    .filter((td) => td.status !== "info")
+    .map((td) => {
+      const title = templateTitleById.get(td.templateId) ?? "Vorlage";
+      const files = documents.filter((d) => d.status === "received" && (d.storagePath === td.storagePath || d.fileName.startsWith(`${title} (vom Kunden)`)));
+      return { td, title, files: [...new Map(files.map((f) => [f.id, f])).values()] };
+    });
 
   return (
     <div className="space-y-6">
@@ -113,6 +121,44 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
         <div className="space-y-6 lg:order-1 lg:col-span-2">
           <AiStatusCard checklist={checklist} status={c.status} />
           <SummaryCard summary={c.summary} />
+          {returnForms.length > 0 && (
+            <Card>
+              <CardHeader title="Ausgefüllte Formulare vom Kunden" description="Die PDF-Vorlagen, die der Kunde ausgefüllt zurückschicken soll – zum Ansehen und Herunterladen." />
+              <ul className="divide-y divide-border px-5">
+                {returnForms.map(({ td, title, files }) => (
+                  <li key={td.id} className="py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium">{title}</p>
+                      {td.status === "sent" ? (
+                        <Badge>Noch nicht zurück</Badge>
+                      ) : td.filled === false ? (
+                        <Badge tone="warning">Zurück, aber unvollständig</Badge>
+                      ) : (
+                        <Badge tone="success">Ausgefüllt zurück</Badge>
+                      )}
+                    </div>
+                    {td.status === "received" && td.aiNote && <p className="mt-1 text-xs text-muted-foreground">KI-Prüfung: {td.aiNote}</p>}
+                    {files.map((f) => (
+                      <div key={f.id} className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+                        <span className="min-w-0 truncate text-muted-foreground">
+                          {f.fileName.replace(`${title} (vom Kunden) – `, "")}
+                          {f.receivedAt ? ` · ${formatDateTime(f.receivedAt)}` : ""}
+                        </span>
+                        <span className="flex gap-3">
+                          <a href={`/api/documents/${f.id}?view=1`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
+                            <Eye className="size-3.5" aria-hidden /> Ansehen
+                          </a>
+                          <a href={`/api/documents/${f.id}`} className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
+                            <Download className="size-3.5" aria-hidden /> Herunterladen
+                          </a>
+                        </span>
+                      </div>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <CaseEditor caseId={c.id} fields={c.fields} canWrite={canWrite} extra={extra} requiredKeys={requiredKeys} />
           {formEntries.length > 0 && (
             <Card>
