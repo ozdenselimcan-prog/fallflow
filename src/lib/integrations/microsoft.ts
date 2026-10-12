@@ -40,6 +40,7 @@ async function tokenRequest(params: Record<string, string>): Promise<{ access_to
 
 interface GraphMessage {
   id: string;
+  internetMessageId?: string;
   from?: { emailAddress?: { name?: string; address?: string } };
   subject?: string;
   body?: { content?: string; contentType?: string };
@@ -103,11 +104,18 @@ export const microsoftProvider: MailSyncProvider & {
       $filter: `receivedDateTime ge ${since}`,
       $orderby: "receivedDateTime asc",
       $top: "25",
-      $select: "id,from,subject,body,receivedDateTime,hasAttachments,internetMessageHeaders",
+      $select: "id,internetMessageId,from,subject,body,receivedDateTime,hasAttachments,internetMessageHeaders",
     });
-    const list = await graphFetch<{ value?: GraphMessage[] }>(`/mailFolders/inbox/messages?${query}`, tokens, { headers: { Prefer: 'outlook.body-content-type="text"' } });
+    const read = async (folder: string) =>
+      (await graphFetch<{ value?: GraphMessage[] }>(`/mailFolders/${folder}/messages?${query}`, tokens, { headers: { Prefer: 'outlook.body-content-type="text"' } }))?.value ?? [];
+    const inbox = await read("inbox");
+    // Zusätzlich den Junk-Ordner: Kundenanfragen landen dort manchmal fälschlich (siehe mail-sync.ts).
+    const junk = await read("junkemail").catch((err) => {
+      console.error("[microsoft] Junk-Ordner konnte nicht gelesen werden:", err instanceof Error ? err.message : "unbekannt");
+      return [] as GraphMessage[];
+    });
     const out: InboundEmail[] = [];
-    for (const m of list?.value ?? []) {
+    for (const [m, isJunk] of [...inbox.map((m) => [m, false] as const), ...junk.map((m) => [m, true] as const)]) {
       const headers = new Map((m.internetMessageHeaders ?? []).map((h) => [h.name.toLowerCase(), h.value]));
       const autoSubmittedHeader = headers.get("auto-submitted");
       const autoSubmitted = (autoSubmittedHeader !== undefined && autoSubmittedHeader.toLowerCase() !== "no") || headers.has(AUTO_HEADER.toLowerCase());
@@ -133,6 +141,8 @@ export const microsoftProvider: MailSyncProvider & {
       const sender = m.from?.emailAddress;
       out.push({
         externalId: m.id,
+        messageId: m.internetMessageId || undefined,
+        junk: isJunk,
         from: sender?.name ? `${sender.name} <${sender.address ?? ""}>` : (sender?.address ?? ""),
         subject: m.subject ?? "",
         body: (m.body?.contentType === "html" ? stripHtml(m.body.content ?? "") : (m.body?.content ?? "")).slice(0, 4000),

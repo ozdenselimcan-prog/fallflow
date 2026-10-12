@@ -25,6 +25,8 @@ const schema = z.object({
     .default([]),
   /** true = "Testmail ausprobieren": zeigt, was der Kunde bekäme, und löscht den Testfall danach wieder. */
   preview: z.boolean().default(false),
+  /** Als läge die Mail im Junk-/Spam-Ordner. */
+  junk: z.boolean().default(false),
 });
 
 /**
@@ -46,7 +48,7 @@ export const POST = withSession(
     const skipped = attachments.filter((a) => !accepted.includes(a)).map((a) => a.filename);
     try {
       const outcome = await runSimulated(() =>
-        handleInboundMail(store, session.companyId, { from, fromName: body.data.fromName, subject: body.data.subject, body: body.data.body, attachments: accepted, skippedAttachments: skipped }, { simulated: true }),
+        handleInboundMail(store, session.companyId, { from, fromName: body.data.fromName, subject: body.data.subject, body: body.data.body, attachments: accepted, skippedAttachments: skipped }, { simulated: true, junk: body.data.junk }),
       );
       if (!body.data.preview) return json(outcome);
       if (!outcome.handled) return json({ handled: false });

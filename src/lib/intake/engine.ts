@@ -46,6 +46,8 @@ export interface IntakeInput {
   simulated?: boolean;
   /** Bekannte Absenderdaten (E-Mail-Adresse, Telefonnummer …) – gelten als beantwortet */
   identity?: { email?: string; phone?: string; name?: string };
+  /** Keine automatische Antwort, sondern "Aufmerksamkeit benötigt" mit diesem Grund (z. B. Anfrage aus dem Junk-Ordner). */
+  forceAttention?: string;
 }
 
 export interface UploadPrompt {
@@ -120,8 +122,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // E-Mail: Ist die Leistung unklar, stellt der Kunde eine Frage oder wünscht er persönlichen Kontakt, antwortet die
   // KI NICHT automatisch (keine Leistungs-Nachricht, keine Vorlage, kein Termin). Der Fall erscheint im Posteingang
   // unter "Aufmerksamkeit benötigt", und der Energieberater antwortet selbst.
-  let attention: string | null = null;
-  if (input.channel === "email" && settings.autoReply) {
+  let attention: string | null = input.forceAttention ?? null;
+  if (!attention && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
     if (turn.handoff) attention = "Kunde wünscht persönlichen Kontakt";
     else if (!service || service === "Sonstiges") attention = "Leistung nicht erkannt";

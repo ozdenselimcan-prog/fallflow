@@ -12,7 +12,7 @@ import { getValidTokens } from "./tokens";
 /** Zuletzt verarbeitete Mail-IDs je Verbindung, um keine Mail doppelt zu bearbeiten (z. B. Gmails `after:`-Suche
  * ist nur tagesgenau und kann dieselbe Mail im nächsten Abruf erneut liefern; zusätzlich schützt das gegen
  * überlappende Abrufe, falls zwei Cron-Läufe sich zeitlich überschneiden). */
-const SEEN_IDS_LIMIT = 300;
+const SEEN_IDS_LIMIT = 600;
 
 const CONCURRENCY = 10;
 
@@ -71,8 +71,14 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
 
       const inbound = await provider.fetchNewMessages(found.tokens, connection.lastSyncedAt);
       for (const mail of inbound) {
-        if (seenIds.has(mail.externalId)) continue;
-        seenIds.add(mail.externalId);
+        // Neben der Ordner-ID auch die Message-ID merken: Wird eine Mail aus dem Junk-Ordner in den Posteingang
+        // verschoben, bekommt sie dort eine neue ID – sie darf aber nicht ein zweites Mal bearbeitet werden.
+        const keys = [mail.externalId, ...(mail.messageId ? [`mid:${mail.messageId}`] : [])];
+        if (keys.some((k) => seenIds.has(k))) {
+          keys.forEach((k) => seenIds.add(k));
+          continue;
+        }
+        keys.forEach((k) => seenIds.add(k));
         let { email: from, name: fromName } = parseFromHeader(mail.from);
         // Weiterleitung (z. B. Outlook → Gmail) per „WG:“-Regel: die Mail kommt scheinbar von der eigenen Büro-Adresse,
         // der echte Kunde steht im Text – herausholen. Lässt sich keiner finden, ist es eine eigene Mail des Büros.
@@ -113,12 +119,18 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           }
         }
         try {
-          const outcome = await handleInboundMail(store, connection.companyId, { from, fromName, subject: mail.subject, body: mail.body, attachments: mail.attachments, skippedAttachments: mail.skippedAttachments });
+          const outcome = await handleInboundMail(
+            store,
+            connection.companyId,
+            { from, fromName, subject: mail.subject, body: mail.body, attachments: mail.attachments, skippedAttachments: mail.skippedAttachments },
+            { junk: mail.junk },
+          );
           if (outcome.handled) messages++;
           else skipped++;
         } catch (err) {
           if (err instanceof CaseLimitReachedError) {
-            await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", CASE_LIMIT_REACHED_TEXT).catch(() => {});
+            // Mails aus dem Junk-Ordner bekommen nie eine automatische Antwort (könnte Spam sein).
+            if (!mail.junk) await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", CASE_LIMIT_REACHED_TEXT).catch(() => {});
           } else {
             console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
           }

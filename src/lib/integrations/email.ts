@@ -24,6 +24,11 @@ export interface InboundEmail {
    * Verhindert Endlosschleifen mit Abwesenheitsnotizen oder einem ANDEREN automatisch antwortenden System
    * (z. B. einem anderen Energieberatungsbüro, das ebenfalls FallFlow nutzt). */
   autoSubmitted: boolean;
+  /** Message-ID-Kopfzeile: bleibt gleich, wenn die Mail verschoben wird (z. B. aus dem Junk-Ordner in den Posteingang) –
+   * verhindert, dass dieselbe Mail ein zweites Mal bearbeitet wird. */
+  messageId?: string;
+  /** true = lag im Junk-/Spam-Ordner des Postfachs. */
+  junk?: boolean;
 }
 
 /** Für den Abruf/Versand nötige, bereits entschlüsselte Zugangsdaten dieses Büros. Bei der aktuellen

@@ -22,7 +22,10 @@ export type InboundOutcome = { handled: false } | { handled: true; caseId: strin
  * (bzw. legt einen an), lässt die KI reagieren und legt die Anhänge in der Fallakte ab. Genutzt vom Postfach-Abruf
  * (mail-sync.ts) und von der Test-Simulation (/api/simulate/email). CaseLimitReachedError geht an den Aufrufer.
  */
-export async function handleInboundMail(store: Store, companyId: string, mail: IncomingMail, opts: { simulated?: boolean } = {}): Promise<InboundOutcome> {
+/** Hinweis bei neuen Anfragen aus dem Junk-Ordner: keine automatische Antwort, das Büro schaut selbst drauf. */
+export const JUNK_ATTENTION = "Anfrage lag im Spam-/Junk-Ordner – bitte prüfen und selbst antworten";
+
+export async function handleInboundMail(store: Store, companyId: string, mail: IncomingMail, opts: { simulated?: boolean; junk?: boolean } = {}): Promise<InboundOutcome> {
   const existing = findCaseByIdentity(await store.listCases(), { email: mail.from });
   const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
   // Mails von Kunden mit bestehendem Fall kommen immer durch (auch ein knappes "Danke!" oder "Dienstag passt").
@@ -38,7 +41,11 @@ export async function handleInboundMail(store: Store, companyId: string, mail: I
     text: fullText.slice(0, 1500),
     sender: { email: mail.from, name: mail.fromName || undefined },
     simulated: opts.simulated,
+    // Neue Absender aus dem Junk-Ordner: Fall anlegen, aber nicht automatisch antworten (könnte Spam sein).
+    // Bekannte Kunden (z. B. die Antwort mit dem ausgefüllten Formular) werden ganz normal bearbeitet.
+    forceAttention: opts.junk && !existing ? JUNK_ATTENTION : undefined,
   });
+  if (opts.junk && existing) await store.addEvent(turn.sessionId, "note", "E-Mail des Kunden lag im Spam-/Junk-Ordner und wurde trotzdem übernommen.");
   // Alle Anhänge dieser Mail gemeinsam verarbeiten (Vorlagen, Grundriss, Energieausweis, Fotos) und danach
   // genau einmal antworten – Abschluss-Nachricht oder kurze Bestätigung, was noch fehlt.
   if (mail.skippedAttachments?.length) await noteSkippedAttachments(store, turn.sessionId, mail.skippedAttachments);
