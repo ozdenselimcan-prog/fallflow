@@ -34,8 +34,8 @@ export interface ServiceTemplateView {
 const BODY_PLACEHOLDER = (service: string) => `Leer = Standardtext („Vielen Dank für Ihre Anfrage zur Leistung „${service}“.“). Beispiel: „Vielen Dank für Ihre Anfrage! Bitte nennen Sie uns noch Ihre Telefonnummer.“`;
 const DEFAULT_APPOINTMENT_NOTE = "Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen bezüglich eines Termins.";
 
-/** "Sonstiges" ist bereits ein regulärer Wert in SERVICES (lib/cases/fields.ts) – hier nur sichergestellt,
- * dass die Zeile immer auftaucht, auch wenn das Büro sie nicht explizit als Leistung gewählt hat. */
+/** "Sonstiges" bekommt keine eigene Zeile: Erkennt die KI die Leistung nicht, schickt sie nichts automatisch, sondern
+ * der Fall landet unter "Aufmerksamkeit benötigt" und das Büro antwortet selbst (siehe engine.ts). */
 const FALLBACK_SERVICE = "Sonstiges";
 /** Interne Kennung für die "bei jeder Anfrage"-Zeile – kein echter Leistungswert, läuft über das separate
  * alwaysInclude-Flag am Dokument statt über die service-Zuordnung. */
@@ -69,7 +69,7 @@ function PdfChip({ title, canEdit, requiresReturn, onToggleReturn, onRemove }: {
 }
 
 /**
- * Eine Zeile je Leistung (+ "Sonstiges" als Fallback, + "Bei jeder Anfrage" als Sonderzeile): PDF-Vorlagen
+ * Eine Zeile je Leistung (+ "Bei jeder Anfrage" als Sonderzeile): PDF-Vorlagen
  * anhängen und den Nachrichtentext festlegen, den der Assistent dazu verschickt.
  */
 export function ServiceMessagesPanel({
@@ -86,7 +86,7 @@ export function ServiceMessagesPanel({
   /** true = Abo-Plan (Starter) hat keinen Zugriff auf PDF-Vorlagen/Nachrichtentexte. */
   locked?: boolean;
 }) {
-  const rows = [...services, ...(services.includes(FALLBACK_SERVICE) ? [] : [FALLBACK_SERVICE]), ALWAYS_ROW];
+  const rows = [...services.filter((s) => s !== FALLBACK_SERVICE), ALWAYS_ROW];
   const [bodies, setBodies] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
     for (const s of rows) {
