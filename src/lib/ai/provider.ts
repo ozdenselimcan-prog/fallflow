@@ -42,18 +42,20 @@ export function getAiProvider(modelOverride?: string): AiProvider | null {
         }),
         signal: AbortSignal.timeout(Math.max(1_000, deadline - Date.now())),
       });
-      // Kurzzeitig zu viele Anfragen (Rate-Limit) oder Server überlastet: kurz warten und erneut versuchen.
-      if ((res.status === 429 || res.status >= 500) && attempt < 2) {
-        const retryAfter = Number(res.headers.get("retry-after"));
-        const wait = Math.min(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1500 * (attempt + 1), 8_000);
-        if (Date.now() + wait < deadline - 2_000) {
-          await new Promise((r) => setTimeout(r, wait));
-          continue;
-        }
-      }
       if (!res.ok) {
         // Fehlercode von OpenAI mitloggen (z. B. insufficient_quota, rate_limit_exceeded) – ohne Nutzerinhalte.
         const err = (await res.json().catch(() => ({}))) as { error?: { code?: string; type?: string; message?: string } };
+        const quotaExhausted = err.error?.code === "insufficient_quota" || err.error?.type === "insufficient_quota" || /credit/i.test(err.error?.code ?? "");
+        // Kurzzeitig zu viele Anfragen (Rate-Limit) oder Server überlastet: kurz warten und erneut versuchen –
+        // aber nicht bei aufgebrauchtem Guthaben, das ändert sich durch Warten nicht.
+        if ((res.status === 429 || res.status >= 500) && !quotaExhausted && attempt < 2) {
+          const retryAfter = Number(res.headers.get("retry-after"));
+          const wait = Math.min(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1500 * (attempt + 1), 8_000);
+          if (Date.now() + wait < deadline - 2_000) {
+            await new Promise((r) => setTimeout(r, wait));
+            continue;
+          }
+        }
         const detail = [err.error?.code, err.error?.type, err.error?.message?.slice(0, 160)].filter(Boolean).join(" · ");
         throw new Error(`AI-Provider antwortete mit HTTP ${res.status}${detail ? ` (${detail})` : ""}`);
       }
@@ -86,4 +88,26 @@ export function getAiProvider(modelOverride?: string): AiProvider | null {
         60_000,
       ),
   };
+}
+
+/**
+ * Mini-Anfrage an die KI, um zu prüfen, ob sie erreichbar ist und Guthaben hat (für /api/health). Kostet praktisch
+ * nichts (wenige Tokens); das Ergebnis wird 10 Minuten zwischengespeichert.
+ */
+let aiHealthCache: { at: number; status: "ok" | "no_credits" | "error" | "not_configured" } | null = null;
+export async function aiHealth(): Promise<"ok" | "no_credits" | "error" | "not_configured"> {
+  if (aiHealthCache && Date.now() - aiHealthCache.at < 10 * 60_000) return aiHealthCache.status;
+  const provider = getAiProvider();
+  let status: "ok" | "no_credits" | "error" | "not_configured" = "ok";
+  if (!provider) status = "not_configured";
+  else {
+    try {
+      await provider.completeJson("Antworte als JSON: {\"ok\": true}", "ping");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      status = /insufficient_quota|credit/i.test(message) ? "no_credits" : "error";
+    }
+  }
+  aiHealthCache = { at: Date.now(), status };
+  return status;
 }

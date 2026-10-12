@@ -5,6 +5,7 @@ import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Badge, Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { isPlatformAdmin, loadCompanyOverview, mailHealth, type CompanyRow } from "@/lib/admin/overview";
+import { aiHealth } from "@/lib/ai/provider";
 import { requireSession } from "@/lib/auth/session";
 import { getPlan } from "@/lib/config/pricing";
 import { formatDateTime, timeAgo } from "@/lib/utils";
@@ -40,7 +41,7 @@ function mailboxCell(c: CompanyRow) {
 export default async function AdminPage() {
   const session = await requireSession();
   if (!isPlatformAdmin(session.email)) notFound();
-  const [rows, health] = await Promise.all([loadCompanyOverview(), mailHealth()]);
+  const [rows, health, ai] = await Promise.all([loadCompanyOverview(), mailHealth(), aiHealth()]);
 
   const paying = rows.filter((r) => r.status === "active");
   const trial = rows.filter((r) => r.status === "trialing" && r.hasPayment);
@@ -62,9 +63,14 @@ export default async function AdminPage() {
           <Logo href="/dashboard" />
           <h1 className="text-xl font-semibold">Betreiber-Übersicht</h1>
         </div>
-        <Badge tone={health?.ok === false ? "danger" : "success"}>
-          Mail-Abruf: {health ? (health.ok ? "läuft" : `${health.errors} Fehler, ${health.stale} hängen`) : "–"}
-        </Badge>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone={ai === "ok" ? "success" : "danger"}>
+            KI: {ai === "ok" ? "läuft" : ai === "no_credits" ? "OpenAI-Guthaben aufgebraucht!" : ai === "not_configured" ? "nicht eingerichtet" : "Fehler"}
+          </Badge>
+          <Badge tone={health?.ok === false ? "danger" : "success"}>
+            Mail-Abruf: {health ? (health.ok ? "läuft" : `${health.errors} Fehler, ${health.stale} hängen`) : "–"}
+          </Badge>
+        </div>
       </div>
 
       <ul className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
