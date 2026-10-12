@@ -50,11 +50,8 @@ function AppPasswordLink({ imapHost }: { imapHost: string }) {
           Dann wählen Sie bitte diesen Anbieter oben aus – das funktioniert direkt.
         </p>
         <p>
-          Liegt das Postfach direkt bei Microsoft (Outlook.com, Hotmail, Microsoft 365): Melden Sie sich mit einem{" "}
-          <a href="https://account.live.com/proofs/AppPassword" target="_blank" rel="noopener noreferrer" className="font-medium underline">
-            App-Kennwort
-          </a>{" "}
-          an. Lässt Microsoft das bei Ihrem Konto nicht zu, melden Sie sich bei uns – wir helfen Ihnen weiter.
+          Liegt das Postfach direkt bei Microsoft (Outlook.com, Hotmail, Microsoft 365), nutzen Sie bitte oben{" "}
+          <span className="font-medium text-foreground">„Mit Microsoft anmelden“</span> – eine Anmeldung per Passwort lässt Microsoft dafür nicht mehr zu.
         </p>
       </div>
     );
