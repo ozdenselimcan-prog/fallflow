@@ -39,10 +39,18 @@ const DEFAULT_FORM = { email: "", password: "", imapHost: "", imapPort: 993, smt
 
 const APP_PASSWORD_LINKS: { host: string; label: string; url: string }[] = [
   { host: "imap.gmail.com", label: "App-Passwort bei Google erstellen", url: "https://myaccount.google.com/apppasswords" },
-  { host: "outlook.office365.com", label: "App-Kennwort bei Microsoft erstellen", url: "https://account.live.com/proofs/AppPassword" },
 ];
 
 function AppPasswordLink({ imapHost }: { imapHost: string }) {
+  if (imapHost === "outlook.office365.com") {
+    return (
+      <p className="rounded-lg bg-warning-soft p-2.5 text-xs text-warning">
+        Hinweis: Microsoft erlaubt bei Outlook.com- und den meisten Microsoft-365-Postfächern keine Anmeldung per Passwort mehr für andere
+        Programme. Die Verbindung schlägt dann fehl. Verbinden Sie in diesem Fall bitte ein anderes Postfach (z. B. Gmail, IONOS, Strato,
+        T-Online) oder leiten Sie Anfragen dorthin weiter.
+      </p>
+    );
+  }
   const link = APP_PASSWORD_LINKS.find((l) => l.host === imapHost);
   if (!link) return null;
   return (
@@ -60,7 +68,7 @@ function AppPasswordLink({ imapHost }: { imapHost: string }) {
 }
 
 /** E-Mail per IMAP/SMTP verbinden – eigene Zugangsdaten des Büros, kein OAuth, keine "App nicht von
- * Google geprüft"-Warnung. Funktioniert mit Gmail (per App-Passwort), Outlook und praktisch jedem
+ * Google geprüft"-Warnung. Funktioniert mit Gmail (per App-Passwort) und praktisch jedem
  * Anbieter, der IMAP/SMTP anbietet. */
 const MICROSOFT_NOTICES: Record<string, { tone: "success" | "error"; text: string }> = {
   "microsoft-connected": { tone: "success", text: "Ihr Microsoft-Postfach ist verbunden." },
@@ -181,7 +189,7 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
               <Field label="E-Mail-Adresse">
                 <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="buero@ihre-domain.de" />
               </Field>
-              <Field label="Passwort" hint="Bei Gmail/Outlook: ein App-Passwort nutzen, nicht das normale Konto-Passwort (braucht 2-Faktor-Auth).">
+              <Field label="Passwort" hint="Bei Gmail: ein App-Passwort nutzen, nicht das normale Konto-Passwort (braucht 2-Faktor-Auth).">
                 <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
                 <div className="mt-1">
                   <AppPasswordLink imapHost={form.imapHost} />

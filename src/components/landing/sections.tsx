@@ -166,7 +166,7 @@ const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = 
   { icon: FileUp, title: "Ausgefüllte PDFs auslesen", text: "Was der Kunde ins Formular einträgt, landet automatisch in der Fallakte – die PDF selbst natürlich auch." },
   { icon: Inbox, title: "Posteingang", text: "Alle Mails und Telefonnotizen, automatisch dem richtigen Kunden und Fall zugeordnet." },
   { icon: Globe, title: "Website-Chat", text: "Die KI beantwortet Besucherfragen zu Ihren Leistungen – eingebunden mit einem Script-Tag." },
-  { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook und praktisch jedem Postfach." },
+  { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, IONOS, Strato, T-Online und praktisch jedem Postfach." },
   { icon: CalendarCheck, title: "Terminübergabe", text: "Vorbereitete Fälle lassen sich direkt mit einem Terminvorschlag weitergeben." },
   { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },
   { icon: FileText, title: "PDF-Vorlagen je Leistung", text: "Passende Vollmachten & Formulare gehen automatisch mit – zum Ausfüllen oder nur zur Info (z. B. Preisliste)." },
