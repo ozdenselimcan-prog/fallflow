@@ -3,7 +3,7 @@ import { extractFromFilledForm } from "@/lib/ai/form-extractor";
 import { mergeExtracted } from "@/lib/ai/conversation";
 import { FORM_ENTRIES_KEY, mergeFormEntries } from "@/lib/cases/form-entries";
 import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
-import { inspectFilledPdf } from "@/lib/ai/inspect-filled-pdf";
+import { inspectFilledPdf, type VisualInspection } from "@/lib/ai/inspect-filled-pdf";
 import { getAiProvider } from "@/lib/ai/provider";
 import { summarizeCase } from "@/lib/ai/summary";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
@@ -13,7 +13,7 @@ import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { Appointment, CaseDocument, CaseRecord, DocumentKind, DocumentTemplate, MessageChannel, ServiceMessage, TemplateDocument } from "@/lib/data/types";
 import { extractPdfText } from "@/lib/documents/pdf-text";
-import { readFile, saveFile, sniffMime } from "@/lib/documents/storage";
+import { readFile, saveFile, sniffMime, type AllowedMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { officeAlreadyRequests } from "./document-mentions";
@@ -369,16 +369,18 @@ export async function receiveFilledTemplate(
   caseId: string,
   bytes: Uint8Array,
   fileName: string,
-  /** pendingId: diese offene Vorlage verwenden (statt sie selbst zu suchen); quiet: keine Abschluss-Nachricht, das übernimmt der Aufrufer. */
-  opts: { pendingId?: string; quiet?: boolean } = {},
+  /** pendingId: diese offene Vorlage verwenden (statt sie selbst zu suchen); quiet: keine Abschluss-Nachricht, das übernimmt der Aufrufer;
+   * mime: abfotografiertes Formular (Bild) statt PDF; visual: bereits erfolgte Sichtprüfung wiederverwenden. */
+  opts: { pendingId?: string; quiet?: boolean; mime?: AllowedMime; visual?: VisualInspection } = {},
 ): Promise<boolean> {
   const pendingList = (await store.listTemplateDocuments(caseId)).filter((t) => t.status === "sent");
   if (!pendingList.length) return false;
   const c = await store.getCase(caseId);
   if (!c) return false;
 
-  const storagePath = await saveFile({ companyId: c.companyId, caseId, bytes, mime: "application/pdf" });
-  const text = await extractPdfText(bytes.slice());
+  const mime: AllowedMime = opts.mime ?? "application/pdf";
+  const storagePath = await saveFile({ companyId: c.companyId, caseId, bytes, mime });
+  const text = mime === "application/pdf" ? await extractPdfText(bytes.slice()) : "";
   const templates = await store.listDocumentTemplates();
   // Mehrere offene Vorlagen gleichzeitig (z. B. Leistungs-Vorlage UND "bei jeder Anfrage dabei"-Vorlage):
   // nicht blind die erste nehmen, sonst wird ein zurückgeschicktes Dokument der FALSCHEN erwarteten Vorlage
@@ -413,7 +415,7 @@ export async function receiveFilledTemplate(
   // die Text-Prüfung das Formular für leer/falsch, sieht sich die KI die Seiten selbst an – wie ein Mensch.
   const customerText = newText.replace(/\[Unterschrift\/Handzeichen vorhanden\]/g, "").trim();
   const needsVisual = !text || customerText.length < 25 || textVerdict?.filled === false || Boolean(textVerdict?.wrongDocument && !sameTemplate);
-  const visual = needsVisual ? await inspectFilledPdf(title, bytes, fileName) : null;
+  const visual = opts.visual ?? (needsVisual ? await inspectFilledPdf(title, bytes, fileName, mime) : null);
   let filled: boolean | null;
   let wrongDocument: boolean;
   let note: string;
@@ -438,7 +440,7 @@ export async function receiveFilledTemplate(
   await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled: wrongDocument ? false : filled, receivedAt: new Date().toISOString() });
   await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
   // Die ausgefüllte PDF auch als Dokument in der Fallakte ablegen, damit das Büro sie dort öffnen/herunterladen kann.
-  await registerUpload(store, c, { kind: "other", fileName: `${title} (vom Kunden) – ${fileName}`, mimeType: "application/pdf", size: bytes.length, storagePath });
+  await registerUpload(store, c, { kind: "other", fileName: `${title} (vom Kunden) – ${fileName}`, mimeType: mime, size: bytes.length, storagePath });
 
   // Angaben, die der Kunde ins Formular eingetragen hat (Adresse, PLZ, Gebäudetyp, Baujahr, Wohnfläche,
   // Eigentümer …), in die Fallakte übernehmen – nur die vom Kunden eingetragenen, nicht den Vordruck des Büros.
@@ -565,6 +567,18 @@ export async function receiveEmailAttachments(store: Store, caseId: string, atta
       const pendingIds = new Set(pendingList.map((p) => p.id));
       const doc = (await store.listTemplateDocuments(caseId)).find((t) => pendingIds.has(t.id) && t.status === "received");
       if (doc?.filled === false) rejected = true;
+    } else if (att.mime.startsWith("image/") && !guessDocumentKind(att.filename) && pendingList.length) {
+      // Foto vom Handy: Ist es das abfotografierte, ausgefüllte Formular? Nur dann als Vorlage werten – sonst ganz
+      // normal als Foto ablegen (z. B. ein Bild vom Heizungskeller), ohne den Kunden zu beanstanden.
+      const tpl = templates.find((t) => t.id === pendingList[0].templateId);
+      const imageMime = sniffMime(att.bytes);
+      const visual = tpl && imageMime && imageMime !== "application/pdf" ? await inspectFilledPdf(tpl.title, att.bytes, att.filename, imageMime) : null;
+      if (visual && !visual.wrongDocument && imageMime) {
+        await receiveFilledTemplate(store, caseId, att.bytes, att.filename, { quiet: true, pendingId: pendingList[0].id, mime: imageMime, visual });
+        if (!visual.filled) rejected = true;
+      } else {
+        await receiveCaseDocument(store, caseId, att.bytes, att.filename);
+      }
     } else {
       await receiveCaseDocument(store, caseId, att.bytes, att.filename);
     }

@@ -5,7 +5,7 @@ import { createMemoryStore } from "@/lib/data/memory";
 import type { Store } from "@/lib/data/store";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { saveFile } from "@/lib/documents/storage";
-import { receiveFilledTemplate } from "./case-ops";
+import { receiveEmailAttachments, receiveFilledTemplate } from "./case-ops";
 
 vi.mock("@/lib/documents/pdf-text", () => ({ extractPdfText: vi.fn(async () => "") }));
 vi.mock("@/lib/ai/verify-filled-template", () => ({ verifyFilledTemplate: vi.fn(async () => ({ filled: null, wrongDocument: false, note: "" })) }));
@@ -68,5 +68,35 @@ describe("Zurückgeschicktes Formular ohne auslesbaren Text (Scan, Foto, Handsch
     await receiveFilledTemplate(store, c.id, new Uint8Array([1, 2, 3]), "leer.pdf");
     const msg = (await store.listMessages(c.id)).find((m) => m.role === "assistant")?.content ?? "";
     expect(msg).toContain("Name und Wohnfläche sind leer.");
+  });
+});
+
+describe("Abfotografiertes Formular (JPG vom Handy)", () => {
+  let store: Store;
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new Array(40).fill(1)]);
+  beforeEach(() => {
+    store = freshStore();
+    vi.stubEnv("AI_API_KEY", "test-key");
+    vi.mocked(inspectFilledPdf).mockReset();
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("wird als ausgefüllte Vorlage erkannt und ausgelesen", async () => {
+    vi.mocked(inspectFilledPdf).mockResolvedValue({ filled: true, wrongDocument: false, note: "", extraction: { fields: { yearBuilt: "1999" }, entries: [] } });
+    const c = await setup(store);
+    await receiveEmailAttachments(store, c.id, [{ filename: "IMG_2041.jpg", mime: "image/jpeg", bytes: jpeg }]);
+    const [td] = await store.listTemplateDocuments(c.id);
+    expect(td.status).toBe("received");
+    expect((await store.getCase(c.id))?.fields.yearBuilt).toBe("1999");
+  });
+
+  it("ein anderes Foto (z. B. Heizungskeller) wird einfach als Foto abgelegt – ohne Beanstandung", async () => {
+    vi.mocked(inspectFilledPdf).mockResolvedValue({ filled: false, wrongDocument: true, note: "Das ist ein Foto einer Heizung.", extraction: { fields: {}, entries: [] } });
+    const c = await setup(store);
+    await receiveEmailAttachments(store, c.id, [{ filename: "IMG_2042.jpg", mime: "image/jpeg", bytes: jpeg }]);
+    const [td] = await store.listTemplateDocuments(c.id);
+    expect(td.status).toBe("sent");
+    expect((await store.listDocuments(c.id)).some((d) => d.kind === "photos" && d.status === "received")).toBe(true);
+    expect((await store.listMessages(c.id)).some((m) => m.content.includes("Heizung"))).toBe(false);
   });
 });

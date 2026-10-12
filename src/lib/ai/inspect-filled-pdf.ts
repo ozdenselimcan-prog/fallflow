@@ -54,14 +54,17 @@ const tidy = (s: string, max: number) => s.replace(/[\u0000-\u001f\u007f<>]/g, "
  * PDF kein auslesbarer Text steckt (Scan, Foto, Handschrift, Stift auf dem Tablet) oder die Text-Prüfung das
  * Formular für leer hält. null = keine KI verfügbar, Datei zu groß oder Fehler (dann entscheidet ein Mensch).
  */
-export async function inspectFilledPdf(title: string, pdf: Uint8Array, fileName: string): Promise<VisualInspection | null> {
+export async function inspectFilledPdf(title: string, pdf: Uint8Array, fileName: string, mime = "application/pdf"): Promise<VisualInspection | null> {
   const provider = getAiProvider(VISION_MODEL);
   if (!provider || pdf.length > MAX_PDF_BYTES) return null;
   try {
-    const raw = await provider.completeJsonWithPdf(SYSTEM.replaceAll("{title}", title), `Erwartete Vorlage: "${title}". Bitte das angehängte Formular prüfen und auslesen.`, {
-      filename: fileName.toLowerCase().endsWith(".pdf") ? fileName : `${fileName}.pdf`,
-      base64: Buffer.from(pdf).toString("base64"),
-    });
+    const system = SYSTEM.replaceAll("{title}", title);
+    const user = `Erwartete Vorlage: "${title}". Bitte das angehängte Formular prüfen und auslesen.`;
+    const base64 = Buffer.from(pdf).toString("base64");
+    // Abfotografiertes Formular (JPG/PNG) als Bild, sonst die PDF selbst.
+    const raw = mime.startsWith("image/")
+      ? await provider.completeJsonWithImages(system, user, [{ mime, base64 }])
+      : await provider.completeJsonWithPdf(system, user, { filename: fileName.toLowerCase().endsWith(".pdf") ? fileName : `${fileName}.pdf`, base64 });
     const parsed = schema.safeParse(raw);
     if (!parsed.success) return null;
     const fields = extractionToFields(parsed.data);
