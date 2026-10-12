@@ -218,7 +218,7 @@ export function ServiceMessagesPanel({
           <Card key={row} className={cn(isAlways && "border-accent/40 bg-accent-soft/30")}>
             <CardHeader
               title={isAlways ? "Bei jeder Anfrage dabei" : row}
-              description={isAlways ? "Unabhängig von der Leistung – z. B. eine Datenschutz-Einwilligung" : row === FALLBACK_SERVICE ? "Wenn die KI die Leistung nicht eindeutig erkennt" : undefined}
+              description={isAlways ? "Unabhängig von der Leistung – z. B. eine Datenschutz-Einwilligung" : undefined}
               action={isAlways ? <Mail className="size-4 text-accent" aria-hidden /> : undefined}
             />
             <div className="space-y-3 px-5 pb-5">
