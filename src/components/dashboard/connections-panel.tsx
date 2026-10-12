@@ -46,10 +46,16 @@ const DEFAULT_FORM = { email: "", password: "", imapHost: "", imapPort: 993, smt
 const linkClass = "font-medium text-accent underline underline-offset-2";
 
 /** Outlook/Microsoft 365: Die Kunden schreiben weiter an die gewohnte Adresse, Outlook leitet an ein Gmail-Postfach weiter, das FallFlow abruft. */
-function OutlookForwardingGuide() {
+function OutlookForwardingGuide({ microsoftAvailable }: { microsoftAvailable: boolean }) {
   return (
     <div className="space-y-2 rounded-xl border border-accent/30 bg-accent/5 p-4 text-xs leading-relaxed text-muted-foreground">
-      <p className="text-sm font-medium text-foreground">So verbinden Sie Outlook – Ihre E-Mail-Adresse bleibt gleich</p>
+      {microsoftAvailable && (
+        <p className="rounded-lg bg-background p-2.5 text-sm text-foreground">
+          Am einfachsten: oben <span className="font-medium">„Mit Microsoft anmelden“</span> klicken und mit Ihrer Outlook-Adresse und Ihrem Passwort anmelden. Die
+          Weiterleitung unten brauchen Sie nur, falls das bei Ihnen nicht klappt (z. B. weil Ihre IT die Anmeldung nicht freigibt).
+        </p>
+      )}
+      <p className="text-sm font-medium text-foreground">{microsoftAvailable ? "Alternative: Weiterleitung" : "So verbinden Sie Outlook"} – Ihre E-Mail-Adresse bleibt gleich</p>
       <p>
         Microsoft erlaubt anderen Programmen keine Anmeldung per Passwort mehr. Deshalb leitet Outlook Ihre Mails an ein Gmail-Postfach weiter, das nur
         FallFlow nutzt. Ihre Kunden merken davon nichts: Sie schreiben weiter an Ihre gewohnte Adresse, sehen Ihren Büronamen als Absender, und ihre
@@ -209,7 +215,7 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
             {microsoftAvailable && (
               <div className="space-y-2 rounded-xl border border-border p-4">
                 <p className="text-sm font-medium">Outlook / Microsoft 365</p>
-                <p className="text-xs text-muted-foreground">Einfach mit Ihrem Microsoft-Konto anmelden – kein Passwort und keine Server-Einstellungen nötig.</p>
+                <p className="text-xs text-muted-foreground">Einfach mit Ihrer Outlook-Adresse und Ihrem Passwort direkt bei Microsoft anmelden – keine Server-Einstellungen nötig. Bei Firmenkonten (Microsoft 365) muss beim ersten Mal ggf. der Administrator Ihrer Firma zustimmen.</p>
                 <Button size="sm" loading={msPending} onClick={connectMicrosoft}>
                   Mit Microsoft anmelden
                 </Button>
@@ -230,7 +236,7 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
                 ))}
               </Select>
             </Field>
-            {forwarding && <OutlookForwardingGuide />}
+            {forwarding && <OutlookForwardingGuide microsoftAvailable={microsoftAvailable} />}
             <div className="grid gap-3 sm:grid-cols-2">
               {forwarding && (
                 <div className="sm:col-span-2">
