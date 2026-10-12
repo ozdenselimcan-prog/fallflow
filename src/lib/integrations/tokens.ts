@@ -1,4 +1,4 @@
-import type { MailSyncProvider, ProviderTokens } from "./email";
+import { friendlyMailError, type MailSyncProvider, type ProviderTokens } from "./email";
 import { getConnection, saveConnection, type Connection } from "./connections-store";
 
 const REFRESH_MARGIN_MS = 5 * 60_000;
@@ -34,7 +34,7 @@ export async function getValidTokens(provider: MailSyncProvider, companyId: stri
   } catch (err) {
     const message = err instanceof Error ? err.message : "Token-Erneuerung fehlgeschlagen";
     console.error(`[${provider.id}] Token-Erneuerung fehlgeschlagen für Büro ${companyId}:`, message);
-    await saveConnection({ companyId, provider: provider.id, status: "error", lastError: message });
+    await saveConnection({ companyId, provider: provider.id, status: "error", lastError: friendlyMailError(message) });
     return null;
   }
 }

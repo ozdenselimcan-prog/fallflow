@@ -45,6 +45,17 @@ export interface RefreshedTokens {
   expiresIn: number;
 }
 
+/** Übersetzt typische Fehler des Mail-Anbieters in einen verständlichen Hinweis für das Büro (sonst bleibt der Originaltext). */
+export function friendlyMailError(message: string): string {
+  if (/service abuse|ErrorAccountSuspend|Account suspended/i.test(message)) {
+    return "Microsoft hat Ihr Postfach vorübergehend gesperrt (Verdacht auf Missbrauch – passiert vor allem bei neuen, privaten Outlook-Adressen). Bitte melden Sie sich im Browser bei Outlook an und bestätigen Sie Ihr Konto (meist per SMS-Code). Danach hier erneut „Mit Microsoft anmelden“ klicken.";
+  }
+  if (/AADSTS(70000|700082|50173|50076|50079)|invalid_grant/i.test(message)) {
+    return "Die Anmeldung bei Microsoft ist abgelaufen oder wurde zurückgesetzt (z. B. nach einer Passwortänderung). Bitte hier erneut „Mit Microsoft anmelden“ klicken.";
+  }
+  return message;
+}
+
 /** Grobe Text-Extraktion aus HTML-Mail-Inhalt (Tags entfernen, Whitespace normalisieren) – kein echter HTML-Parser. */
 export const stripHtml = (html: string) =>
   html

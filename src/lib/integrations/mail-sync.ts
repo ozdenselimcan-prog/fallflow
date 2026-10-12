@@ -4,7 +4,7 @@ import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { findCaseByIdentity } from "@/lib/intake/identity";
 import { needsPaymentSetup } from "@/lib/billing/access";
 import { listActiveConnections, saveConnection } from "./connections-store";
-import type { MailSyncProvider } from "./email";
+import { friendlyMailError, type MailSyncProvider } from "./email";
 import { unwrapForwardedMail } from "./forwarded";
 import { runAsReplyTo } from "./outbound";
 import { handleInboundMail } from "./inbound-mail";
@@ -151,7 +151,7 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
       // Status auf "error" setzen (nicht nur lastError speichern): sonst zeigt die Oberfläche weiterhin
       // "Verbunden" an, obwohl jeder Abruf fehlschlägt (z. B. veraltete Zugangsdaten von vor der
       // IMAP-Umstellung) – das Büro bekommt den Fehler sonst nie zu sehen.
-      await saveConnection({ companyId: connection.companyId, provider: provider.id, status: "error", lastError: message }).catch(() => {});
+      await saveConnection({ companyId: connection.companyId, provider: provider.id, status: "error", lastError: friendlyMailError(message) }).catch(() => {});
     }
   }
   return { connections: connections.length, messages, skipped, errors };
