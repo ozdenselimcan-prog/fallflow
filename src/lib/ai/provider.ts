@@ -12,6 +12,8 @@ export interface AiProvider {
   completeJson(system: string, user: string): Promise<unknown>;
   /** Wie completeJson, aber mit Bildern im User-Turn (Vision) – braucht ein bildfähiges Modell (z. B. gpt-4o-mini). */
   completeJsonWithImages(system: string, user: string, images: AiImage[]): Promise<unknown>;
+  /** Wie completeJson, aber mit einer PDF-Datei im User-Turn – das Modell sieht die Seiten wie ein Mensch (auch Scans und Handschrift). */
+  completeJsonWithPdf(system: string, user: string, pdf: { filename: string; base64: string }): Promise<unknown>;
 }
 
 /** `modelOverride` erzwingt ein bestimmtes Modell unabhängig von AI_MODEL – z. B. ein günstiges Modell für einfache Ja/Nein-Einschätzungen. */
@@ -52,6 +54,17 @@ export function getAiProvider(modelOverride?: string): AiProvider | null {
           user: [{ type: "text", text: user }, ...images.map((img) => ({ type: "image_url", image_url: { url: `data:${img.mime};base64,${img.base64}` } }))],
         },
         30_000,
+      ),
+    completeJsonWithPdf: (system, user, pdf) =>
+      request(
+        {
+          system,
+          user: [
+            { type: "text", text: user },
+            { type: "file", file: { filename: pdf.filename, file_data: `data:application/pdf;base64,${pdf.base64}` } },
+          ],
+        },
+        60_000,
       ),
   };
 }

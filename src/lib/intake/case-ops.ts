@@ -2,7 +2,9 @@ import { randomBytes } from "node:crypto";
 import { extractFromFilledForm } from "@/lib/ai/form-extractor";
 import { mergeExtracted } from "@/lib/ai/conversation";
 import { FORM_ENTRIES_KEY, mergeFormEntries } from "@/lib/cases/form-entries";
-import { attentionOf } from "@/lib/cases/attention";
+import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
+import { inspectFilledPdf } from "@/lib/ai/inspect-filled-pdf";
+import { getAiProvider } from "@/lib/ai/provider";
 import { summarizeCase } from "@/lib/ai/summary";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
@@ -406,10 +408,32 @@ export async function receiveFilledTemplate(
   // Enthält das Dokument den Vordruck der Vorlage fast vollständig, ist es sicher die richtige Vorlage.
   const similarity = text ? templateSimilarity(blankText, text) : null;
   const sameTemplate = similarity !== null && similarity >= 0.6;
-  const verdict = text ? await verifyFilledTemplate(title, text, newText, sameTemplate) : { filled: null, wrongDocument: false, note: "" };
-  const wrongDocument = verdict.wrongDocument && !sameTemplate;
-  const { filled } = verdict;
-  const note = verdict.wrongDocument && sameTemplate ? "" : verdict.note;
+  const textVerdict = text ? await verifyFilledTemplate(title, text, newText, sameTemplate) : null;
+  // Steckt (fast) kein auslesbarer Text des Kunden im PDF (Scan, Foto, Handschrift, Stift auf dem Tablet) oder hält
+  // die Text-Prüfung das Formular für leer/falsch, sieht sich die KI die Seiten selbst an – wie ein Mensch.
+  const customerText = newText.replace(/\[Unterschrift\/Handzeichen vorhanden\]/g, "").trim();
+  const needsVisual = !text || customerText.length < 25 || textVerdict?.filled === false || Boolean(textVerdict?.wrongDocument && !sameTemplate);
+  const visual = needsVisual ? await inspectFilledPdf(title, bytes, fileName) : null;
+  let filled: boolean | null;
+  let wrongDocument: boolean;
+  let note: string;
+  if (visual) {
+    wrongDocument = visual.wrongDocument && !sameTemplate;
+    filled = wrongDocument ? false : visual.filled;
+    note = wrongDocument || !visual.filled ? visual.note : "";
+  } else if (textVerdict) {
+    wrongDocument = textVerdict.wrongDocument && !sameTemplate;
+    filled = textVerdict.filled;
+    note = textVerdict.wrongDocument && sameTemplate ? "" : textVerdict.note;
+  } else {
+    wrongDocument = false;
+    filled = null;
+    note = "";
+  }
+  // Konnte die KI das Formular nicht selbst ansehen, obwohl es nötig gewesen wäre, ist das Ergebnis unsicher: dann
+  // bekommt der Kunde KEINE automatische Beanstandung – das Büro schaut kurz selbst drauf.
+  // (Ohne eingerichtete KI gibt es keine Sichtprüfung – dann bleibt es beim bisherigen Verhalten.)
+  const uncertain = needsVisual && !visual && getAiProvider() !== null;
 
   await store.saveTemplateDocument({ id: pending.id, caseId, templateId: pending.templateId, status: "received", storagePath, aiNote: note, filled: wrongDocument ? false : filled, receivedAt: new Date().toISOString() });
   await store.addEvent(caseId, "document", note ? `Vorlage per E-Mail zurückerhalten: ${title} (${note})` : `Vorlage per E-Mail zurückerhalten: ${title}`);
@@ -419,8 +443,8 @@ export async function receiveFilledTemplate(
   // Angaben, die der Kunde ins Formular eingetragen hat (Adresse, PLZ, Gebäudetyp, Baujahr, Wohnfläche,
   // Eigentümer …), in die Fallakte übernehmen – nur die vom Kunden eingetragenen, nicht den Vordruck des Büros.
   // Auch bei einer nur teilweise ausgefüllten Vorlage, damit schon Vorhandenes nicht verloren geht.
-  if (!wrongDocument && text) {
-    const extracted = await extractFromFilledForm(blankText, text, newText);
+  if (!wrongDocument && (visual || text)) {
+    const extracted = visual ? visual.extraction : await extractFromFilledForm(blankText, text, newText);
     const questions = await store.listQuestions();
     const merged = { ...c.fields };
     const added = mergeExtracted(merged, extracted.fields, { allowFreeText: false }, questions);
@@ -432,9 +456,17 @@ export async function receiveFilledTemplate(
     }
   }
 
+  // Unsicheres Ergebnis (Formular nicht lesbar bzw. Beanstandung ohne Sichtprüfung): Büro entscheidet.
+  if (uncertain && (wrongDocument || filled !== true) && !attentionOf(c.fields)) {
+    const reason = note ? `Formular „${title}“ bitte selbst prüfen – ${note.replace(/[.?!]+$/, "")}` : `Formular „${title}“ konnte nicht automatisch gelesen werden – bitte selbst prüfen`;
+    await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: reason }, keepTimestamp: true });
+    c.fields = { ...c.fields, [ATTENTION_KEY]: reason };
+    await store.addEvent(caseId, "handoff", `Aufmerksamkeit benötigt (${reason}) – keine automatische Antwort an den Kunden.`);
+  }
+
   // Wartet der Fall auf eine persönliche Antwort des Energieberaters ("Aufmerksamkeit benötigt"), schreibt die KI
   // dem Kunden nichts automatisch – die PDF ist trotzdem abgelegt und geprüft.
-  if ((wrongDocument || filled === false) && attentionOf(c.fields)) {
+  if ((wrongDocument || filled !== true) && attentionOf(c.fields)) {
     await refreshCase(store, caseId, { hint: "waiting" });
     return true;
   }
