@@ -28,12 +28,6 @@ export default async function AssistantTemplatesPage() {
         <ArrowLeft className="size-4" /> KI-Assistent
       </Link>
       <PageHeader title="Vorlagen & Nachrichten" description="Pro Leistung: PDF-Vorlagen anhängen und den Nachrichtentext festlegen, den der Assistent dazu verschickt. Bei jeder PDF legen Sie per Klick fest, ob der Kunde sie „ausgefüllt zurück“ schicken soll oder ob sie „nur zur Info“ dabei ist (z. B. Preisliste)." />
-      {can(session.role, "cases:write") && (
-        <>
-          <TestMailCard />
-          <div className="h-4" />
-        </>
-      )}
       <AppointmentConfirmationCard initial={assistant} canEdit={can(session.role, "assistant:manage")} />
       <div className="h-4" />
       <ServiceMessagesPanel
@@ -49,6 +43,13 @@ export default async function AssistantTemplatesPage() {
         initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         canEdit={canEdit}
       />
+      {/* Ganz unten: erst Nachrichten und Vorlagen einrichten, dann ausprobieren. */}
+      {can(session.role, "cases:write") && (
+        <>
+          <div className="h-4" />
+          <TestMailCard />
+        </>
+      )}
     </>
   );
 }
