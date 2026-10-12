@@ -44,11 +44,19 @@ const APP_PASSWORD_LINKS: { host: string; label: string; url: string }[] = [
 function AppPasswordLink({ imapHost }: { imapHost: string }) {
   if (imapHost === "outlook.office365.com") {
     return (
-      <p className="rounded-lg bg-warning-soft p-2.5 text-xs text-warning">
-        Hinweis: Microsoft erlaubt bei Outlook.com- und den meisten Microsoft-365-Postfächern keine Anmeldung per Passwort mehr für andere
-        Programme. Die Verbindung schlägt dann fehl. Verbinden Sie in diesem Fall bitte ein anderes Postfach (z. B. Gmail, IONOS, Strato,
-        T-Online) oder leiten Sie Anfragen dorthin weiter.
-      </p>
+      <div className="space-y-1 rounded-lg bg-muted/60 p-2.5 text-xs text-muted-foreground">
+        <p>
+          Nutzen Sie Outlook nur als Programm und Ihr Postfach liegt bei einem anderen Anbieter (z. B. IONOS, Strato, T-Online, 1&amp;1)?
+          Dann wählen Sie bitte diesen Anbieter oben aus – das funktioniert direkt.
+        </p>
+        <p>
+          Liegt das Postfach direkt bei Microsoft (Outlook.com, Hotmail, Microsoft 365): Melden Sie sich mit einem{" "}
+          <a href="https://account.live.com/proofs/AppPassword" target="_blank" rel="noopener noreferrer" className="font-medium underline">
+            App-Kennwort
+          </a>{" "}
+          an. Lässt Microsoft das bei Ihrem Konto nicht zu, melden Sie sich bei uns – wir helfen Ihnen weiter.
+        </p>
+      </div>
     );
   }
   const link = APP_PASSWORD_LINKS.find((l) => l.host === imapHost);
