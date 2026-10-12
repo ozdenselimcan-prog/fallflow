@@ -9,6 +9,8 @@ export interface InboundMessage {
   text: string;
   sender: { email?: string; phone?: string; name?: string };
   simulated?: boolean;
+  /** true = immer einen neuen Fall anlegen, auch wenn es zu diesem Absender schon einen gibt. */
+  forceNewCase?: boolean;
 }
 
 export interface InboundResult {
@@ -24,7 +26,7 @@ export interface InboundResult {
  */
 export async function routeInbound(store: Store, msg: InboundMessage): Promise<InboundResult> {
   const cases = await store.listCases();
-  const match = findCaseByIdentity(cases, msg.sender);
+  const match = msg.forceNewCase ? null : findCaseByIdentity(cases, msg.sender);
   const source: CaseSource = msg.channel;
   const turn = await processIntakeMessage(store, {
     companyId: msg.companyId,

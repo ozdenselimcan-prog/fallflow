@@ -15,7 +15,8 @@ export const normalizeEmail = (raw: string) => raw.trim().toLowerCase();
 
 /**
  * Ordnet eine eingehende Nachricht dem richtigen Fall zu (E-Mail-Adresse oder Telefonnummer).
- * Offene Fälle haben Vorrang vor bereits übernommenen; unter mehreren gilt der zuletzt aktive.
+ * Offene Fälle haben Vorrang vor bereits übernommenen; unter mehreren gilt der zuletzt angelegte (hat der Kunde nach
+ * einem fertigen Fall eine neue Anfrage gestellt, läuft das Gespräch im neuen Fall weiter).
  */
 export function findCaseByIdentity(cases: CaseRecord[], identity: { email?: string; phone?: string }): CaseRecord | null {
   const email = identity.email ? normalizeEmail(identity.email) : "";
@@ -26,5 +27,5 @@ export function findCaseByIdentity(cases: CaseRecord[], identity: { email?: stri
     return Boolean(phone && c.fields.phone && normalizePhone(c.fields.phone).digits === phone);
   });
   const open = matches.filter((c) => c.status !== "CONVERTED");
-  return (open.length ? open : []).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
+  return (open.length ? open : []).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
 }
