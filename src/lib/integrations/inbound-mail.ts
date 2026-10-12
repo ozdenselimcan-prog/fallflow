@@ -18,19 +18,19 @@ export interface IncomingMail {
 }
 
 /**
- * Der Fall des Kunden ist fertig vorbereitet ("Bereit zur Prüfung") und es läuft keine Terminabstimmung mehr: Ist die
- * neue Mail eine echte Anfrage – zu einer anderen Leistung oder nach über 30 Tagen –, wird ein neuer Fall angelegt.
+ * Der Fall des Kunden ist fertig vorbereitet ("Bereit zur Prüfung"): Ist die neue Mail eine echte Anfrage – zu einer
+ * anderen Leistung oder (ohne laufende Terminabstimmung) nach über 30 Tagen –, wird ein neuer Fall angelegt.
  * Kurze Rückmeldungen ("Danke", "Dienstag passt", Rückfragen) bleiben im bisherigen Fall. (Übernommene Fälle
  * zählen ohnehin nicht mehr als offen, siehe findCaseByIdentity.)
  */
 async function isNewRequestAfterDoneCase(c: CaseRecord, text: string): Promise<boolean> {
   if (c.status !== "READY_FOR_REVIEW") return false;
-  const stage = c.fields.apptStage ?? "";
-  if (stage === "ask" || stage === "proposed") return false;
   if (!(await isCustomerInquiry(text))) return false;
   const service = (await extractForText(text)).service ?? "";
   const otherService = Boolean(service && service !== "Sonstiges" && service !== (c.fields.service ?? ""));
-  const longAgo = Date.now() - Date.parse(c.updatedAt) > 30 * 86_400_000;
+  // Läuft noch eine Terminabstimmung, geht es bei derselben Leistung fast immer um den Termin – dann im alten Fall bleiben.
+  const stage = c.fields.apptStage ?? "";
+  const longAgo = stage !== "ask" && stage !== "proposed" && Date.now() - Date.parse(c.updatedAt) > 30 * 86_400_000;
   return otherService || longAgo;
 }
 
