@@ -9,8 +9,6 @@ export interface InboundMessage {
   text: string;
   sender: { email?: string; phone?: string; name?: string };
   simulated?: boolean;
-  /** Fall anlegen, aber mit diesem Hinweis unter "Aufmerksamkeit benötigt" statt automatisch zu antworten. */
-  forceAttention?: string;
 }
 
 export interface InboundResult {
@@ -36,7 +34,6 @@ export async function routeInbound(store: Store, msg: InboundMessage): Promise<I
     channel: msg.channel,
     simulated: msg.simulated,
     identity: msg.sender,
-    forceAttention: msg.forceAttention,
   });
   return { turn, matchedExisting: Boolean(match) };
 }
