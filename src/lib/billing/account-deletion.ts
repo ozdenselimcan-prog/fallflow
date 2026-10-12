@@ -47,7 +47,7 @@ async function sendWarning(companyId: string, deleteAt: Date): Promise<void> {
 }
 
 /** Löscht ALLE Daten eines Büros: Dateien im Speicher, Benutzerkonten (sofern nur in diesem Büro) und die Firma samt allen Tabellen. */
-async function deleteCompany(companyId: string): Promise<void> {
+export async function deleteCompany(companyId: string): Promise<void> {
   const admin = createAdminClient();
   if (!admin) throw new Error("Service-Role-Key fehlt");
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { CleanupTestAccountsButton } from "@/components/admin/cleanup-button";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Badge, Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
@@ -78,7 +79,11 @@ export default async function AdminPage() {
         ))}
       </ul>
 
-      <Card className="mt-6 overflow-x-auto">
+      <div className="mt-6">
+        <CleanupTestAccountsButton count={rows.filter((r) => /^claude-[^@]+@mailinator\.com$/i.test(r.owner)).length} />
+      </div>
+
+      <Card className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[56rem] text-sm">
           <thead className="border-b border-border text-left text-xs text-muted-foreground">
             <tr>
