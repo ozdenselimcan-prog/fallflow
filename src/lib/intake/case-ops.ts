@@ -578,6 +578,13 @@ export async function receiveEmailAttachments(store: Store, caseId: string, atta
         if (!visual.filled) rejected = true;
       } else {
         await receiveCaseDocument(store, caseId, att.bytes, att.filename);
+        // Sichtprüfung nicht möglich (z. B. KI kurz überlastet): Es könnte das abfotografierte Formular sein – dann
+        // nicht automatisch "fehlt noch …" schreiben, sondern das Büro kurz draufschauen lassen.
+        if (!visual && tpl && getAiProvider()) {
+          const reason = `Kunde hat ein Foto geschickt (${att.filename}) – evtl. das ausgefüllte Formular „${tpl.title}“, bitte selbst prüfen`;
+          await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: reason }, keepTimestamp: true });
+          await store.addEvent(caseId, "handoff", `Aufmerksamkeit benötigt (${reason}).`);
+        }
       }
     } else {
       await receiveCaseDocument(store, caseId, att.bytes, att.filename);

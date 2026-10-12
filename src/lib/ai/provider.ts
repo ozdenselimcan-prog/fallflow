@@ -24,25 +24,39 @@ export function getAiProvider(modelOverride?: string): AiProvider | null {
   const base = (process.env.AI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
 
   async function request(msg: { system: string; user: unknown }, timeoutMs: number): Promise<unknown> {
-    const res = await fetch(`${base}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: msg.system },
-          { role: "user", content: msg.user },
-        ],
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!res.ok) throw new Error(`AI-Provider antwortete mit HTTP ${res.status}`);
-    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = body.choices?.[0]?.message?.content;
-    if (!content) throw new Error("AI-Provider lieferte keinen Inhalt");
-    return JSON.parse(content);
+    // Der JSON-Modus von OpenAI verlangt das Wort "JSON" in den Anweisungen (sonst HTTP 400) – sicherheitshalber ergänzen.
+    const system = /json/i.test(msg.system) ? msg.system : `${msg.system}\nAntworte als JSON.`;
+    const deadline = Date.now() + timeoutMs;
+    for (let attempt = 0; ; attempt++) {
+      const res = await fetch(`${base}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: msg.user },
+          ],
+        }),
+        signal: AbortSignal.timeout(Math.max(1_000, deadline - Date.now())),
+      });
+      // Kurzzeitig zu viele Anfragen (Rate-Limit) oder Server überlastet: kurz warten und erneut versuchen.
+      if ((res.status === 429 || res.status >= 500) && attempt < 2) {
+        const retryAfter = Number(res.headers.get("retry-after"));
+        const wait = Math.min(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1500 * (attempt + 1), 8_000);
+        if (Date.now() + wait < deadline - 2_000) {
+          await new Promise((r) => setTimeout(r, wait));
+          continue;
+        }
+      }
+      if (!res.ok) throw new Error(`AI-Provider antwortete mit HTTP ${res.status}`);
+      const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const content = body.choices?.[0]?.message?.content;
+      if (!content) throw new Error("AI-Provider lieferte keinen Inhalt");
+      return JSON.parse(content);
+    }
   }
 
   return {
