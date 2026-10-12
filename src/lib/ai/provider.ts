@@ -51,7 +51,12 @@ export function getAiProvider(modelOverride?: string): AiProvider | null {
           continue;
         }
       }
-      if (!res.ok) throw new Error(`AI-Provider antwortete mit HTTP ${res.status}`);
+      if (!res.ok) {
+        // Fehlercode von OpenAI mitloggen (z. B. insufficient_quota, rate_limit_exceeded) – ohne Nutzerinhalte.
+        const err = (await res.json().catch(() => ({}))) as { error?: { code?: string; type?: string; message?: string } };
+        const detail = [err.error?.code, err.error?.type, err.error?.message?.slice(0, 160)].filter(Boolean).join(" · ");
+        throw new Error(`AI-Provider antwortete mit HTTP ${res.status}${detail ? ` (${detail})` : ""}`);
+      }
       const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
       const content = body.choices?.[0]?.message?.content;
       if (!content) throw new Error("AI-Provider lieferte keinen Inhalt");
