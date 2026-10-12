@@ -6,6 +6,7 @@ import { needsPaymentSetup } from "@/lib/billing/access";
 import { listActiveConnections, saveConnection } from "./connections-store";
 import type { MailSyncProvider } from "./email";
 import { unwrapForwardedMail } from "./forwarded";
+import { runAsReplyTo } from "./outbound";
 import { handleInboundMail } from "./inbound-mail";
 import { getValidTokens } from "./tokens";
 
@@ -119,11 +120,15 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           }
         }
         try {
-          const outcome = await handleInboundMail(
-            store,
-            connection.companyId,
-            { from, fromName, subject: mail.subject, body: mail.body, attachments: mail.attachments, skippedAttachments: mail.skippedAttachments },
-            { junk: mail.junk },
+          // Alle automatischen Antworten an diesen Absender gehen als Antwort auf genau diese Mail raus (siehe outbound.ts).
+          const target = { from, subject: mail.subject, messageId: mail.messageId, providerMessageId: provider.id === "microsoft" ? mail.externalId : undefined };
+          const outcome = await runAsReplyTo(target, () =>
+            handleInboundMail(
+              store,
+              connection.companyId,
+              { from, fromName, subject: mail.subject, body: mail.body, attachments: mail.attachments, skippedAttachments: mail.skippedAttachments },
+              { junk: mail.junk },
+            ),
           );
           if (outcome.handled) messages++;
           else skipped++;

@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { MessageChannel } from "@/lib/data/types";
 import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { getValidTokens } from "./tokens";
-import { IntegrationNotReadyError, type InboundAttachment } from "./email";
+import { IntegrationNotReadyError, type InboundAttachment, type ReplyTarget } from "./email";
 import { gmailProvider } from "./gmail";
 import { microsoftProvider } from "./microsoft";
 
@@ -17,6 +17,13 @@ const EMAIL_PROVIDERS = [gmailProvider, microsoftProvider];
 /** Test-Simulation (siehe /api/simulate/email): Alles, was innerhalb läuft, versendet garantiert keine echte Mail. */
 const simulation = new AsyncLocalStorage<boolean>();
 export const runSimulated = <T>(fn: () => Promise<T>): Promise<T> => simulation.run(true, fn);
+
+/**
+ * Während eine eingegangene Mail bearbeitet wird (siehe mail-sync.ts): Antworten an genau diesen Absender gehen als
+ * echte Antwort auf seine Mail raus (gleicher Gesprächsverlauf) statt als neue Mail – das landet deutlich seltener im Spam.
+ */
+const replyContext = new AsyncLocalStorage<ReplyTarget & { from: string }>();
+export const runAsReplyTo = <T>(target: ReplyTarget & { from: string }, fn: () => Promise<T>): Promise<T> => replyContext.run(target, fn);
 
 /**
  * Versand an Kunden über die vom jeweiligen Büro verbundenen Kanäle (siehe connections-store.ts).
@@ -43,7 +50,9 @@ export async function deliverToCustomer(input: {
       const found = await getValidTokens(provider, input.companyId);
       if (!found) continue;
       if (!input.email) return { delivered: false, reason: "Keine E-Mail-Adresse vorhanden." };
-      await provider.sendReply(found.tokens, input.email, input.subject || DEFAULT_EMAIL_SUBJECT, input.text, input.attachments);
+      const target = replyContext.getStore();
+      const reply = target && target.from === input.email.trim().toLowerCase() ? target : undefined;
+      await provider.sendReply(found.tokens, input.email, input.subject || DEFAULT_EMAIL_SUBJECT, input.text, input.attachments, reply);
       return { delivered: true, reason: "" };
     }
     return { delivered: false, reason: "Für dieses Büro ist kein E-Mail-Postfach verbunden." };

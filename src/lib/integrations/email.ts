@@ -63,5 +63,23 @@ export interface MailSyncProvider {
   /** Leichter Aufruf, um zu prüfen, ob die gespeicherten Zugangsdaten noch funktionieren. Wirft bei Fehler. */
   testConnection(tokens: ProviderTokens): Promise<void>;
   fetchNewMessages(tokens: ProviderTokens, sinceIso: string | null): Promise<InboundEmail[]>;
-  sendReply(tokens: ProviderTokens, to: string, subject: string, body: string, attachments?: InboundAttachment[]): Promise<void>;
+  /** Mit `reply`: als Antwort auf diese eingegangene Mail senden (gleicher Gesprächsverlauf beim Kunden). */
+  sendReply(tokens: ProviderTokens, to: string, subject: string, body: string, attachments?: InboundAttachment[], reply?: ReplyTarget): Promise<void>;
 }
+
+/** Die Mail des Kunden, auf die geantwortet wird. */
+export interface ReplyTarget {
+  /** Message-ID-Kopfzeile der Kunden-Mail (für In-Reply-To/References). */
+  messageId?: string;
+  /** ID der Mail beim Anbieter (Microsoft Graph), um direkt darauf zu antworten. */
+  providerMessageId?: string;
+  /** Betreff der Kunden-Mail. */
+  subject: string;
+}
+
+/** Betreff einer Antwort: "Re: <Betreff des Kunden>" – ohne Betreff des Kunden der vorgesehene Betreff. */
+export const replySubject = (original: string, fallback: string) => {
+  const s = original.trim();
+  if (!s) return fallback;
+  return /^(re|aw|antw)\s*:/i.test(s) ? s : `Re: ${s}`;
+};

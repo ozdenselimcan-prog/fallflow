@@ -1,7 +1,7 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import nodemailer from "nodemailer";
-import { stripHtml, type InboundAttachment, type InboundEmail, type MailSyncProvider, type ProviderTokens } from "./email";
+import { replySubject, stripHtml, type InboundAttachment, type InboundEmail, type MailSyncProvider, type ProviderTokens } from "./email";
 
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
@@ -91,14 +91,16 @@ export const gmailProvider: MailSyncProvider = {
     });
   },
 
-  async sendReply(tokens, to, subject, body, attachments) {
+  async sendReply(tokens, to, subject, body, attachments, reply) {
     const creds = parseCreds(tokens);
     await smtpTransport(creds).sendMail({
       from: creds.senderName ? { name: creds.senderName, address: creds.email } : creds.email,
       // Bei Weiterleitung antworten die Kunden an die gewohnte Büro-Adresse (die wiederum hierher weiterleitet).
       ...(creds.replyTo ? { replyTo: creds.replyTo } : {}),
+      // Echte Antwort auf die Mail des Kunden (gleicher Gesprächsverlauf) – landet deutlich seltener im Spam.
+      ...(reply?.messageId ? { inReplyTo: reply.messageId, references: reply.messageId } : {}),
       to,
-      subject,
+      subject: reply ? replySubject(reply.subject, subject) : subject,
       text: body,
       attachments: attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.bytes), contentType: a.mime })),
       // RFC 3834: markiert die Mail als automatisch versendet, damit andere automatische Systeme (z. B. ein

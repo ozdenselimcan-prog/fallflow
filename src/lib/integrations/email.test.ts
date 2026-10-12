@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stripHtml } from "./email";
+import { replySubject, stripHtml } from "./email";
 
 describe("stripHtml", () => {
   it("entfernt Tags und normalisiert Whitespace", () => {
@@ -12,5 +12,13 @@ describe("stripHtml", () => {
 
   it("lässt reinen Text unverändert (bis auf Whitespace)", () => {
     expect(stripHtml("Einfacher   Text")).toBe("Einfacher Text");
+  });
+});
+
+describe("replySubject", () => {
+  it("setzt Re: vor den Betreff des Kunden, aber nicht doppelt", () => {
+    expect(replySubject("iSFP Anfrage", "Ihre Anfrage")).toBe("Re: iSFP Anfrage");
+    expect(replySubject("AW: iSFP Anfrage", "Ihre Anfrage")).toBe("AW: iSFP Anfrage");
+    expect(replySubject("  ", "Ihre Anfrage")).toBe("Ihre Anfrage");
   });
 });
