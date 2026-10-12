@@ -36,6 +36,8 @@ export interface ConnectionStatus {
   accountEmail: string;
   lastSyncedAt: string | null;
   lastError: string;
+  /** Bei Weiterleitung (z. B. Outlook → Gmail): die Adresse, die die Kunden kennen und an die sie antworten. */
+  replyTo?: string;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -59,13 +61,14 @@ function mapRow(r: Row): Connection {
   };
 }
 
-export const toStatus = (c: Pick<Connection, "provider" | "status" | "accountName" | "accountEmail" | "lastSyncedAt" | "lastError">): ConnectionStatus => ({
+export const toStatus = (c: Pick<Connection, "provider" | "status" | "accountName" | "accountEmail" | "lastSyncedAt" | "lastError"> & { metadata?: Record<string, unknown> }): ConnectionStatus => ({
   provider: c.provider,
   status: c.status,
   accountName: c.accountName,
   accountEmail: c.accountEmail,
   lastSyncedAt: c.lastSyncedAt,
   lastError: c.lastError,
+  ...(typeof c.metadata?.replyTo === "string" && c.metadata.replyTo ? { replyTo: c.metadata.replyTo } : {}),
 });
 
 function admin() {

@@ -17,6 +17,8 @@ export interface ConnectionView {
   accountEmail: string;
   lastSyncedAt: string | null;
   lastError: string;
+  /** Weiterleitung (Outlook → Gmail): die Adresse, die die Kunden kennen. */
+  replyTo?: string;
 }
 
 function StatusBadge({ status }: { status: ConnectionView["status"] | "disconnected" }) {
@@ -25,9 +27,13 @@ function StatusBadge({ status }: { status: ConnectionView["status"] | "disconnec
   return <Badge>○ Nicht verbunden</Badge>;
 }
 
+const OUTLOOK_PRESET = "Outlook / Microsoft 365 / Hotmail";
+const GMAIL_SERVERS = { imapHost: "imap.gmail.com", imapPort: 993, smtpHost: "smtp.gmail.com", smtpPort: 465 };
+
 const PRESETS: { label: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number }[] = [
-  { label: "Gmail / Google Workspace", imapHost: "imap.gmail.com", imapPort: 993, smtpHost: "smtp.gmail.com", smtpPort: 465 },
-  { label: "Outlook / Microsoft 365", imapHost: "outlook.office365.com", imapPort: 993, smtpHost: "smtp.office365.com", smtpPort: 587 },
+  { label: "Gmail / Google Workspace", ...GMAIL_SERVERS },
+  // Microsoft lässt keine Anmeldung per Passwort mehr zu – deshalb Weiterleitung an ein Gmail-Hilfspostfach (siehe OutlookForwardingGuide).
+  { label: OUTLOOK_PRESET, ...GMAIL_SERVERS },
   { label: "GMX", imapHost: "imap.gmx.net", imapPort: 993, smtpHost: "mail.gmx.net", smtpPort: 465 },
   { label: "Web.de", imapHost: "imap.web.de", imapPort: 993, smtpHost: "smtp.web.de", smtpPort: 465 },
   { label: "IONOS", imapHost: "imap.ionos.de", imapPort: 993, smtpHost: "smtp.ionos.de", smtpPort: 465 },
@@ -35,27 +41,53 @@ const PRESETS: { label: string; imapHost: string; imapPort: number; smtpHost: st
   { label: "T-Online", imapHost: "secureimap.t-online.de", imapPort: 993, smtpHost: "securesmtp.t-online.de", smtpPort: 465 },
 ];
 
-const DEFAULT_FORM = { email: "", password: "", imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465 };
+const DEFAULT_FORM = { email: "", password: "", imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465, replyTo: "" };
+
+const linkClass = "font-medium text-accent underline underline-offset-2";
+
+/** Outlook/Microsoft 365: Die Kunden schreiben weiter an die gewohnte Adresse, Outlook leitet an ein Gmail-Postfach weiter, das FallFlow abruft. */
+function OutlookForwardingGuide() {
+  return (
+    <div className="space-y-2 rounded-xl border border-accent/30 bg-accent/5 p-4 text-xs leading-relaxed text-muted-foreground">
+      <p className="text-sm font-medium text-foreground">So verbinden Sie Outlook – Ihre E-Mail-Adresse bleibt gleich</p>
+      <p>
+        Microsoft erlaubt anderen Programmen keine Anmeldung per Passwort mehr. Deshalb leitet Outlook Ihre Mails an ein Gmail-Postfach weiter, das nur
+        FallFlow nutzt. Ihre Kunden merken davon nichts: Sie schreiben weiter an Ihre gewohnte Adresse, sehen Ihren Büronamen als Absender, und ihre
+        Antworten gehen wieder an Ihre gewohnte Adresse.
+      </p>
+      <ol className="list-decimal space-y-1.5 pl-4">
+        <li>
+          <a href="https://accounts.google.com/signup" target="_blank" rel="noopener noreferrer" className={linkClass}>Kostenloses Gmail-Postfach anlegen ↗</a>{" "}
+          (z. B. ihrbuero.anfragen@gmail.com), dort die{" "}
+          <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener noreferrer" className={linkClass}>2-Schritt-Verifizierung ↗</a>{" "}
+          einschalten und ein{" "}
+          <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className={linkClass}>App-Passwort erstellen ↗</a>.
+        </li>
+        <li>Unten Ihre Outlook-Adresse, die neue Gmail-Adresse und das App-Passwort eintragen und auf „E-Mail verbinden“ klicken.</li>
+        <li>
+          In Outlook die Weiterleitung einschalten:{" "}
+          <a href="https://outlook.office.com/mail/options/mail/forwarding" target="_blank" rel="noopener noreferrer" className={linkClass}>Microsoft 365 ↗</a> bzw.{" "}
+          <a href="https://outlook.live.com/mail/0/options/mail/forwarding" target="_blank" rel="noopener noreferrer" className={linkClass}>Outlook.com/Hotmail ↗</a> → „Weiterleitung
+          aktivieren“ → Gmail-Adresse eintragen → „Kopie der weitergeleiteten Nachrichten behalten“ anhaken → Speichern.
+        </li>
+        <li>Testen: Schreiben Sie von einer anderen Adresse (z. B. vom Handy) eine Mail an Ihre Outlook-Adresse – sie erscheint nach wenigen Minuten unter „Anfragen“.</li>
+      </ol>
+      <p>
+        Kommt nichts an oder erhalten Sie eine Fehlermail („externe Weiterleitung nicht erlaubt“)? Bei Microsoft 365 muss die Weiterleitung einmal vom
+        Administrator erlaubt werden:{" "}
+        <a href="https://security.microsoft.com/antispam" target="_blank" rel="noopener noreferrer" className={linkClass}>Microsoft Defender → Antispamrichtlinien ↗</a> →
+        „Antispamrichtlinie für ausgehende Nachrichten (Standard)“ → „Schutzeinstellungen bearbeiten“ → Regeln für automatische Weiterleitung: „Ein –
+        Weiterleitung ist aktiviert“.
+      </p>
+    </div>
+  );
+}
 
 const APP_PASSWORD_LINKS: { host: string; label: string; url: string }[] = [
   { host: "imap.gmail.com", label: "App-Passwort bei Google erstellen", url: "https://myaccount.google.com/apppasswords" },
 ];
 
 function AppPasswordLink({ imapHost }: { imapHost: string }) {
-  if (imapHost === "outlook.office365.com") {
-    return (
-      <div className="space-y-1 rounded-lg bg-muted/60 p-2.5 text-xs text-muted-foreground">
-        <p>
-          Nutzen Sie Outlook nur als Programm und Ihr Postfach liegt bei einem anderen Anbieter (z. B. IONOS, Strato, T-Online, 1&amp;1)?
-          Dann wählen Sie bitte diesen Anbieter oben aus – das funktioniert direkt.
-        </p>
-        <p>
-          Liegt das Postfach direkt bei Microsoft (Outlook.com, Hotmail, Microsoft 365), nutzen Sie bitte oben{" "}
-          <span className="font-medium text-foreground">„Mit Microsoft anmelden“</span> – eine Anmeldung per Passwort lässt Microsoft dafür nicht mehr zu.
-        </p>
-      </div>
-    );
-  }
   const link = APP_PASSWORD_LINKS.find((l) => l.host === imapHost);
   if (!link) return null;
   return (
@@ -104,15 +136,22 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
     }
   };
 
+  const [forwarding, setForwarding] = useState(false);
+
   const applyPreset = (label: string) => {
+    setForwarding(label === OUTLOOK_PRESET);
+    if (label !== OUTLOOK_PRESET) setForm((f) => ({ ...f, replyTo: "" }));
     const preset = PRESETS.find((p) => p.label === label);
     if (preset) setForm((f) => ({ ...f, imapHost: preset.imapHost, imapPort: preset.imapPort, smtpHost: preset.smtpHost, smtpPort: preset.smtpPort }));
   };
 
   const connect = async () => {
     setNotice(null);
-    const res = await run(() => apiFetch("POST", "/api/integrations/gmail", form));
-    if (res) setForm(DEFAULT_FORM);
+    const res = await run(() => apiFetch("POST", "/api/integrations/gmail", { ...form, replyTo: forwarding ? form.replyTo : "" }));
+    if (res) {
+      setForm(DEFAULT_FORM);
+      setForwarding(false);
+    }
     else setNotice({ tone: "error", text: error ?? "Verbindung fehlgeschlagen." });
   };
 
@@ -143,8 +182,9 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
             <p className="text-sm text-muted-foreground">Neue Anfragen aus Ihrem Postfach übernehmen und beantworten.</p>
             {connected && connection.accountEmail && (
               <p className="mt-1 text-sm font-medium">
-                {connection.accountEmail}
+                {connection.replyTo ?? connection.accountEmail}
                 {provider === "microsoft" && <span className="font-normal text-muted-foreground"> · über Microsoft angemeldet</span>}
+                {connection.replyTo && <span className="font-normal text-muted-foreground"> · weitergeleitet an {connection.accountEmail}</span>}
               </p>
             )}
             {connected && connection.lastSyncedAt && <p className="text-xs text-muted-foreground">Zuletzt synchronisiert: {formatDateTime(connection.lastSyncedAt)}</p>}
@@ -190,16 +230,31 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
                 ))}
               </Select>
             </Field>
+            {forwarding && <OutlookForwardingGuide />}
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="E-Mail-Adresse">
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="buero@ihre-domain.de" />
-              </Field>
-              <Field label="Passwort" hint="Bei Gmail: ein App-Passwort nutzen, nicht das normale Konto-Passwort (braucht 2-Faktor-Auth).">
-                <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-                <div className="mt-1">
-                  <AppPasswordLink imapHost={form.imapHost} />
+              {forwarding && (
+                <div className="sm:col-span-2">
+                  <Field label="Ihre Outlook-Adresse (die Ihre Kunden kennen)">
+                    <Input type="email" value={form.replyTo} onChange={(e) => setForm({ ...form, replyTo: e.target.value })} placeholder="info@ihre-domain.de" />
+                  </Field>
                 </div>
+              )}
+              <Field label={forwarding ? "Gmail-Adresse (nur für FallFlow)" : "E-Mail-Adresse"}>
+                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={forwarding ? "ihrbuero.anfragen@gmail.com" : "buero@ihre-domain.de"} />
               </Field>
+              <Field
+                label={forwarding ? "App-Passwort von Google" : "Passwort"}
+                hint={forwarding ? undefined : "Bei Gmail: ein App-Passwort nutzen, nicht das normale Konto-Passwort (braucht 2-Faktor-Auth)."}
+              >
+                <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                {!forwarding && (
+                  <div className="mt-1">
+                    <AppPasswordLink imapHost={form.imapHost} />
+                  </div>
+                )}
+              </Field>
+            </div>
+            <div className={forwarding ? "hidden" : "grid gap-3 sm:grid-cols-2"}>
               <Field label="IMAP-Server (Posteingang)">
                 <Input value={form.imapHost} onChange={(e) => setForm({ ...form, imapHost: e.target.value })} placeholder="imap.ihre-domain.de" />
               </Field>
@@ -217,7 +272,7 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
               variant="secondary"
               size="sm"
               loading={pending}
-              disabled={!form.email || !form.password || !form.imapHost || !form.smtpHost}
+              disabled={!form.email || !form.password || !form.imapHost || !form.smtpHost || (forwarding && !form.replyTo)}
               onClick={connect}
             >
               E-Mail verbinden

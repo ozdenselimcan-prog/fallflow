@@ -16,6 +16,8 @@ const connectSchema = z.object({
   imapPort: z.coerce.number().int().min(1).max(65535),
   smtpHost: z.string().trim().min(1).max(255),
   smtpPort: z.coerce.number().int().min(1).max(65535),
+  /** Weiterleitung: die Büro-Adresse, die die Kunden kennen (z. B. info@… bei Microsoft 365), leer = keine. */
+  replyTo: z.union([z.literal(""), z.string().trim().toLowerCase().email()]).optional(),
 });
 
 export const GET = withSession(async (_req, { session }) => {
@@ -29,7 +31,10 @@ export const POST = withSession(
     if (!encryptionAvailable()) return apiError("Kanal-Verbindungen sind serverseitig noch nicht eingerichtet (CONNECTIONS_SECRET fehlt).", 503);
     const body = await parseBody(req, connectSchema);
     if (!body.ok) return body.res;
-    const creds = encodeCredentials(body.data);
+    const { replyTo: rawReplyTo, ...login } = body.data;
+    const replyTo = rawReplyTo && rawReplyTo !== login.email ? rawReplyTo : "";
+    const company = await store.getCompany();
+    const creds = encodeCredentials({ ...login, ...(replyTo ? { replyTo } : {}), ...(company.name ? { senderName: company.name } : {}) });
     try {
       await gmailProvider.testConnection({ accessToken: creds, refreshToken: null, expiresAt: null });
     } catch (err) {
@@ -45,7 +50,7 @@ export const POST = withSession(
       accessToken: creds,
       refreshToken: null,
       expiresAt: null,
-      metadata: {},
+      metadata: replyTo ? { replyTo } : {},
       lastSyncedAt: null,
       lastError: "",
     });

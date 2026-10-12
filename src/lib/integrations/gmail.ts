@@ -20,6 +20,10 @@ export interface ImapSmtpCredentials {
   imapPort: number;
   smtpHost: string;
   smtpPort: number;
+  /** Weiterleitung (z. B. Outlook/Microsoft 365 → Gmail): Adresse, die die Kunden kennen – Antworten gehen dorthin zurück. */
+  replyTo?: string;
+  /** Anzeigename als Absender (Büroname), damit die Kunden sehen, von wem die Mail kommt. */
+  senderName?: string;
 }
 
 function parseCreds(tokens: ProviderTokens): ImapSmtpCredentials {
@@ -130,7 +134,9 @@ export const gmailProvider: MailSyncProvider = {
   async sendReply(tokens, to, subject, body, attachments) {
     const creds = parseCreds(tokens);
     await smtpTransport(creds).sendMail({
-      from: creds.email,
+      from: creds.senderName ? { name: creds.senderName, address: creds.email } : creds.email,
+      // Bei Weiterleitung antworten die Kunden an die gewohnte Büro-Adresse (die wiederum hierher weiterleitet).
+      ...(creds.replyTo ? { replyTo: creds.replyTo } : {}),
       to,
       subject,
       text: body,

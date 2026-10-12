@@ -5,6 +5,7 @@ import { findCaseByIdentity } from "@/lib/intake/identity";
 import { needsPaymentSetup } from "@/lib/billing/access";
 import { listActiveConnections, saveConnection } from "./connections-store";
 import type { MailSyncProvider } from "./email";
+import { unwrapForwardedMail } from "./forwarded";
 import { handleInboundMail } from "./inbound-mail";
 import { getValidTokens } from "./tokens";
 
@@ -72,7 +73,18 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
       for (const mail of inbound) {
         if (seenIds.has(mail.externalId)) continue;
         seenIds.add(mail.externalId);
-        const { email: from, name: fromName } = parseFromHeader(mail.from);
+        let { email: from, name: fromName } = parseFromHeader(mail.from);
+        // Weiterleitung (z. B. Outlook → Gmail) per „WG:“-Regel: die Mail kommt scheinbar von der eigenen Büro-Adresse,
+        // der echte Kunde steht im Text – herausholen. Lässt sich keiner finden, ist es eine eigene Mail des Büros.
+        const replyTo = typeof connection.metadata.replyTo === "string" ? connection.metadata.replyTo.toLowerCase() : "";
+        if (replyTo && from === replyTo) {
+          const original = unwrapForwardedMail(mail.subject, mail.body);
+          if (!original || original.from === replyTo || original.from === connection.accountEmail.trim().toLowerCase()) continue;
+          from = original.from;
+          fromName = original.fromName;
+          mail.subject = original.subject;
+          mail.body = original.body;
+        }
         // Sicherheitsnetz gegen Endlosschleifen: eine Mail, die vom eigenen verbundenen Postfach kommt (z. B. eine
         // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
         if (from === connection.accountEmail.trim().toLowerCase()) continue;
