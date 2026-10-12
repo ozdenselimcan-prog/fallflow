@@ -10,6 +10,9 @@ import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { handleInboundMail } from "@/lib/integrations/inbound-mail";
 import { runSimulated } from "@/lib/integrations/outbound";
 
+// Sichtprüfung eingescannter Formulare kann etwas dauern.
+export const maxDuration = 60;
+
 const schema = z.object({
   /** Absender; bei preview optional (dann eine zufällige Test-Adresse, damit es immer eine NEUE Anfrage ist). */
   from: z.string().trim().toLowerCase().email().optional(),

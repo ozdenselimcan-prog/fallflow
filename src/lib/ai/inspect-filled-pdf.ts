@@ -2,10 +2,12 @@ import { z } from "zod";
 import { EXTRACTION_SYSTEM_PROMPT } from "./prompts";
 import { getAiProvider } from "./provider";
 import { extractionSchema, extractionToFields } from "./schema";
+import { extractEmbeddedJpegs } from "@/lib/documents/pdf-images";
 import type { FormEntry, FormExtraction } from "./form-extractor";
 
-/** Bildfähiges Modell, das PDF-Seiten "sieht" (auch Scans, Fotos, Handschrift). */
-const VISION_MODEL = "gpt-4o-mini";
+/** Bildfähiges Modell, das PDF-Seiten "sieht" (auch Scans, Fotos, Handschrift). Bewusst das stärkere Modell: Handschrift
+ * liest gpt-4o deutlich zuverlässiger, und es wird nur in diesen Ausnahmefällen gebraucht. */
+const VISION_MODEL = process.env.AI_VISION_MODEL || "gpt-4o";
 /** Größere PDFs (z. B. hochaufgelöste Scans) nicht an die KI schicken. */
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
 
@@ -16,14 +18,19 @@ erwartet wird. Du siehst die PDF-Seiten wie ein Mensch – auch eingescannte, fo
 
 1. wrongDocument: true nur, wenn es offensichtlich ein ANDERES Dokument ist (andere Überschrift/Zweck). Der Büroname im Briefkopf
    sagt nichts über die Art des Dokuments.
-2. filled: true, wenn die wesentlichen Felder sichtbar ausgefüllt sind (getippt, eingefügt, handschriftlich, angekreuzt).
-   false nur, wenn nichts oder erkennbar zu wenig eingetragen ist. Unterschriften NIE als fehlend bemängeln.
+2. Was ist eine Eintragung? NUR, was der Kunde hineingeschrieben, getippt oder angekreuzt hat (oft andere Schrift/Farbe,
+   Handschrift). Vordruck und Beschriftungen des Formulars (z. B. "Straße, Nummer", "PLZ /Ort", "m2", Linien "____", leere
+   Kästchen) sind NIE Eintragungen. Ein Kästchen gilt nur als angekreuzt, wenn ein Kreuz oder Haken darin sichtbar ist.
+3. filled: true, wenn die wesentlichen Eingabefelder ausgefüllt sind. filled: false, wenn weniger als etwa die Hälfte
+   der Eingabefelder (ohne Unterschrift) eine Eintragung hat – dann im note die leeren Felder nennen.
+   Unterschriften NIE als fehlend bemängeln.
    note: bei filled=false konkret, WELCHE Felder leer sind (max. 140 Zeichen); sonst kurze Bestätigung.
-3. Lies ALLE Eintragungen des Kunden aus (nicht den Vordruck, nicht die Angaben des Büros) und fülle damit das JSON:
+4. Lies ALLE Eintragungen des Kunden aus (nicht den Vordruck, nicht die Angaben des Büros) und fülle damit das JSON:
    customer/property/heating/request wie unten beschrieben, und formEntries = alle übrigen Eintragungen
    ({"label": Bezeichnung aus dem Formular, "value": Eintrag}), angekreuzte Kästchen als value "Ja"/"Nein"/gewählte Option.
    Name des Hausbesitzers/Antragstellers = customer.name; Adresse des Gebäudes = property.street/postalCode.
-   Handschrift, die du nicht sicher lesen kannst, lässt du weg statt zu raten.
+   Handschrift, die du nicht sicher lesen kannst, lässt du weg statt zu raten. Leere Felder bleiben leer – nichts erfinden,
+   nichts aus dem Vordruck übernehmen. Ordne jeden Wert dem Feld zu, neben dem er steht (z. B. Telefonnummer ≠ Steuer-ID).
 
 Antworte AUSSCHLIESSLICH mit JSON:
 {"wrongDocument": false, "filled": true, "note": "",
@@ -61,10 +68,14 @@ export async function inspectFilledPdf(title: string, pdf: Uint8Array, fileName:
     const system = SYSTEM.replaceAll("{title}", title);
     const user = `Erwartete Vorlage: "${title}". Bitte das angehängte Formular prüfen und auslesen.`;
     const base64 = Buffer.from(pdf).toString("base64");
-    // Abfotografiertes Formular (JPG/PNG) als Bild, sonst die PDF selbst.
+    // Abfotografiertes Formular (JPG/PNG) als Bild; eingescannte PDF möglichst als ihre Seitenbilder in voller Auflösung;
+    // sonst die PDF selbst.
+    const scannedPages = mime === "application/pdf" ? extractEmbeddedJpegs(pdf) : [];
     const raw = mime.startsWith("image/")
       ? await provider.completeJsonWithImages(system, user, [{ mime, base64 }])
-      : await provider.completeJsonWithPdf(system, user, { filename: fileName.toLowerCase().endsWith(".pdf") ? fileName : `${fileName}.pdf`, base64 });
+      : scannedPages.length
+        ? await provider.completeJsonWithImages(system, `${user} (Eingescannte Seiten als Bilder.)`, scannedPages.map((p) => ({ mime: "image/jpeg", base64: Buffer.from(p).toString("base64") })))
+        : await provider.completeJsonWithPdf(system, user, { filename: fileName.toLowerCase().endsWith(".pdf") ? fileName : `${fileName}.pdf`, base64 });
     const parsed = schema.safeParse(raw);
     if (!parsed.success) return null;
     const fields = extractionToFields(parsed.data);

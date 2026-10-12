@@ -51,9 +51,9 @@ export function getAiProvider(modelOverride?: string): AiProvider | null {
       request(
         {
           system,
-          user: [{ type: "text", text: user }, ...images.map((img) => ({ type: "image_url", image_url: { url: `data:${img.mime};base64,${img.base64}` } }))],
+          user: [{ type: "text", text: user }, ...images.map((img) => ({ type: "image_url", image_url: { url: `data:${img.mime};base64,${img.base64}`, detail: "high" } }))],
         },
-        30_000,
+        60_000,
       ),
     completeJsonWithPdf: (system, user, pdf) =>
       request(
