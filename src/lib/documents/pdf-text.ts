@@ -28,7 +28,7 @@ const freeTextOf = (a: PdfAnnotation) => (a.contents?.trim() || a.contentsObj?.s
 /** Platzhalter-Linien, Kästchen und Einheiten aus einer Beschriftung entfernen. */
 const cleanLabel = (s: string) =>
   s
-    .replace(/_{2,}s*(m2|m²|qm|kwh|€|eur)?/gi, " ")
+    .replace(/_{2,}\s*(m2|m²|qm|kwh|€|eur)?/gi, " ")
     .replace(/[□☐]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
