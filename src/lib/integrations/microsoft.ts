@@ -157,32 +157,24 @@ export const microsoftProvider: MailSyncProvider & {
 
   async sendReply(tokens, to, subject, body, attachments, reply) {
     const fileAttachments = (attachments ?? []).map((a) => ({ "@odata.type": "#microsoft.graph.fileAttachment", name: a.filename, contentType: a.mime, contentBytes: Buffer.from(a.bytes).toString("base64") }));
-    // Echte Antwort auf die Mail des Kunden (gleicher Gesprächsverlauf) – landet deutlich seltener im Spam. Klappt
-    // ein Schritt nicht, wird der Entwurf verworfen und die Mail wie bisher als neue Nachricht geschickt.
+    // Echte Antwort auf die Mail des Kunden (gleicher Gesprächsverlauf) – landet deutlich seltener im Spam. Über die
+    // reply-Aktion (braucht nur Mail.Send, kein Entwurf). Klappt das nicht, geht die Mail wie bisher als neue Nachricht raus.
     if (reply?.providerMessageId) {
-      let draftId: string | null = null;
       try {
-        const draft = await graphFetch<{ id: string }>(`/messages/${encodeURIComponent(reply.providerMessageId)}/createReply`, tokens, {
+        await graphFetch(`/messages/${encodeURIComponent(reply.providerMessageId)}/reply`, tokens, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: { internetMessageHeaders: [{ name: AUTO_HEADER, value: "auto-replied" }] } }),
+          body: JSON.stringify({
+            message: {
+              body: { contentType: "Text", content: body },
+              internetMessageHeaders: [{ name: AUTO_HEADER, value: "auto-replied" }],
+              attachments: fileAttachments,
+            },
+          }),
         });
-        draftId = draft?.id ?? null;
-        if (!draftId) throw new Error("Kein Antwort-Entwurf erhalten");
-        const draftPath = `/messages/${encodeURIComponent(draftId)}`;
-        await graphFetch(draftPath, tokens, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subject: replySubject(reply.subject, subject), body: { contentType: "Text", content: body }, toRecipients: [{ emailAddress: { address: to } }] }),
-        });
-        for (const a of fileAttachments) {
-          await graphFetch(`${draftPath}/attachments`, tokens, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a) });
-        }
-        await graphFetch(`${draftPath}/send`, tokens, { method: "POST" });
         return;
       } catch (err) {
         console.error("[microsoft] Antwort im Gesprächsverlauf fehlgeschlagen, sende als neue Mail:", err instanceof Error ? err.message : "unbekannt");
-        if (draftId) await graphFetch(`/messages/${encodeURIComponent(draftId)}`, tokens, { method: "DELETE" }).catch(() => {});
       }
     }
     await graphFetch("/sendMail", tokens, {
@@ -190,7 +182,7 @@ export const microsoftProvider: MailSyncProvider & {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: {
-          subject,
+          subject: reply ? replySubject(reply.subject, subject) : subject,
           body: { contentType: "Text", content: body },
           toRecipients: [{ emailAddress: { address: to } }],
           internetMessageHeaders: [{ name: AUTO_HEADER, value: "auto-replied" }],

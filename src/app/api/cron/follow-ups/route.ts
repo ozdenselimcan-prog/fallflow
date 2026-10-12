@@ -10,7 +10,7 @@ import { syncAllSubscriptions } from "@/lib/billing/stripe-sync";
 
 // Mit wachsender Buero-Anzahl dauert ein Durchlauf laenger als das Standard-Timeout erlaubt – ohne das
 // wird die Funktion mitten im Mail-Abruf abgebrochen (siehe mail-sync.ts fuer die Absicherung dagegen).
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Cron-Endpunkt (Pfad bleibt aus Kompatibilität mit dem externen Scheduler bestehen): holt neue E-Mails aller Büros
