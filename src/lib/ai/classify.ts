@@ -33,17 +33,19 @@ const schema = z.object({ isInquiry: z.boolean() });
 /**
  * Grobe Einschätzung, ob ein eingehender E-Mail-Text überhaupt eine Kundenanfrage ist (statt Newsletter,
  * Rechnung, interne Mail o. Ä.). Nur für E-Mail-Sync relevant – beim Website-Chat ist der Absender per
- * Definition ein Kunde, der den Chat öffnet. Ohne KI-Key oder bei einem Fehler: im Zweifel true (nichts
- * wird stillschweigend verworfen, wenn wir es nicht sicher beurteilen können).
+ * Definition ein Kunde, der den Chat öffnet.
+ * Ergebnis: true/false – oder null, wenn die KI eingerichtet, aber gerade nicht erreichbar ist (z. B. Guthaben
+ * aufgebraucht). Dann darf nicht blind automatisch geantwortet werden (siehe inbound-mail.ts). Ganz ohne KI-Key
+ * (Demo/Entwicklung) gilt im Zweifel true.
  */
-export async function isCustomerInquiry(text: string): Promise<boolean> {
+export async function classifyInquiry(text: string): Promise<boolean | null> {
   const provider = getAiProvider(CLASSIFIER_MODEL);
   if (!provider) return true;
   try {
     const parsed = schema.safeParse(await provider.completeJson(SYSTEM, `<mail>\n${text.slice(0, 3000)}\n</mail>`));
-    return parsed.success ? parsed.data.isInquiry : true;
+    return parsed.success ? parsed.data.isInquiry : null;
   } catch (err) {
     console.error("[ai] Klassifikation fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
-    return true;
+    return null;
   }
 }

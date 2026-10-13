@@ -1,4 +1,4 @@
-import { isCustomerInquiry } from "@/lib/ai/classify";
+import { classifyInquiry } from "@/lib/ai/classify";
 import type { Store } from "@/lib/data/store";
 import type { CaseRecord } from "@/lib/data/types";
 import { extractForText } from "@/lib/intake/engine";
@@ -25,7 +25,8 @@ export interface IncomingMail {
  */
 async function isNewRequestAfterDoneCase(c: CaseRecord, text: string): Promise<boolean> {
   if (c.status !== "READY_FOR_REVIEW") return false;
-  if (!(await isCustomerInquiry(text))) return false;
+  // Nicht sicher beurteilbar (KI nicht erreichbar) → im bisherigen Fall bleiben.
+  if ((await classifyInquiry(text)) !== true) return false;
   const service = (await extractForText(text)).service ?? "";
   const otherService = Boolean(service && service !== "Sonstiges" && service !== (c.fields.service ?? ""));
   // Läuft noch eine Terminabstimmung, geht es bei derselben Leistung fast immer um den Termin – dann im alten Fall bleiben.
@@ -33,6 +34,9 @@ async function isNewRequestAfterDoneCase(c: CaseRecord, text: string): Promise<b
   const longAgo = stage !== "ask" && stage !== "proposed" && Date.now() - Date.parse(c.updatedAt) > 30 * 86_400_000;
   return otherService || longAgo;
 }
+
+/** Grund für "Aufmerksamkeit benötigt", wenn die KI nicht prüfen konnte, ob es eine Kundenanfrage ist. */
+export const UNSURE_ATTENTION = "KI war kurz nicht erreichbar – bitte prüfen, ob es eine Kundenanfrage ist, und selbst antworten";
 
 export type InboundOutcome = { handled: false } | { handled: true; caseId: string; matchedExisting: boolean };
 
@@ -54,7 +58,15 @@ export async function handleInboundMail(store: Store, companyId: string, mail: I
   // Die Dateinamen gehen mit in die Prüfung, damit "siehe Anhang" + grundriss.pdf trotzdem als Anfrage erkannt wird.
   const fileNames = [...mail.attachments.map((a) => a.filename), ...(mail.skippedAttachments ?? [])];
   const classifyText = fileNames.length ? `${fullText}\n\n[Anhänge: ${fileNames.join(", ")}]` : fullText;
-  if (!existing && !(await isCustomerInquiry(classifyText))) return { handled: false };
+  // Ist die KI gerade nicht erreichbar (null), wird nicht blind geantwortet: Mails aus dem Junk-Ordner bleiben liegen
+  // (fast immer Spam), alle anderen werden als Fall angelegt, aber ohne automatische Antwort – das Büro schaut drauf.
+  let unsure = false;
+  // (Neue Anfrage nach fertigem Fall: schon als Anfrage erkannt, siehe isNewRequestAfterDoneCase.)
+  if (!existing && !startNew) {
+    const verdict = await classifyInquiry(classifyText);
+    if (verdict === false || (verdict === null && opts.junk)) return { handled: false };
+    unsure = verdict === null;
+  }
 
   const { turn, matchedExisting } = await routeInbound(store, {
     companyId,
@@ -63,6 +75,7 @@ export async function handleInboundMail(store: Store, companyId: string, mail: I
     sender: { email: mail.from, name: mail.fromName || undefined },
     simulated: opts.simulated,
     forceNewCase: startNew,
+    forceAttention: unsure ? UNSURE_ATTENTION : undefined,
   });
   if (startNew && previous) await store.addEvent(turn.sessionId, "note", `Neue Anfrage eines bekannten Kunden – sein früherer Fall (${previous.service || "ohne Leistung"}) war bereits abgeschlossen.`);
   if (opts.junk) await store.addEvent(turn.sessionId, "note", "E-Mail des Kunden lag im Spam-/Junk-Ordner und wurde trotzdem übernommen.");
