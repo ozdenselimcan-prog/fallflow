@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appointmentConfirmedText, findNextSlot, findSlotOnDate, looksLikeCancellation, parseAvailability, parseSpecificDate, ymdToDate, type DateSlotReason } from "./scheduling";
+import { appointmentConfirmedText, findNextSlot, findSlotOnDate, looksLikeCancellation, looksLikeReschedule, parseAvailability, parseSpecificDate, ymdToDate, type DateSlotReason } from "./scheduling";
 
 /**
  * findNextSlot/findSlotOnDate lehnen Termine ab, die weniger als 2h in der Zukunft liegen (MIN_LEAD_MS),
@@ -239,5 +239,14 @@ describe("ymdToDate", () => {
     expect(d.getUTCFullYear()).toBe(2026);
     expect(d.getUTCMonth()).toBe(2);
     expect(d.getUTCDate()).toBe(20);
+  });
+});
+
+describe("looksLikeReschedule", () => {
+  it("erkennt Verschiebungswünsche", () => {
+    for (const s of ["Können wir den Termin bitte auf Donnerstag verschieben?", "Können wir den Termin ändern?", "Der Termin passt mir leider nicht", "Hätten Sie einen anderen Termin?"]) expect(looksLikeReschedule(s)).toBe(true);
+  });
+  it("reagiert nicht auf Zustimmung", () => {
+    for (const s of ["Danke, der Termin passt gut", "Termin am Montag ist super"]) expect(looksLikeReschedule(s)).toBe(false);
   });
 });

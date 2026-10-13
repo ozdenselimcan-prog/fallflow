@@ -37,7 +37,7 @@ export function stripQuoted(text: string): string {
  * der Energieberater nicht selbst antworten.
  */
 const PROCESS_QUESTION =
-  /welche (weiteren |anderen )?(angaben|informationen|infos|unterlagen|dokumente|daten|nachweise|formulare)|was (brauchen|benötigen) sie|was (wird|ist|wäre) (noch |dafür |alles )*(benötigt|nötig|notwendig|erforderlich)|was muss ich (ihnen |noch |alles )*(schicken|senden|zusenden|einreichen|vorbereiten|mitbringen|ausfüllen)|was soll ich (ihnen )?(schicken|senden|zusenden)|wie geht es (jetzt |nun |dann )?weiter|was (sind|ist) (die |der )?nächsten? schritte?|brauchen sie (noch )?(etwas|was|weitere)/i;
+  /welche (weiteren |anderen )?(angaben|informationen|infos|unterlagen|dokumente|daten|nachweise|formulare)|was (brauchen|benötigen) sie|was (wird|ist|wäre) (noch |dafür |alles )*(benötigt|nötig|notwendig|erforderlich)|was muss ich (ihnen |noch |alles )*(schicken|senden|zusenden|einreichen|vorbereiten|mitbringen|ausfüllen)|was soll ich (ihnen )?(schicken|senden|zusenden)|wie geht es (jetzt |nun |dann )?weiter|was (sind|ist) (die |der )?nächsten? schritte?|brauchen sie (noch )?(etwas|was|weitere)|wie (läuft|funktioniert) (das|es|so etwas|der ablauf)( bei ihnen)?( genau)?( dann)?( ab)?\b|wie (ist|sieht) (denn )?der ablauf|wie gehen wir (jetzt |dann )?vor/i;
 
 /** Satzweise zerlegen (Fragezeichen, Punkt, Ausrufezeichen, Zeilenumbruch). */
 const sentencesOf = (text: string) =>

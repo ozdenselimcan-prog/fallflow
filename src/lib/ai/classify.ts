@@ -11,7 +11,8 @@ seriöse Korrespondenz handelt.
 Antworte AUSSCHLIESSLICH mit JSON: {"isInquiry": true|false}.
 
 true = ein (potenzieller) Kunde meldet sich mit einer Anfrage, einer Frage zu seinem Beratungsfall oder liefert
-Angaben/Dokumente zu einem konkreten Gebäude-/Beratungsanliegen.
+Angaben/Dokumente zu einem konkreten Gebäude-/Beratungsanliegen. Auch eine kurze Rückruf- oder Kontaktbitte
+(z. B. "Rufen Sie mich bitte an" mit Telefonnummer) ist true – so melden sich Interessenten oft zuerst.
 
 false = alles, was NICHT direkt eine Kundenanfrage zu Gebäudeenergieberatung ist – insbesondere:
 - Newsletter, Werbung, Spam, automatische Benachrichtigungen, Rechnungen/Zahlungsverkehr

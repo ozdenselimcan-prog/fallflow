@@ -267,6 +267,9 @@ export function appointmentConfirmedText(slot: Date, template?: string): string 
 /** Kunde sagt einen bereits bestätigten Termin ab (nur relevant innerhalb eines bekannten, laufenden Falls). */
 const CANCEL = /\b(termin\s*(leider\s*)?(doch\s*)?(nicht\s*wahrnehmen|absagen|canceln|stornieren)|termin\s*fällt\s*(leider\s*)?aus|(muss|möchte)\s*(den\s*)?termin\s*(leider\s*)?absagen|schaffe\s*es\s*(leider\s*)?nicht|kann\s*(den\s*)?termin\s*(leider\s*)?nicht\s*(wahrnehmen|einhalten)|termin\s*verschieben)\b/i;
 export const looksLikeCancellation = (text: string) => CANCEL.test(text.trim());
+/** Kunde möchte einen Termin verschieben bzw. der vorgeschlagene Termin passt nicht. */
+const RESCHEDULE = /\btermin\b[^.!?]{0,40}\s(verschieben|verlegen|ändern|tauschen)(?![a-zäöüß])|\b(einen\s+)?anderen\s+termin\b|\b(der\s+termin|das)\s+(passt|geht)\s+(mir\s+|uns\s+)?(leider\s+)?(doch\s+)?nicht\b/i;
+export const looksLikeReschedule = (text: string) => RESCHEDULE.test(text.trim());
 export const appointmentCancelledText = "Kein Problem, der Termin ist storniert. Sagen Sie uns gerne, welche Wochentage oder welches Datum stattdessen für Sie passen würden.";
 export const appointmentRescheduleQueuedText = "Danke für die Rückmeldung! Der bisherige Termin ist storniert, und ich habe bereits einen neuen passenden Termin für Sie vorbereitet. Ein Mitarbeiter bestätigt ihn Ihnen in Kürze.";
 export const noSlotFoundText = "Leider konnte ich in den nächsten Wochen keinen passenden Termin finden. Ein Mitarbeiter meldet sich bei Ihnen, um einen Termin zu vereinbaren.";

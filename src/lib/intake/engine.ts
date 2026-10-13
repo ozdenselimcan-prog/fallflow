@@ -22,6 +22,7 @@ import {
   formatSlot,
   fullyBookedText,
   looksLikeCancellation,
+  looksLikeReschedule,
   noOverlapText,
   noSlotFoundText,
   notAWorkingDayText,
@@ -126,6 +127,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // „Ich warte noch auf eine Antwort“) dürfen nicht plötzlich eine automatische Antwort auslösen.
   const pendingAttention = input.channel === "email" && existing ? attentionOf(existing.fields) : "";
   let attention: string | null = input.forceAttention ?? (pendingAttention || null);
+  // Termin absagen oder verschieben per E-Mail: Das klärt das Büro selbst (Kalender) – nicht still übergehen.
+  if (!attention && input.channel === "email" && existing && (existing.fields.apptStage ?? "") !== "" && (looksLikeCancellation(input.text) || looksLikeReschedule(input.text))) {
+    attention = "Kunde möchte den Termin absagen oder verschieben";
+  }
   if (!attention && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
     if (turn.handoff) attention = "Kunde wünscht persönlichen Kontakt";
