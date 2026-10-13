@@ -27,7 +27,7 @@ function ReferralCard({ referral }: { referral: NonNullable<SettingsData["billin
   }
   return (
     <Card>
-      <CardHeader title="Kollegen empfehlen – 1 Monat gratis" description="Empfehlen Sie FallFlow anderen Energieberatern. Ihr Kollege testet 30 statt 7 Tage kostenlos. Sobald er danach Kunde wird, schreiben wir Ihnen einen Monatsbeitrag gut – für jeden geworbenen Kollegen." />
+      <CardHeader title="Kollegen empfehlen – 1 Monat gratis" description="Empfehlen Sie FallFlow anderen Energieberatern. Ihr Kollege testet 14 statt 7 Tage kostenlos. Sobald er danach Kunde wird, schreiben wir Ihnen einen Monatsbeitrag gut – für jeden geworbenen Kollegen." />
       <div className="space-y-3 p-5">
         <div className="flex flex-col gap-2 sm:flex-row">
           <input readOnly value={referral.link} onFocus={(e) => e.currentTarget.select()} aria-label="Ihr Empfehlungslink" className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-muted/40 px-3 text-sm" />

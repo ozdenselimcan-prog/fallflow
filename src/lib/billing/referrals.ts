@@ -5,11 +5,11 @@ import { createAdminClient } from "@/lib/supabase/clients";
 
 /**
  * Empfehlungsprogramm: Jedes Büro hat einen Link fallflow.xyz/signup?ref=CODE (Tabellen siehe Migration 0023).
- * - Der geworbene Kollege testet 30 statt 7 Tage kostenlos.
+ * - Der geworbene Kollege testet 14 statt 7 Tage kostenlos.
  * - Wird er nach der Testphase zahlender Kunde, bekommt das empfehlende Büro einen Monatsbeitrag als Guthaben bei
  *   Stripe gutgeschrieben – es wird mit der nächsten Rechnung verrechnet.
  */
-export const REFERRAL_TRIAL_DAYS = 30;
+export const REFERRAL_TRIAL_DAYS = 14;
 export const REFERRAL_CODE = /^[a-z0-9]{8}$/;
 
 export const referralLink = (code: string) => `${siteConfig.appUrl}/signup?ref=${code}`;

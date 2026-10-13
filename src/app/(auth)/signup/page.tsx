@@ -13,7 +13,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
   // über einen gezielt verschickten Link mit ?trial=14 (bis 60, z. B. ?trial=60 für Pilotkunden) – nirgends auf der Seite verlinkt.
   const parsedTrial = Number(trialParam);
   const customTrial = Number.isInteger(parsedTrial) && parsedTrial >= 1 && parsedTrial <= 60 ? parsedTrial : null;
-  // Empfehlungslink eines anderen Büros (?ref=CODE): 30 Tage statt 7 (siehe lib/billing/referrals.ts).
+  // Empfehlungslink eines anderen Büros (?ref=CODE): 14 Tage statt 7 (siehe lib/billing/referrals.ts).
   const ref = typeof refParam === "string" && REFERRAL_CODE.test(refParam.toLowerCase()) ? refParam.toLowerCase() : undefined;
   const trialDays = Math.max(customTrial ?? 7, ref ? REFERRAL_TRIAL_DAYS : 7);
 
