@@ -20,7 +20,7 @@ export const POST = withSession(
         planId: body.data.plan,
         customerEmail: session.email,
         existingCustomerId: null,
-        trialDays: session.trialDays && session.trialDays >= 1 && session.trialDays <= 30 ? session.trialDays : 7,
+        trialDays: session.trialDays && session.trialDays >= 1 && session.trialDays <= 60 ? session.trialDays : 7,
         // Rückkehr prüft den Checkout sofort selbst bei Stripe (unabhängig vom Webhook).
         successUrl: `${siteConfig.appUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${siteConfig.appUrl}/dashboard`,
