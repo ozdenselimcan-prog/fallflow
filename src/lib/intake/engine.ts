@@ -1,7 +1,7 @@
 import { extractFields } from "@/lib/ai/case-extractor";
 import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
 import { customerQuestion } from "@/lib/ai/personal-reply";
-import { ATTENTION_KEY } from "@/lib/cases/attention";
+import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { canCreateCase } from "@/lib/billing/usage";
 import type { Store } from "@/lib/data/store";
@@ -122,7 +122,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // E-Mail: Ist die Leistung unklar, stellt der Kunde eine Frage oder wünscht er persönlichen Kontakt, antwortet die
   // KI NICHT automatisch (keine Leistungs-Nachricht, keine Vorlage, kein Termin). Der Fall erscheint im Posteingang
   // unter "Aufmerksamkeit benötigt", und der Energieberater antwortet selbst.
-  let attention: string | null = input.forceAttention ?? null;
+  // Wartet der Fall schon auf eine persönliche Antwort des Büros, bleibt es dabei: Weitere Mails des Kunden (z. B.
+  // „Ich warte noch auf eine Antwort“) dürfen nicht plötzlich eine automatische Antwort auslösen.
+  const pendingAttention = input.channel === "email" && existing ? attentionOf(existing.fields) : "";
+  let attention: string | null = input.forceAttention ?? (pendingAttention || null);
   if (!attention && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
     if (turn.handoff) attention = "Kunde wünscht persönlichen Kontakt";
@@ -149,7 +152,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     await store.addEvent(caseId, "received", eventForSource(input.source, input.simulated));
   }
 
-  if (attention) {
+  if (attention && attention === pendingAttention) {
+    await store.addEvent(caseId, "handoff", "Kunde hat erneut geschrieben – der Fall wartet weiter auf Ihre persönliche Antwort (keine automatische Antwort).");
+  } else if (attention) {
     await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: attention } });
     await store.addEvent(caseId, "handoff", `Aufmerksamkeit benötigt (${attention}) – keine automatische Antwort, bitte selbst antworten.`);
   }
