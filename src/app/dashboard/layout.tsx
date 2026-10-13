@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { CheckoutConversion } from "@/components/consent/consent-banner";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
 import { needsPaymentSetup } from "@/lib/billing/access";
 import { DashboardShell } from "@/components/dashboard/shell";
@@ -22,6 +23,10 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       attentionCount={stats.needsAttention}
       demo={session.demo}
     >
+      {/* Google-Ads-Conversion "Testphase gestartet" (nur mit Einwilligung, siehe lib/tracking.ts). */}
+      <Suspense>
+        <CheckoutConversion />
+      </Suspense>
       {/* Neues Büro ohne hinterlegte Zahlungsmethode (Bezahlseite abgebrochen): erst die Testphase starten. */}
       {!session.demo && needsPaymentSetup(company, subscription) ? (
         <Suspense>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ConversionPing } from "@/components/consent/consent-banner";
 import { OnboardingWizard } from "@/components/onboarding/wizard";
 import { Logo } from "@/components/ui/logo";
 import { requireSession } from "@/lib/auth/session";
@@ -26,6 +27,8 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-12">
       <Logo className="mb-8" href="/" />
+      {/* Google-Ads-Conversion "Registrierung" (einmal pro Browser, nur mit Einwilligung). */}
+      <ConversionPing kind="signup" />
       <OnboardingWizard
         firstName={session.firstName}
         companyId={company.id}

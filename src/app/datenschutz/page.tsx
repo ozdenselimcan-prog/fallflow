@@ -98,11 +98,20 @@ export default function DatenschutzPage() {
             </p>
           </Section>
 
-          <Section title="6. Chat-Widget, Cookies und Speicherung im Browser">
-            <p>
-              Das Chat-Widget legt keine Werbe- oder Tracking-Cookies an. Für die Anmeldung in der Anwendung setzt unser Authentifizierungsdienst technisch notwendige Cookies (Sitzung). Diese sind für den Betrieb erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG).
-            </p>
-          </Section>
+          <div id="cookies" className="scroll-mt-24">
+            <Section title="6. Chat-Widget, Cookies und Speicherung im Browser">
+              <p>
+                Das Chat-Widget legt keine Werbe- oder Tracking-Cookies an. Für die Anmeldung in der Anwendung setzt unser Authentifizierungsdienst technisch notwendige Cookies (Sitzung). Diese sind für den Betrieb erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG).
+              </p>
+              <h3>Google Ads Conversion-Tracking (nur mit Einwilligung)</h3>
+              <p>
+                Auf unserer Website nutzen wir – nur wenn Sie im Cookie-Hinweis auf „Akzeptieren“ klicken – das Conversion-Tracking von Google Ads (Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland). Damit messen wir, ob Besucher, die über eine unserer Anzeigen zu uns gekommen sind, sich registrieren bzw. eine Testphase starten. Dazu setzt Google Cookies (z. B. „_gcl_au“) und verarbeitet u. a. Ihre IP-Adresse, Informationen zum Browser und zum Anzeigenklick. Wir erhalten nur zusammengefasste Zahlen und können Sie darüber nicht persönlich identifizieren. Personalisierte Werbung (Remarketing) nutzen wir nicht.
+              </p>
+              <p>
+                Rechtsgrundlage ist Ihre Einwilligung (§ 25 Abs. 1 TDDDG, Art. 6 Abs. 1 lit. a DSGVO). Ohne Einwilligung wird kein Google-Code geladen. Sie können Ihre Einwilligung jederzeit über „Cookie-Einstellungen“ im Fußbereich der Website widerrufen. Google kann Daten auch in die USA übermitteln; Google ist nach dem EU-US Data Privacy Framework zertifiziert. Weitere Informationen: policies.google.com/privacy.
+              </p>
+            </Section>
+          </div>
 
           <Section title="7. Dokumente">
             <p>

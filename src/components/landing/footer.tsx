@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConsentSettingsLink } from "@/components/consent/consent-banner";
 import { Logo } from "@/components/ui/logo";
 import { siteConfig } from "@/lib/config/site";
 
@@ -27,6 +28,7 @@ export function Footer() {
               {l.label}
             </Link>
           ))}
+          <ConsentSettingsLink className="hover:text-foreground" />
         </nav>
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} {siteConfig.name}</p>
       </div>
