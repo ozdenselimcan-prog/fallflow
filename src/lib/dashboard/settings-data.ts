@@ -1,4 +1,5 @@
 import { microsoftProvider } from "@/lib/integrations/microsoft";
+import { getReferralOverview } from "@/lib/billing/referrals";
 import { can } from "@/lib/auth/permissions";
 import type { Session } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
@@ -13,7 +14,13 @@ import { listConnections, toStatus } from "@/lib/integrations/connections-store"
  * hat eine eigene Seite (/dashboard/assistant) statt eines Reiters hier.
  */
 export async function loadSettingsData(session: Session, store: Store) {
-  const [company, connections, channels, subscription] = await Promise.all([store.getCompany(), listConnections(session.companyId), store.listChannels(), store.getSubscription()]);
+  const [company, connections, channels, subscription, referral] = await Promise.all([
+    store.getCompany(),
+    listConnections(session.companyId),
+    store.listChannels(),
+    store.getSubscription(),
+    session.demo ? null : getReferralOverview(session.companyId).catch(() => null),
+  ]);
 
   const byProvider = new Map(connections.map((c) => [c.provider, toStatus(c)]));
   const website = channels.find((c) => c.kind === "website")?.status === "connected";
@@ -45,6 +52,8 @@ export async function loadSettingsData(session: Session, store: Store) {
       upgrades: plans.filter((p) => p.priceEur > getPlan(subscription.plan).priceEur),
       canManage: can(session.role, "billing:manage"),
       stripeReady: Boolean(process.env.STRIPE_SECRET_KEY),
+      /** Empfehlungsprogramm: eigener Link + wie viele Kollegen sich angemeldet haben bzw. zahlende Kunden wurden */
+      referral,
     },
   };
 }

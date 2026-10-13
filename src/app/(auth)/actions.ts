@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { REFERRAL_CODE } from "@/lib/billing/referrals";
 import { siteConfig } from "@/lib/config/site";
 import { rateLimit } from "@/lib/rate-limit";
 import { createUserClient } from "@/lib/supabase/clients";
@@ -50,6 +51,9 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
   const rawTrialDays = typeof input === "object" && input !== null ? (input as Record<string, unknown>).trialDays : undefined;
   const trialDaysNum = Number(rawTrialDays);
   const trialDays = Number.isInteger(trialDaysNum) && trialDaysNum >= 1 && trialDaysNum <= 60 ? trialDaysNum : 7;
+  // Empfehlungscode eines anderen Büros – die Zuordnung übernimmt ein Datenbank-Trigger (Migration 0023).
+  const rawRef = typeof input === "object" && input !== null ? (input as Record<string, unknown>).referralCode : undefined;
+  const ref = typeof rawRef === "string" && REFERRAL_CODE.test(rawRef) ? rawRef : undefined;
 
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
@@ -59,7 +63,7 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
       password,
       options: {
         // Zustimmung zu AGB/AVV mit Zeitpunkt und Fassung am Konto festhalten (Nachweis).
-        data: { first_name: firstName, last_name: lastName, company, terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_VERSION, signup_plan: plan ?? "starter", trial_days: trialDays },
+        data: { first_name: firstName, last_name: lastName, company, terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_VERSION, signup_plan: plan ?? "starter", trial_days: trialDays, ...(ref ? { ref } : {}) },
         emailRedirectTo: `${siteConfig.appUrl}/auth/callback?next=/onboarding`,
       },
     });

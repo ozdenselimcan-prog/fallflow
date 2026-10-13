@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Download, FileText } from "lucide-react";
+import { Check, Copy, Download, FileText } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { Plan } from "@/lib/config/pricing";
@@ -12,6 +12,39 @@ import { Dialog } from "@/components/ui/dialog";
 import { Notice } from "@/components/ui/states";
 import { cn, formatDate } from "@/lib/utils";
 import type { SettingsData } from "@/lib/dashboard/settings-data";
+
+/** Empfehlungsprogramm: eigener Link zum Kopieren und Stand der Empfehlungen (siehe lib/billing/referrals.ts). */
+function ReferralCard({ referral }: { referral: NonNullable<SettingsData["billing"]["referral"]> }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(referral.link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+  return (
+    <Card>
+      <CardHeader title="Kollegen empfehlen – 1 Monat gratis" description="Empfehlen Sie FallFlow anderen Energieberatern. Ihr Kollege testet 30 statt 7 Tage kostenlos. Sobald er danach Kunde wird, schreiben wir Ihnen einen Monatsbeitrag gut – für jeden geworbenen Kollegen." />
+      <div className="space-y-3 p-5">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input readOnly value={referral.link} onFocus={(e) => e.currentTarget.select()} aria-label="Ihr Empfehlungslink" className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-muted/40 px-3 text-sm" />
+          <Button variant="secondary" onClick={copy}>
+            {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Kopiert" : "Link kopieren"}
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {referral.signedUp === 0
+            ? "Noch niemand hat sich über Ihren Link angemeldet."
+            : `${referral.signedUp} ${referral.signedUp === 1 ? "Kollege hat" : "Kollegen haben"} sich angemeldet, davon ${referral.rewarded} bereits Kunde – ${referral.rewarded} ${referral.rewarded === 1 ? "Monat" : "Monate"} gutgeschrieben.`}
+        </p>
+        <p className="text-xs text-muted-foreground">Die Gutschrift wird automatisch mit Ihrer nächsten Rechnung verrechnet.</p>
+      </div>
+    </Card>
+  );
+}
 
 // Der KI-Assistent hat eine eigene, vollwertige Seite mit Live-Vorschau (siehe /dashboard/assistant,
 // in der Sidebar verlinkt) – kein eigener Reiter hier, um die Einstellung nicht doppelt zu pflegen.
@@ -180,6 +213,7 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                 )}
               </div>
             </Card>
+            {data.billing.referral && <ReferralCard referral={data.billing.referral} />}
             {data.connections.canManage && (
               <Card>
                 <CardHeader title="Ihre Daten" description="Alle Fälle mit Fallakte, Nachrichten und Dokumenten, alle Termine und Ihre Vorlagen als ZIP-Datei – z. B. zur Sicherung oder vor einer Kündigung." />

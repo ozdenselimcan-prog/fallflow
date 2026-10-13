@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { getStripeClient, planForPriceId } from "@/lib/integrations/stripe";
 import { createAdminClient } from "@/lib/supabase/clients";
+import { rewardReferralIfDue } from "./referrals";
 
 export const STATUS_MAP: Record<string, "trialing" | "active" | "past_due" | "canceled"> = {
   trialing: "trialing",
@@ -35,6 +36,10 @@ export async function syncSubscription(companyId: string, sub: Stripe.Subscripti
     .eq("company_id", companyId);
   if (error) throw new Error(`Abo konnte nicht gespeichert werden: ${error.message}`);
   if (status === "canceled") await admin.from("subscriptions").update({ canceled_at: new Date().toISOString() }).eq("company_id", companyId).is("canceled_at", null);
+  // Zahlender Kunde geworden: ggf. Empfehlungsbonus für das Büro, das ihn geworben hat (Fehler blockieren den Abgleich nicht).
+  if (status === "active") {
+    await rewardReferralIfDue(companyId).catch((err) => console.error("[referral] Gutschrift fehlgeschlagen:", err instanceof Error ? err.message : "Fehler"));
+  }
 }
 
 /** Abgeschlossener Checkout (Webhook oder Rückkehr von Stripe): zugehöriges Abo laden und übernehmen. */
