@@ -18,3 +18,14 @@ describe("obviousHumanQuestion", () => {
     expect(obviousHumanQuestion("Bekomme ich dafür eine Förderung?")).toBeTruthy();
   });
 });
+
+describe("obviousHumanQuestion – Fragen zur Form von Unterlagen", () => {
+  it("gehen an das Büro", () => {
+    expect(obviousHumanQuestion("Reicht Ihnen ein Foto vom Grundriss oder brauchen Sie das Original?")).toBeTruthy();
+    expect(obviousHumanQuestion("Kann ich das Formular auch handschriftlich ausfüllen?")).toBeTruthy();
+    expect(obviousHumanQuestion("Muss ich das unterschreiben?")).toBeTruthy();
+  });
+  it("Angaben ohne Frage bleiben unberührt", () => {
+    expect(obviousHumanQuestion("Anbei das unterschriebene Formular.")).toBeNull();
+  });
+});
