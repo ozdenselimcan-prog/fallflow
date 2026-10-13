@@ -6,6 +6,7 @@ import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { inspectFilledPdf, type VisualInspection } from "@/lib/ai/inspect-filled-pdf";
 import { getAiProvider } from "@/lib/ai/provider";
 import { summarizeCase } from "@/lib/ai/summary";
+import { customerFacingNote } from "@/lib/ai/customer-note";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
@@ -432,6 +433,8 @@ export async function receiveFilledTemplate(
     filled = null;
     note = "";
   }
+  // Der Hinweis geht wörtlich an den Kunden – nie technische Feldnamen (type, floors …) durchlassen.
+  note = note ? customerFacingNote(note) : "";
   // Konnte die KI das Formular nicht selbst ansehen, obwohl es nötig gewesen wäre, ist das Ergebnis unsicher: dann
   // bekommt der Kunde KEINE automatische Beanstandung – das Büro schaut kurz selbst drauf.
   // (Ohne eingerichtete KI gibt es keine Sichtprüfung – dann bleibt es beim bisherigen Verhalten.)

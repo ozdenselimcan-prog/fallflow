@@ -23,8 +23,12 @@ erwartet wird. Du siehst die PDF-Seiten wie ein Mensch – auch eingescannte, fo
    Kästchen) sind NIE Eintragungen. Ein Kästchen gilt nur als angekreuzt, wenn ein Kreuz oder Haken darin sichtbar ist.
 3. filled: true, wenn die wesentlichen Eingabefelder ausgefüllt sind. filled: false, wenn weniger als etwa die Hälfte
    der Eingabefelder (ohne Unterschrift) eine Eintragung hat – dann im note die leeren Felder nennen.
+   Beurteile das NUR anhand der Eingabefelder, die auf den gezeigten Seiten bzw. Fotos zu sehen sind – nicht anhand der
+   JSON-Felder unten. Ist z. B. nur Seite 1 fotografiert und dort ist alles ausgefüllt, ist filled = true.
    Unterschriften NIE als fehlend bemängeln.
-   note: bei filled=false konkret, WELCHE Felder leer sind (max. 140 Zeichen); sonst kurze Bestätigung.
+   note: bei filled=false konkret, WELCHE Felder leer sind (max. 140 Zeichen); sonst kurze Bestätigung. Der note geht
+   wörtlich an den Kunden: auf Deutsch, mit den Beschriftungen aus dem Formular (z. B. "Baujahr", "Wohnfläche") – NIE
+   technische Namen aus dem JSON (type, floors, heating, service, yearBuilt …).
 4. Lies ALLE Eintragungen des Kunden aus (nicht den Vordruck, nicht die Angaben des Büros) und fülle damit das JSON:
    customer/property/heating/request wie unten beschrieben, und formEntries = alle übrigen Eintragungen
    ({"label": Bezeichnung aus dem Formular, "value": Eintrag}), angekreuzte Kästchen als value "Ja"/"Nein"/gewählte Option.
