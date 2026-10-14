@@ -469,6 +469,11 @@ export async function receiveFilledTemplate(
     await store.addEvent(caseId, "handoff", `Aufmerksamkeit benötigt (${reason}) – keine automatische Antwort an den Kunden.`);
   }
 
+  // "Automatische Antworten" aus: Formular ist abgelegt, geprüft und ausgelesen – geschrieben wird dem Kunden nichts.
+  if (!(await store.getAssistant()).autoReply) {
+    await refreshCase(store, caseId, { hint: "waiting" });
+    return true;
+  }
   // Wartet der Fall auf eine persönliche Antwort des Energieberaters ("Aufmerksamkeit benötigt"), schreibt die KI
   // dem Kunden nichts automatisch – die PDF ist trotzdem abgelegt und geprüft.
   if ((wrongDocument || filled !== true) && attentionOf(c.fields)) {
@@ -519,6 +524,8 @@ export async function completionTextFor(store: Store, service: string | undefine
  * dabei direkt einen freien Termin als Vorschlag in den Kalender ein (siehe autoBookNextSlot).
  */
 export async function sendCompletionMessage(store: Store, refreshed: RefreshResult): Promise<void> {
+  // "Automatische Antworten" aus: keine Abschluss-Mail und kein automatischer Terminvorschlag – das Büro meldet sich selbst.
+  if (!(await store.getAssistant()).autoReply) return;
   const c = refreshed.caseRecord;
   const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, c));
   const text = await completionTextFor(store, c.fields.service, { appointmentProposed: booked });
@@ -595,8 +602,8 @@ export async function receiveEmailAttachments(store: Store, caseId: string, atta
   }
 
   const refreshed = await refreshCase(store, caseId, { hint: "waiting" });
-  // "Aufmerksamkeit benötigt": Dateien sind abgelegt, aber der Energieberater antwortet selbst.
-  if (attentionOf(refreshed.caseRecord.fields)) return;
+  // "Aufmerksamkeit benötigt" bzw. automatische Antworten aus: Dateien sind abgelegt, aber der Energieberater antwortet selbst.
+  if (attentionOf(refreshed.caseRecord.fields) || !(await store.getAssistant()).autoReply) return;
   const nowPrepared = refreshed.caseRecord.status === "READY_FOR_REVIEW" && previousStatus !== "READY_FOR_REVIEW" && previousStatus !== "CONVERTED";
   if (nowPrepared) {
     await sendCompletionMessage(store, refreshed);

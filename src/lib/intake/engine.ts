@@ -101,7 +101,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // abgebrochen, nur weil das Büro zwischenzeitlich sein Kontingent erreicht hat.
   if (first && !(await canCreateCase(store)).allowed) throw new CaseLimitReachedError();
   const documents = existing ? await store.listDocuments(existing.id) : [];
-  const extracted = settings.autoReply ? await extractForText(input.text) : {};
+  // "Automatische Antworten" aus: FallFlow schreibt dem Kunden per E-Mail nichts, bereitet den Fall aber trotzdem vor
+  // (Angaben auslesen, Unterlagen ablegen, Vollständigkeit) – das Büro antwortet selbst.
+  const silent = input.channel === "email" && !settings.autoReply;
+  const extracted = await extractForText(input.text);
 
   const known: Record<string, string> = {};
   if (input.identity?.email) known.email = input.identity.email.toLowerCase();
@@ -178,7 +181,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // + ggf. PDF-Anhang raus, keine automatisch generierte Rückfrage-Liste ("Welche Art Gebäude...", "Baujahr...").
   // Sobald der Fall aber abgeschlossen ist (turn.done = true: Abschluss-Nachricht, Handoff, Terminbestätigung
   // o. Ä.), soll genau diese Abschlussmeldung auch per Mail raus – siehe Termin-Hinweis-Override oben.
-  const replies = attention || inAppointmentFlow || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
+  const replies = silent || attention || inAppointmentFlow || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
@@ -191,7 +194,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // (Nachricht und Vorlage kommen vom Büro selbst, keine automatisch generierte Angaben-Checkliste). Vor refreshCase, damit der Fall
   // nicht in diesem Zug schon als "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht.
   const caseNow = (await store.getCase(caseId))!;
-  const material = attention ? null : await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
+  const material = attention || silent ? null : await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
   const attachments: InboundAttachment[] = material?.attachments ?? [];
   if (material) replies.push(...material.texts);
 
@@ -230,7 +233,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // erst wenn ein Mitarbeiter den Vorschlag im Kalender akzeptiert (oder selbst einen anderen Termin
   // wählt), geht die Terminbestätigung per Mail an den Kunden raus (siehe /api/appointments/[id]/accept
   // und .../decline).
-  if (settings.appointmentBooking && !turn.handoff && !attention) {
+  if (settings.appointmentBooking && !turn.handoff && !attention && !silent) {
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
     const vacation = settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null;
     const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay, vacation };

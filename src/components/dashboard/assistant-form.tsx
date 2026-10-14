@@ -11,7 +11,7 @@ import { apiFetch, useMutation } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
 const TOGGLES: { key: keyof Pick<AssistantSettings, "autoReply" | "autoFollowUp" | "appointmentBooking" | "humanHandoff">; label: string; hint: string }[] = [
-  { key: "autoReply", label: "Automatische Antworten", hint: "Der Assistent antwortet selbstständig auf neue E-Mail-Anfragen." },
+  { key: "autoReply", label: "Automatische Antworten", hint: "An: Der Assistent antwortet selbstständig auf neue E-Mail-Anfragen. Aus: Ihre Kunden bekommen keine automatische E-Mail – FallFlow bereitet die Fälle aber trotzdem vor (Angaben, Formulare, Unterlagen), und Sie antworten selbst." },
   { key: "autoFollowUp", label: "Automatische Rückfragen", hint: "Fehlende Unterlagen und Angaben fordert die KI per E-Mail automatisch beim Kunden an." },
   { key: "appointmentBooking", label: "Terminvorschlag", hint: "Sobald ein E-Mail-Fall vollständig ist, trägt die KI einen freien Termin als Vorschlag in Ihren Kalender ein – nach Ihrer Bestätigung geht die Terminbestätigung an den Kunden." },
   { key: "humanHandoff", label: "Human Handoff", hint: "Auf Wunsch oder bei Unsicherheit wird an einen Mitarbeiter übergeben." },
