@@ -1,4 +1,5 @@
-import { PAYMENT_REQUIRED_SINCE } from "@/lib/billing/access";
+import type { Subscription } from "@/lib/data/types";
+import { needsPaymentSetup, trialDaysLeft } from "@/lib/billing/access";
 import { createAdminClient } from "@/lib/supabase/clients";
 
 /** Ab wann ein Postfach als "hängt" gilt, wenn der letzte erfolgreiche Abruf so lange her ist. */
@@ -23,6 +24,8 @@ export interface CompanyRow {
   status: string;
   hasPayment: boolean;
   needsPayment: boolean;
+  /** Resttage der Testphase ohne Zahlungsmethode (null = nicht in so einer Testphase) */
+  trialDaysLeft: number | null;
   periodEnd: string | null;
   canceledAt: string | null;
   mailbox: { provider: string; account: string; status: string; lastSyncedAt: string | null; lastError: string; stale: boolean } | null;
@@ -92,7 +95,12 @@ export async function loadCompanyOverview(now = Date.now()): Promise<CompanyRow[
       plan: sub?.plan ?? "starter",
       status: sub?.status ?? "trialing",
       hasPayment,
-      needsPayment: !hasPayment && sub?.status !== "active" && c.created_at >= PAYMENT_REQUIRED_SINCE,
+      // Testphase ohne Zahlungsmethode: Resttage bzw. abgelaufen (siehe lib/billing/access.ts)
+      ...(() => {
+        const s = { stripeCustomerId: sub?.stripe_customer_id ?? null, status: (sub?.status ?? "trialing") as Subscription["status"], currentPeriodEnd: sub?.current_period_end ?? null };
+        const left = trialDaysLeft({ createdAt: c.created_at }, s);
+        return { needsPayment: needsPaymentSetup({ createdAt: c.created_at }, s), trialDaysLeft: left };
+      })(),
       periodEnd: sub?.current_period_end ?? null,
       canceledAt: sub?.canceled_at ?? null,
       mailbox: conn

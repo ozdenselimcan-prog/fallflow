@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CheckoutConversion } from "@/components/consent/consent-banner";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
-import { needsPaymentSetup } from "@/lib/billing/access";
+import { needsPaymentSetup, trialDaysLeft } from "@/lib/billing/access";
+import { TrialBanner } from "@/components/dashboard/trial-banner";
 import { DashboardShell } from "@/components/dashboard/shell";
 import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
@@ -27,13 +28,18 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       <Suspense>
         <CheckoutConversion />
       </Suspense>
-      {/* Neues Büro ohne hinterlegte Zahlungsmethode (Bezahlseite abgebrochen): erst die Testphase starten. */}
+      {/* Testphase ohne Zahlungsmethode abgelaufen: nur noch die Bezahlseite. Während der Testphase: Hinweis oben. */}
       {!session.demo && needsPaymentSetup(company, subscription) ? (
         <Suspense>
-          <PaymentSetup canManage={can(session.role, "billing:manage")} preferredPlan={session.signupPlan} trialDays={session.trialDays ?? 7} />
+          <PaymentSetup canManage={can(session.role, "billing:manage")} preferredPlan={session.signupPlan} daysLeft={0} />
         </Suspense>
       ) : (
-        children
+        <>
+          {!session.demo && (trialDaysLeft(company, subscription) ?? 0) > 0 && (
+            <TrialBanner daysLeft={trialDaysLeft(company, subscription)!} canManage={can(session.role, "billing:manage")} />
+          )}
+          {children}
+        </>
       )}
     </DashboardShell>
   );

@@ -12,10 +12,12 @@ import { apiFetch } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
 /**
- * Wird statt des Dashboards gezeigt, solange ein neues Büro noch keine Zahlungsmethode hinterlegt hat (Bezahlseite bei
- * der Registrierung abgebrochen). Startet die 7-tägige Testphase über Stripe.
+ * Plan wählen und Zahlungsmethode hinterlegen. Zwei Fälle:
+ * - daysLeft > 0: Testphase läuft noch (erreichbar über den Hinweis im Dashboard) – abgebucht wird erst zu ihrem Ende.
+ * - daysLeft = 0: Testphase abgelaufen – dann zeigt FallFlow nur noch diese Seite, bis ein Plan gewählt ist.
  */
-export function PaymentSetup({ canManage, preferredPlan, trialDays = 7 }: { canManage: boolean; preferredPlan?: string; trialDays?: number }) {
+export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0 }: { canManage: boolean; preferredPlan?: string; daysLeft?: number }) {
+  const running = daysLeft > 0;
   const router = useRouter();
   const confirming = useSearchParams().get("checkout") === "success";
   const [pending, setPending] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export function PaymentSetup({ canManage, preferredPlan, trialDays = 7 }: { canM
       <Card className="mx-auto mt-10 max-w-lg p-8 text-center">
         <LiveRefresh active everyMs={2000} />
         <Loader2 className="mx-auto size-6 animate-spin text-muted-foreground" aria-hidden />
-        <p className="mt-3 font-semibold">Vielen Dank! Ihre Testphase wird gerade aktiviert …</p>
+        <p className="mt-3 font-semibold">Vielen Dank! Ihr Abo wird gerade aktiviert …</p>
         <p className="mt-1 text-sm text-muted-foreground">Das dauert nur wenige Sekunden – die Seite lädt automatisch neu.</p>
         {syncState === "idle" && (
           <button type="button" onClick={() => void sync()} className="mt-4 text-sm font-medium underline">
@@ -68,10 +70,11 @@ export function PaymentSetup({ canManage, preferredPlan, trialDays = 7 }: { canM
     <div className="mx-auto max-w-4xl py-6">
       <div className="text-center">
         <Lock className="mx-auto size-6 text-muted-foreground" aria-hidden />
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">Starten Sie Ihre kostenlose Testphase</h1>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight">{running ? "Zahlungsmethode hinterlegen" : "Ihre kostenlose Testphase ist abgelaufen"}</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-          Fast geschafft! Damit FallFlow für Ihr Büro arbeitet – E-Mails beantworten, Fälle vorbereiten, Website-Chat –, hinterlegen Sie bitte einmal eine Zahlungsmethode. Die ersten {trialDays} Tage sind
-          kostenlos und jederzeit kündbar; vor Ablauf der Testphase wird nichts abgebucht.
+          {running
+            ? `Ihre Testphase läuft noch ${daysLeft === 1 ? "1 Tag" : `${daysLeft} Tage`}. Hinterlegen Sie jetzt eine Zahlungsmethode, damit FallFlow danach ohne Unterbrechung weiterläuft – abgebucht wird erst nach Ende der Testphase. Monatlich kündbar.`
+            : "Um FallFlow weiter zu nutzen – E-Mails beantworten, Fälle vorbereiten, Website-Chat –, wählen Sie bitte Ihren Plan und hinterlegen eine Zahlungsmethode. Ihre Fälle, Vorlagen und Einstellungen bleiben vollständig erhalten. Monatlich kündbar."}
         </p>
       </div>
       {syncState === "none" && (
@@ -80,7 +83,7 @@ export function PaymentSetup({ canManage, preferredPlan, trialDays = 7 }: { canM
         </Notice>
       )}
       {!canManage ? (
-        <Notice className="mx-auto mt-6 max-w-xl">Die Testphase kann nur der Inhaber bzw. ein Admin Ihres Büros starten.</Notice>
+        <Notice className="mx-auto mt-6 max-w-xl">Den Plan kann nur der Inhaber bzw. ein Admin Ihres Büros wählen.</Notice>
       ) : (
         <ul className="mt-8 grid gap-4 md:grid-cols-3">
           {plans.map((p) => (
@@ -89,7 +92,7 @@ export function PaymentSetup({ canManage, preferredPlan, trialDays = 7 }: { canM
                 <p className="font-semibold">{p.name}</p>
                 <p className="mt-1">
                   <span className="text-2xl font-semibold">{p.priceEur} €</span>
-                  <span className="text-sm text-muted-foreground"> / Monat nach der Testphase</span>
+                  <span className="text-sm text-muted-foreground"> / Monat{running ? " nach der Testphase" : ""}</span>
                 </p>
                 <ul className="mt-3 flex-1 space-y-1.5 text-sm">
                   {p.features.map((f) => (
@@ -105,7 +108,7 @@ export function PaymentSetup({ canManage, preferredPlan, trialDays = 7 }: { canM
                   disabled={pending !== null}
                   onClick={() => start(p.id)}
                 >
-                  {trialDays} Tage kostenlos testen
+                  {running ? "Diesen Plan wählen" : "Plan wählen & weiter nutzen"}
                 </Button>
               </Card>
             </li>

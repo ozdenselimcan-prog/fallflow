@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { REFERRAL_CODE } from "@/lib/billing/referrals";
 import { siteConfig } from "@/lib/config/site";
 import { rateLimit } from "@/lib/rate-limit";
-import { createUserClient } from "@/lib/supabase/clients";
+import { createAdminClient, createUserClient } from "@/lib/supabase/clients";
 import { isSupabaseConfigured } from "@/lib/utils";
 import { LEGAL_VERSION } from "@/lib/config/legal";
 import { forgotSchema, loginSchema, passwordSchema, signupSchema } from "@/lib/validation";
@@ -41,6 +41,16 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
   redirect("/dashboard");
 }
 
+/** Speichert das Ende der kostenlosen Testphase beim gerade angelegten Büro (nur, solange noch kein Stripe-Abo besteht). */
+async function setTrialEnd(userId: string, trialDays: number) {
+  const admin = createAdminClient();
+  if (!admin) return;
+  const { data: member } = await admin.from("company_members").select("company_id").eq("user_id", userId).eq("role", "OWNER").maybeSingle();
+  if (!member?.company_id) return;
+  const end = new Date(Date.now() + trialDays * 86_400_000).toISOString();
+  await admin.from("subscriptions").update({ current_period_end: end }).eq("company_id", member.company_id).is("stripe_customer_id", null);
+}
+
 export async function signupAction(input: unknown): Promise<ActionResult> {
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -68,10 +78,10 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
       },
     });
     if (error) return { error: "Die Registrierung war nicht möglich. Bitte prüfen Sie Ihre Angaben." };
+    // Testphase ohne Zahlungsmethode: Ende festhalten (7 Tage bzw. Testzeitraum aus dem Link). Danach zeigt FallFlow nur
+    // noch die Bezahlseite (siehe lib/billing/access.ts). Fehler hier blockieren die Registrierung nicht (dann gilt Anlage + 7 Tage).
+    if (data.user) await setTrialEnd(data.user.id, trialDays).catch((err) => console.error("[signup] Testphase:", err instanceof Error ? err.message : "Fehler"));
     if (!data.session) return { message: "Fast geschafft: Wir haben Ihnen eine E-Mail zur Bestätigung geschickt." };
-
-    // Erst das Onboarding (Fragebogen), danach die Zahlungsmethode: Das Dashboard zeigt nach dem Onboarding
-    // "Testphase starten" mit dem hier gewählten Plan und Testzeitraum (siehe PaymentSetup).
   }
   redirect("/onboarding");
 }

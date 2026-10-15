@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 const STATUS_LABEL: Record<string, string> = { trialing: "Testphase", active: "Aktiv", past_due: "Zahlung offen", canceled: "Beendet" };
 
 function aboBadge(c: CompanyRow) {
-  if (c.needsPayment) return <Badge tone="warning">Keine Zahlungsmethode</Badge>;
+  if (c.needsPayment) return <Badge tone="danger">Testphase abgelaufen – nicht bezahlt</Badge>;
+  if (c.trialDaysLeft !== null) return <Badge tone="warning">Testphase ohne Karte · noch {c.trialDaysLeft} {c.trialDaysLeft === 1 ? "Tag" : "Tage"}</Badge>;
   const tone = c.status === "active" ? "success" : c.status === "trialing" ? "accent" : c.status === "past_due" ? "warning" : "neutral";
   return <Badge tone={tone}>{STATUS_LABEL[c.status] ?? c.status}</Badge>;
 }
@@ -50,7 +51,7 @@ export default async function AdminPage() {
     { label: "Büros gesamt", value: rows.length },
     { label: "Zahlend", value: paying.length, hint: `${mrr} €/Monat` },
     { label: "In der Testphase", value: trial.length },
-    { label: "Ohne Zahlungsmethode", value: rows.filter((r) => r.needsPayment).length },
+    { label: "Testphase ohne Karte", value: rows.filter((r) => r.trialDaysLeft !== null && !r.needsPayment).length, hint: `${rows.filter((r) => r.needsPayment).length} abgelaufen` },
     { label: "Anfragen (30 Tage)", value: rows.reduce((s, r) => s + r.cases30d, 0) },
     { label: "Postfächer mit Problem", value: (health?.errors ?? 0) + (health?.stale ?? 0), warn: !health?.ok },
   ];

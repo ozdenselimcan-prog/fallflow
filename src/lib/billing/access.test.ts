@@ -1,27 +1,33 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { needsPaymentSetup, PAYMENT_REQUIRED_SINCE } from "./access";
+import { describe, expect, it, vi } from "vitest";
 
-const later = "2026-12-01T00:00:00.000Z";
-const earlier = "2026-01-01T00:00:00.000Z";
+vi.mock("@/lib/integrations/stripe", () => ({ stripeConfigured: () => true }));
+const { cardlessTrialEnd, needsPaymentSetup, trialDaysLeft } = await import("./access");
 
-afterEach(() => vi.unstubAllEnvs());
+const DAY = 86_400_000;
+const created = "2026-10-15T10:00:00.000Z";
+const t0 = Date.parse(created);
+const noCard = { stripeCustomerId: null, status: "trialing" as const, currentPeriodEnd: null };
 
-describe("needsPaymentSetup", () => {
-  it("neues Büro ohne Zahlungsmethode muss erst die Testphase starten", () => {
-    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test");
-    expect(needsPaymentSetup({ createdAt: later }, { stripeCustomerId: null, status: "trialing" })).toBe(true);
+describe("Testphase ohne Zahlungsmethode", () => {
+  it("läuft standardmäßig 7 Tage ab Anlage und ist währenddessen nutzbar", () => {
+    expect(cardlessTrialEnd({ createdAt: created }, noCard)).toBe(new Date(t0 + 7 * DAY).toISOString());
+    expect(needsPaymentSetup({ createdAt: created }, noCard, t0 + 3 * DAY)).toBe(false);
+    expect(trialDaysLeft({ createdAt: created }, noCard, t0 + 3 * DAY)).toBe(4);
   });
-  it("mit hinterlegter Zahlungsmethode: frei", () => {
-    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test");
-    expect(needsPaymentSetup({ createdAt: later }, { stripeCustomerId: "cus_1", status: "trialing" })).toBe(false);
+  it("nutzt das gespeicherte Ende (z. B. 14 Tage über den Registrierungslink)", () => {
+    const sub = { ...noCard, currentPeriodEnd: new Date(t0 + 14 * DAY).toISOString() };
+    expect(needsPaymentSetup({ createdAt: created }, sub, t0 + 10 * DAY)).toBe(false);
+    expect(trialDaysLeft({ createdAt: created }, sub, t0 + 10 * DAY)).toBe(4);
   });
-  it("Konten von vor der Einführung bleiben unverändert nutzbar", () => {
-    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test");
-    expect(earlier < PAYMENT_REQUIRED_SINCE).toBe(true);
-    expect(needsPaymentSetup({ createdAt: earlier }, { stripeCustomerId: null, status: "trialing" })).toBe(false);
+  it("sperrt nach Ablauf bis zur Zahlung", () => {
+    expect(needsPaymentSetup({ createdAt: created }, noCard, t0 + 7 * DAY + 1)).toBe(true);
+    expect(trialDaysLeft({ createdAt: created }, noCard, t0 + 8 * DAY)).toBe(0);
   });
-  it("ohne Stripe-Konfiguration (Demo/Entwicklung) nie gesperrt", () => {
-    vi.stubEnv("STRIPE_SECRET_KEY", "");
-    expect(needsPaymentSetup({ createdAt: later }, { stripeCustomerId: null, status: "trialing" })).toBe(false);
+  it("mit hinterlegter Zahlungsmethode oder aktivem Abo keine Testphasen-Sperre", () => {
+    expect(cardlessTrialEnd({ createdAt: created }, { ...noCard, stripeCustomerId: "cus_123" })).toBeNull();
+    expect(needsPaymentSetup({ createdAt: created }, { ...noCard, status: "active" }, t0 + 30 * DAY)).toBe(false);
+  });
+  it("ältere Konten (vor Einführung) sind nie betroffen", () => {
+    expect(cardlessTrialEnd({ createdAt: "2026-10-01T00:00:00.000Z" }, noCard)).toBeNull();
   });
 });

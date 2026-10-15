@@ -34,12 +34,14 @@ interface CheckoutParams {
   existingCustomerId: string | null;
   /** Anzahl Testtage; bei Angabe wird die Zahlungsmethode trotzdem zwingend erfasst (Vertrag ab Registrierung). */
   trialDays?: number;
+  /** Alternativ: festes Ende der Testphase (Unix-Sekunden), z. B. das Ende der bereits laufenden Testphase ohne Zahlungsmethode. */
+  trialEnd?: number;
   successUrl?: string;
   cancelUrl?: string;
 }
 
 /** Erzeugt eine Stripe-Checkout-Session für ein Upgrade oder den Registrierungs-Vertragsabschluss. Wirft, wenn Stripe/Preis nicht konfiguriert ist. */
-export async function createCheckoutSession({ companyId, planId, customerEmail, existingCustomerId, trialDays, successUrl, cancelUrl }: CheckoutParams) {
+export async function createCheckoutSession({ companyId, planId, customerEmail, existingCustomerId, trialDays, trialEnd, successUrl, cancelUrl }: CheckoutParams) {
   const stripe = getStripeClient();
   if (!stripe) throw new Error("Stripe ist nicht konfiguriert");
   const price = priceIdForPlan(planId);
@@ -52,11 +54,11 @@ export async function createCheckoutSession({ companyId, planId, customerEmail, 
     cancel_url: cancelUrl ?? `${siteConfig.appUrl}/dashboard/settings/billing?checkout=cancelled`,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: customerEmail }),
     client_reference_id: companyId,
-    ...(trialDays
+    ...(trialDays || trialEnd
       ? {
           payment_method_collection: "always" as const,
           subscription_data: {
-            trial_period_days: trialDays,
+            ...(trialEnd ? { trial_end: trialEnd } : { trial_period_days: trialDays }),
             trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } },
             metadata: { companyId, plan: planId },
           },
