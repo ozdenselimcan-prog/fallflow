@@ -1,5 +1,6 @@
 import { extractFields } from "@/lib/ai/case-extractor";
 import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
+import { formNotByEmail, looksLikeWithdrawal, mentionedServices } from "./request-signals";
 import { customerQuestion } from "@/lib/ai/personal-reply";
 import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { heuristicExtract } from "@/lib/ai/heuristic";
@@ -136,7 +137,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   }
   if (!attention && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
+    const several = existing ? [] : mentionedServices(input.text, company.services);
     if (turn.handoff) attention = "Kunde wünscht persönlichen Kontakt";
+    // Mehrere angebotene Leistungen in einer Anfrage: nicht nur eine davon beantworten und die andere still übergehen.
+    else if (several.length > 1) attention = `Kunde fragt nach mehreren Leistungen (${several.join(" und ")})`;
+    // Formular kommt nicht per E-Mail (Post, kein Drucker …): das klärt das Büro selbst.
+    else if (existing && formNotByEmail(input.text)) attention = "Kunde schickt das Formular nicht per E-Mail (z. B. per Post) – bitte selbst klären";
+    // Kunde zieht die Anfrage zurück: nicht mit "Vielen Dank, wir haben alles" antworten – das Büro entscheidet.
+    else if (existing && looksLikeWithdrawal(input.text)) attention = "Kunde zieht die Anfrage zurück";
     else if (!service || service === "Sonstiges") attention = "Leistung nicht erkannt";
     else {
       const question = await customerQuestion(input.text);

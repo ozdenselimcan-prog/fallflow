@@ -99,6 +99,9 @@ export interface TemplateSendInfo {
   filled: boolean | null;
 }
 
+/** Feld am Fall: "1" = wartet auf die Rückmeldung des Kunden zu im Nachrichtentext angeforderten Unterlagen (setzt refreshCase). */
+export const AWAITING_REPLY_KEY = "awaitingReply";
+
 export function buildChecklist(input: {
   questions: Question[];
   fields: Record<string, string>;
@@ -114,6 +117,12 @@ export function buildChecklist(input: {
    * dürfen diese Felder dort auch nicht als "fehlend" blockieren. Default true (Website-Chat & Altfälle).
    */
   includeFields?: boolean;
+  /**
+   * true = Das Büro hat in seiner Nachricht zur Leistung etwas angefordert, das FallFlow nicht als Angabe/Dokument
+   * erkennt (z. B. Heizkostenabrechnungen), und der Kunde hat darauf noch nicht geantwortet – dann ist der Fall noch
+   * nicht fertig (siehe request-signals.ts).
+   */
+  awaitingCustomerReply?: boolean;
 }): Checklist {
   const { fields, documents, includeFields = true } = input;
   const items: ChecklistItem[] = [];
@@ -142,6 +151,10 @@ export function buildChecklist(input: {
   for (const t of input.templateSends ?? []) {
     if (t.status === "info") continue; // nur zur Information mitgeschickt – kommt nicht zurück
     items.push({ key: `template:${t.id}`, label: t.title, kind: "document", required: true, done: t.status === "received" && t.filled !== false, requested: true });
+  }
+
+  if (input.awaitingCustomerReply ?? fields[AWAITING_REPLY_KEY] === "1") {
+    items.push({ key: "reply:service", label: "Rückmeldung des Kunden (angeforderte Unterlagen laut Ihrer Nachricht)", kind: "document", required: true, done: false, requested: true });
   }
 
   const required = items.filter((i) => i.required);

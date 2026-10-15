@@ -19,7 +19,8 @@ import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { officeAlreadyRequests } from "./document-mentions";
 import { notifyOffice } from "./notify";
-import { buildChecklist, deriveFields, deriveStatus, documentRequirements, type Checklist, type StatusHint } from "./checklist";
+import { AWAITING_REPLY_KEY, buildChecklist, deriveFields, deriveStatus, documentRequirements, type Checklist, type StatusHint } from "./checklist";
+import { requestsUntrackedItems } from "./request-signals";
 import { appointmentAddonText, appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
@@ -657,6 +658,20 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
   let c = current;
   let documents = await store.listDocuments(caseId);
   const derived = deriveFields(c.fields);
+  // Fordert das Büro in seinem Text Unterlagen an, die FallFlow nicht verfolgen kann (z. B. Heizkostenabrechnungen), ist
+  // der Fall erst fertig, wenn der Kunde nach unserer Nachricht geantwortet bzw. etwas geschickt hat – sonst käme
+  // "Vielen Dank, wir haben alles" gleich in der ersten Antwort. Nur bei automatischen E-Mail-Antworten.
+  if (c.source === "email") {
+    const serviceText = settings.autoReply ? (serviceMessages.find((m) => m.service === (c.fields.service ?? ""))?.body ?? "") : "";
+    let awaiting = false;
+    if (serviceText && requestsUntrackedItems(serviceText) && !documents.some((d) => d.status === "received")) {
+      const msgs = await store.listMessages(caseId);
+      const firstOut = msgs.findIndex((m) => m.role === "assistant" || m.role === "staff");
+      awaiting = firstOut < 0 || !msgs.slice(firstOut + 1).some((m) => m.role === "user");
+    }
+    const flag = awaiting ? "1" : "";
+    if ((c.fields[AWAITING_REPLY_KEY] ?? "") !== flag) derived[AWAITING_REPLY_KEY] = flag;
+  }
   const fields = { ...c.fields, ...derived };
   const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));

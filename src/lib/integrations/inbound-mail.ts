@@ -4,6 +4,7 @@ import type { CaseRecord } from "@/lib/data/types";
 import { extractForText } from "@/lib/intake/engine";
 import { noteSkippedAttachments, receiveEmailAttachments } from "@/lib/intake/case-ops";
 import { findCaseByIdentity } from "@/lib/intake/identity";
+import { looksLikeAutoReply } from "@/lib/intake/request-signals";
 import { routeInbound } from "@/lib/intake/router";
 import type { InboundAttachment } from "./email";
 
@@ -50,6 +51,12 @@ export type InboundOutcome = { handled: false } | { handled: true; caseId: strin
 export async function handleInboundMail(store: Store, companyId: string, mail: IncomingMail, opts: { simulated?: boolean; junk?: boolean } = {}): Promise<InboundOutcome> {
   const fullText = `${mail.subject ? `${mail.subject}\n\n` : ""}${mail.body}`;
   const previous = findCaseByIdentity(await store.listCases(), { email: mail.from });
+  // Abwesenheitsnotiz eines Kunden (ohne Auto-Submitted-Kopfzeile): nur vermerken – sie ist keine Antwort auf unsere Mail
+  // und darf weder etwas auslösen noch als "Kunde hat geantwortet" zählen. Ohne Anhänge, sonst ist es doch eine echte Mail.
+  if (previous && mail.attachments.length === 0 && looksLikeAutoReply(mail.subject, mail.body)) {
+    await store.addEvent(previous.id, "note", "Abwesenheitsnotiz des Kunden erhalten – nicht beantwortet.");
+    return { handled: true, caseId: previous.id, matchedExisting: true };
+  }
   // Ist der bisherige Fall schon fertig und stellt der Kunde eine NEUE Anfrage, beginnt ein ganz neuer Fall.
   const startNew = previous ? await isNewRequestAfterDoneCase(previous, fullText) : false;
   const existing = startNew ? null : previous;
