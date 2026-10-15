@@ -10,6 +10,8 @@ import type { FormEntry, FormExtraction } from "./form-extractor";
 const VISION_MODEL = process.env.AI_VISION_MODEL || "gpt-4o";
 /** Größere PDFs (z. B. hochaufgelöste Scans) nicht an die KI schicken. */
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
+/** Ab so vielen gelesenen Eintragungen gilt ein Formular als ausgefüllt, auch wenn die KI anderes meint. */
+const MIN_VALUES_FOR_FILLED = 8;
 
 const RULES = EXTRACTION_SYSTEM_PROMPT.slice(EXTRACTION_SYSTEM_PROMPT.indexOf("Regeln:")).replace(/Der Text zwischen <anfrage>[^\n]*$/, "");
 
@@ -88,7 +90,11 @@ export async function inspectFilledPdf(title: string, pdf: Uint8Array, fileName:
       .map((e) => ({ label: tidy(e.label, 80), value: tidy(e.value, 300) }))
       .filter((e) => e.label && e.value)
       .slice(0, 40);
-    return { filled: parsed.data.filled, wrongDocument: parsed.data.wrongDocument, note: tidy(parsed.data.note, 200), extraction: { fields, entries } };
+    // Absicherung: Die KI bemängelt manchmal Felder ihres JSON-Schemas (Gebäudetyp, Heizung …), die auf den gezeigten
+    // Seiten gar nicht vorkommen. Hat sie dort viele Eintragungen gelesen, ist das Formular nicht "leer".
+    const readValues = new Set([...Object.entries(fields).filter(([k, v]) => k !== "service" && v).map(([, v]) => v), ...entries.map((e) => e.value)]);
+    const filled = parsed.data.filled || (!parsed.data.wrongDocument && readValues.size >= MIN_VALUES_FOR_FILLED);
+    return { filled, wrongDocument: parsed.data.wrongDocument, note: filled && !parsed.data.filled ? "" : tidy(parsed.data.note, 200), extraction: { fields, entries } };
   } catch (err) {
     console.error("[ai] Visuelle Formularprüfung fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
     return null;
