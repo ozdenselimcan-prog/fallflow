@@ -1,5 +1,9 @@
 export const faqs = [
   {
+    q: "Schreibt die KI meinen Kunden eigene Texte?",
+    a: "Nein. Ihre Texte. Ihre Formulare. Ihre Entscheidung. Sie legen für jede Ihrer Leistungen selbst fest, was in der Antwort steht – z. B. einen Text für den iSFP und einen anderen für den Energieausweis, jeweils mit Ihren eigenen PDF-Formularen. FallFlow erkennt, um welche Leistung es geht, und verschickt genau diesen Text. Alles Individuelle – Fragen zu Preisen oder zum Gebäude, Sonderwünsche, Terminabsagen oder Leistungen, die Sie nicht hinterlegt haben – beantwortet die KI nicht; diese Anfragen landen bei Ihnen, und Sie antworten persönlich. Wenn Sie möchten, schalten Sie die automatischen Antworten ganz ab: Dann bereitet FallFlow die Fälle nur vor, und Sie schreiben jede E-Mail selbst.",
+  },
+  {
     q: "Brauche ich ein neues CRM?",
     a: "Nein. FallFlow ersetzt weder ein CRM noch Ihre Beratungssoftware. Es konzentriert sich auf einen Schritt: aus einer Kundenanfrage einen vollständig vorbereiteten Beratungsfall zu machen, den Sie anschließend in Ihrem gewohnten Ablauf weiterbearbeiten.",
   },
