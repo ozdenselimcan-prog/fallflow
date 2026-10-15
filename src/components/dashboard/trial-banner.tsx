@@ -1,9 +1,14 @@
+"use client";
+
 import { Clock } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { buttonStyles } from "@/components/ui/button";
 
 /** Hinweis während der kostenlosen Testphase ohne Zahlungsmethode – auf jeder Dashboard-Seite. */
 export function TrialBanner({ daysLeft, canManage }: { daysLeft: number; canManage: boolean }) {
+  // Auf der Bezahlseite selbst ist der Hinweis doppelt.
+  if (usePathname() === "/dashboard/payment") return null;
   const days = daysLeft === 1 ? "1 Tag" : `${daysLeft} Tage`;
   return (
     <div className="mb-5 flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
