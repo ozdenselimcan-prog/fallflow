@@ -35,7 +35,7 @@ export function Hero() {
             Kostenlos starten
           </Link>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">Kein weiteres CRM: Ihre bestehende Website und Ihre gewohnten Abläufe bleiben erhalten.</p>
+        <p className="mt-4 text-xs text-muted-foreground">Kostenlos testen, ohne Kreditkarte. Kein weiteres CRM – Ihre gewohnten Abläufe bleiben erhalten.</p>
       </div>
 
       <div className="relative w-full max-w-xl text-left" aria-label="Vorschau einer Fallakte">
