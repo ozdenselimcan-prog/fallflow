@@ -15,8 +15,9 @@ import { cn } from "@/lib/utils";
  * Plan wählen und Zahlungsmethode hinterlegen. Zwei Fälle:
  * - daysLeft > 0: Testphase läuft noch (erreichbar über den Hinweis im Dashboard) – abgebucht wird erst zu ihrem Ende.
  * - daysLeft = 0: Testphase abgelaufen – dann zeigt FallFlow nur noch diese Seite, bis ein Plan gewählt ist.
+ * - direct: Registrierung ohne Testphase ("Direkt kaufen" bzw. E-Mail-Adresse hat schon getestet) – erst bezahlen, dann einrichten.
  */
-export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0 }: { canManage: boolean; preferredPlan?: string; daysLeft?: number }) {
+export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0, direct = false, trialUsedBefore = false }: { canManage: boolean; preferredPlan?: string; daysLeft?: number; direct?: boolean; trialUsedBefore?: boolean }) {
   const running = daysLeft > 0;
   const router = useRouter();
   const confirming = useSearchParams().get("checkout") === "success";
@@ -70,9 +71,11 @@ export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0 }: { canMa
     <div className="mx-auto max-w-4xl py-6">
       <div className="text-center">
         <Lock className="mx-auto size-6 text-muted-foreground" aria-hidden />
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">{running ? "Zahlungsmethode hinterlegen" : "Ihre kostenlose Testphase ist abgelaufen"}</h1>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight">{running ? "Zahlungsmethode hinterlegen" : direct ? "Plan wählen und FallFlow starten" : "Ihre kostenlose Testphase ist abgelaufen"}</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-          {running
+          {direct
+            ? `${trialUsedBefore ? "Für diese E-Mail-Adresse wurde die kostenlose Testphase bereits genutzt. " : ""}Wählen Sie Ihren Plan und hinterlegen Sie eine Zahlungsmethode – danach richten Sie FallFlow in wenigen Minuten ein. Monatlich kündbar.`
+            : running
             ? `Ihre Testphase läuft noch ${daysLeft === 1 ? "1 Tag" : `${daysLeft} Tage`}. Hinterlegen Sie jetzt eine Zahlungsmethode, damit FallFlow danach ohne Unterbrechung weiterläuft – abgebucht wird erst nach Ende der Testphase. Monatlich kündbar.`
             : "Um FallFlow weiter zu nutzen – E-Mails beantworten, Fälle vorbereiten, Website-Chat –, wählen Sie bitte Ihren Plan und hinterlegen eine Zahlungsmethode. Ihre Fälle, Vorlagen und Einstellungen bleiben vollständig erhalten. Monatlich kündbar."}
         </p>
@@ -108,7 +111,7 @@ export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0 }: { canMa
                   disabled={pending !== null}
                   onClick={() => start(p.id)}
                 >
-                  {running ? "Diesen Plan wählen" : "Plan wählen & weiter nutzen"}
+                  {running ? "Diesen Plan wählen" : direct ? "Plan wählen & starten" : "Plan wählen & weiter nutzen"}
                 </Button>
               </Card>
             </li>

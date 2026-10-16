@@ -39,3 +39,13 @@ export function needsPaymentSetup(company: CompanyLike, subscription: Subscripti
   const end = cardlessTrialEnd(company, subscription);
   return end !== null && now >= Date.parse(end);
 }
+
+/**
+ * true = Das Büro hat gar keine Testphase (Registrierung über "Direkt kaufen" oder die E-Mail-Adresse hat schon einmal
+ * getestet): Das Testphasen-Ende liegt dann praktisch auf dem Anlagezeitpunkt. Dann geht es direkt zur Bezahlung –
+ * noch vor dem Einrichten.
+ */
+export function isDirectPurchase(company: CompanyLike, subscription: SubscriptionLike): boolean {
+  const end = cardlessTrialEnd(company, subscription);
+  return end !== null && Date.parse(end) - Date.parse(company.createdAt) < 3_600_000;
+}

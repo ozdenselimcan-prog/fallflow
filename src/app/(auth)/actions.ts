@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { REFERRAL_CODE } from "@/lib/billing/referrals";
+import { hasUsedTrial, recordTrialUsage } from "@/lib/billing/trial-usage";
 import { siteConfig } from "@/lib/config/site";
 import { rateLimit } from "@/lib/rate-limit";
 import { createAdminClient, createUserClient } from "@/lib/supabase/clients";
@@ -47,6 +48,7 @@ async function setTrialEnd(userId: string, trialDays: number) {
   if (!admin) return;
   const { data: member } = await admin.from("company_members").select("company_id").eq("user_id", userId).eq("role", "OWNER").maybeSingle();
   if (!member?.company_id) return;
+  // 0 Tage (Direktkauf): Ende = jetzt → FallFlow zeigt sofort die Bezahlseite (siehe isDirectPurchase).
   const end = new Date(Date.now() + trialDays * 86_400_000).toISOString();
   await admin.from("subscriptions").update({ current_period_end: end }).eq("company_id", member.company_id).is("stripe_customer_id", null);
 }
@@ -64,24 +66,32 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
   // Empfehlungscode eines anderen Büros – die Zuordnung übernimmt ein Datenbank-Trigger (Migration 0023).
   const rawRef = typeof input === "object" && input !== null ? (input as Record<string, unknown>).referralCode : undefined;
   const ref = typeof rawRef === "string" && REFERRAL_CODE.test(rawRef) ? rawRef : undefined;
+  // "Direkt kaufen" auf der Preisseite: keine Testphase, nach der Registrierung sofort zur Bezahlung.
+  const buy = typeof input === "object" && input !== null && (input as Record<string, unknown>).buy === true;
 
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
     const { firstName, lastName, company, email, password, plan } = parsed.data;
+    // Die kostenlose Testphase gibt es nur einmal je E-Mail-Adresse – auch nach Löschung des Kontos.
+    const trialUsedBefore = !buy && (await hasUsedTrial(email));
+    const direct = buy || trialUsedBefore;
     const { data, error } = await db.auth.signUp({
       email,
       password,
       options: {
         // Zustimmung zu AGB/AVV mit Zeitpunkt und Fassung am Konto festhalten (Nachweis).
-        data: { first_name: firstName, last_name: lastName, company, terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_VERSION, signup_plan: plan ?? "starter", trial_days: trialDays, ...(ref ? { ref } : {}) },
-        emailRedirectTo: `${siteConfig.appUrl}/auth/callback?next=/onboarding`,
+        data: { first_name: firstName, last_name: lastName, company, terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_VERSION, signup_plan: plan ?? "starter", trial_days: direct ? 0 : trialDays, ...(trialUsedBefore ? { trial_used_before: true } : {}), ...(ref ? { ref } : {}) },
+        emailRedirectTo: `${siteConfig.appUrl}/auth/callback?next=${direct ? "/dashboard" : "/onboarding"}`,
       },
     });
     if (error) return { error: "Die Registrierung war nicht möglich. Bitte prüfen Sie Ihre Angaben." };
     // Testphase ohne Zahlungsmethode: Ende festhalten (7 Tage bzw. Testzeitraum aus dem Link). Danach zeigt FallFlow nur
     // noch die Bezahlseite (siehe lib/billing/access.ts). Fehler hier blockieren die Registrierung nicht (dann gilt Anlage + 7 Tage).
-    if (data.user) await setTrialEnd(data.user.id, trialDays).catch((err) => console.error("[signup] Testphase:", err instanceof Error ? err.message : "Fehler"));
+    if (data.user) await setTrialEnd(data.user.id, direct ? 0 : trialDays).catch((err) => console.error("[signup] Testphase:", err instanceof Error ? err.message : "Fehler"));
+    if (data.user && !direct) await recordTrialUsage(email);
     if (!data.session) return { message: "Fast geschafft: Wir haben Ihnen eine E-Mail zur Bestätigung geschickt." };
+    // Direktkauf: Das Dashboard zeigt zuerst die Bezahlseite, eingerichtet wird danach.
+    if (direct) redirect("/dashboard");
   }
   redirect("/onboarding");
 }

@@ -260,7 +260,7 @@ export function PricingSection() {
               <span className="text-4xl font-semibold tracking-tight">{p.priceEur} €</span>
               <span className="text-muted-foreground">/Monat</span>
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">7 Tage kostenlos, danach automatisch {p.priceEur} €/Monat. Jederzeit kündbar.</p>
+            <p className="mt-1 text-xs text-muted-foreground">7 Tage kostenlos testen, ohne Kreditkarte – oder direkt starten. Monatlich kündbar.</p>
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
               {p.features.map((f) => (
                 <li key={f} className="flex items-start gap-2">
@@ -271,6 +271,9 @@ export function PricingSection() {
             </ul>
             <Link href={`/signup?plan=${p.id}`} className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
               7 Tage kostenlos testen
+            </Link>
+            <Link href={`/signup?plan=${p.id}&buy=1`} className={buttonStyles({ variant: "ghost", className: "mt-2 border border-border" })}>
+              Direkt kaufen
             </Link>
           </Card>
         ))}

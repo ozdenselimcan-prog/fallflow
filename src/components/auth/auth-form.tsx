@@ -96,11 +96,11 @@ export function LoginForm() {
   );
 }
 
-export function SignupForm({ plan, trialDays, referralCode }: { plan?: string; trialDays?: number; referralCode?: string }) {
+export function SignupForm({ plan, trialDays, referralCode, buy }: { plan?: string; trialDays?: number; referralCode?: string; buy?: boolean }) {
   return (
     <AuthForm
       schema={signupSchema}
-      action={(v) => signupAction({ ...v, plan, trialDays, referralCode })}
+      action={(v) => signupAction({ ...v, plan, trialDays, referralCode, buy })}
       submitLabel="Konto erstellen"
       fields={[
         { name: "firstName", label: "Vorname", autoComplete: "given-name" },

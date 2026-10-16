@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/integrations/stripe", () => ({ stripeConfigured: () => true }));
-const { cardlessTrialEnd, needsPaymentSetup, trialDaysLeft } = await import("./access");
+const { cardlessTrialEnd, isDirectPurchase, needsPaymentSetup, trialDaysLeft } = await import("./access");
 
 const DAY = 86_400_000;
 const created = "2026-10-15T10:00:00.000Z";
@@ -29,5 +29,17 @@ describe("Testphase ohne Zahlungsmethode", () => {
   });
   it("ältere Konten (vor Einführung) sind nie betroffen", () => {
     expect(cardlessTrialEnd({ createdAt: "2026-10-01T00:00:00.000Z" }, noCard)).toBeNull();
+  });
+});
+
+describe("Direkt kaufen (ohne Testphase)", () => {
+  it("Testphasen-Ende = Anlage → sofort zur Bezahlung, vor dem Einrichten", () => {
+    const sub = { ...noCard, currentPeriodEnd: new Date(t0 + 5000).toISOString() };
+    expect(isDirectPurchase({ createdAt: created }, sub)).toBe(true);
+    expect(needsPaymentSetup({ createdAt: created }, sub, t0 + 60_000)).toBe(true);
+  });
+  it("normale Testphase ist kein Direktkauf", () => {
+    expect(isDirectPurchase({ createdAt: created }, noCard)).toBe(false);
+    expect(isDirectPurchase({ createdAt: created }, { ...noCard, stripeCustomerId: "cus_1" })).toBe(false);
   });
 });

@@ -8,7 +8,7 @@ import { getStripeClient } from "@/lib/integrations/stripe";
  * Rückkehr von der Stripe-Bezahlseite: Checkout direkt bei Stripe prüfen und das Abo sofort übernehmen – unabhängig
  * davon, ob bzw. wann der Webhook ankommt. Danach weiter ins Dashboard.
  */
-export const GET = withSession(async (req, { session }) => {
+export const GET = withSession(async (req, { session, store }) => {
   const sessionId = req.nextUrl.searchParams.get("session_id") ?? "";
   const stripe = getStripeClient();
   if (stripe && /^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
@@ -21,6 +21,8 @@ export const GET = withSession(async (req, { session }) => {
       console.error("[billing/confirm]", err instanceof Error ? err.message : "Fehler");
     }
   }
-  const next = req.nextUrl.searchParams.get("next") === "billing" ? "/dashboard/settings/billing?checkout=success" : "/dashboard?checkout=success";
+  // Direktkauf: Das Büro ist noch nicht eingerichtet – weiter zur Einrichtung (checkout=success zählt für Google Ads).
+  const onboarded = (await store.getCompany()).onboardingCompleted;
+  const next = req.nextUrl.searchParams.get("next") === "billing" ? "/dashboard/settings/billing?checkout=success" : onboarded ? "/dashboard?checkout=success" : "/onboarding?checkout=success";
   return NextResponse.redirect(new URL(next, siteConfig.appUrl));
 });

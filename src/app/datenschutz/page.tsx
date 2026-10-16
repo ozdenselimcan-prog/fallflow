@@ -121,7 +121,7 @@ export default function DatenschutzPage() {
 
           <Section title="8. Speicherdauer">
             <p>
-              Anfragen, die von einem Büro nicht übernommen werden, werden samt Dokumenten, Nachrichten und Verlauf automatisch gelöscht, wenn seit der letzten Aktivität 12 Monate vergangen sind. Von einem Büro übernommene Fälle bleiben gespeichert, bis das Büro sie löscht; das Büro entscheidet dabei nach seinen eigenen Aufbewahrungspflichten und kann Fälle jederzeit löschen. Konten und Büro-Daten werden nach Beendigung des Vertrags gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten bestehen. Server-Logs werden nach den Vorgaben des Hosting-Anbieters nur kurz aufbewahrt.
+              Anfragen, die von einem Büro nicht übernommen werden, werden samt Dokumenten, Nachrichten und Verlauf automatisch gelöscht, wenn seit der letzten Aktivität 12 Monate vergangen sind. Von einem Büro übernommene Fälle bleiben gespeichert, bis das Büro sie löscht; das Büro entscheidet dabei nach seinen eigenen Aufbewahrungspflichten und kann Fälle jederzeit löschen. Konten und Büro-Daten werden nach Beendigung des Vertrags gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten bestehen. Damit die kostenlose Testphase je E-Mail-Adresse nur einmal genutzt werden kann, speichern wir bei der Registrierung einen pseudonymisierten Prüfwert (Hash) der E-Mail-Adresse; er bleibt auch nach Löschung des Kontos erhalten und wird nach drei Jahren gelöscht (berechtigtes Interesse an der Verhinderung von Missbrauch, Art. 6 Abs. 1 lit. f DSGVO). Server-Logs werden nach den Vorgaben des Hosting-Anbieters nur kurz aufbewahrt.
             </p>
           </Section>
 

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CheckoutConversion } from "@/components/consent/consent-banner";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
-import { needsPaymentSetup, trialDaysLeft } from "@/lib/billing/access";
+import { isDirectPurchase, needsPaymentSetup, trialDaysLeft } from "@/lib/billing/access";
 import { TrialBanner } from "@/components/dashboard/trial-banner";
 import { DashboardShell } from "@/components/dashboard/shell";
 import { can } from "@/lib/auth/permissions";
@@ -13,7 +13,10 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
   const session = await requireSession();
   const store = await getStore(session);
   const [company, stats, subscription] = await Promise.all([store.getCompany(), store.getStats(), store.getSubscription()]);
-  if (!company.onboardingCompleted && can(session.role, "company:manage") && !session.demo) redirect("/onboarding");
+  const paywall = !session.demo && needsPaymentSetup(company, subscription);
+  // Direktkauf (ohne Testphase): erst bezahlen, dann einrichten – sonst erst einrichten.
+  const direct = paywall && isDirectPurchase(company, subscription);
+  if (!company.onboardingCompleted && can(session.role, "company:manage") && !session.demo && !direct) redirect("/onboarding");
 
   return (
     <DashboardShell
@@ -29,9 +32,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
         <CheckoutConversion />
       </Suspense>
       {/* Testphase ohne Zahlungsmethode abgelaufen: nur noch die Bezahlseite. Während der Testphase: Hinweis oben. */}
-      {!session.demo && needsPaymentSetup(company, subscription) ? (
+      {paywall ? (
         <Suspense>
-          <PaymentSetup canManage={can(session.role, "billing:manage")} preferredPlan={session.signupPlan} daysLeft={0} />
+          <PaymentSetup canManage={can(session.role, "billing:manage")} preferredPlan={session.signupPlan} daysLeft={0} direct={direct} trialUsedBefore={session.trialUsedBefore} />
         </Suspense>
       ) : (
         <>

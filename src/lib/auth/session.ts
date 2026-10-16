@@ -18,6 +18,8 @@ export interface Session {
   /** Bei der Registrierung gewählter Plan und Testzeitraum (für "Zahlungsmethode hinterlegen" nach dem Onboarding). */
   signupPlan?: string;
   trialDays?: number;
+  /** Diese E-Mail-Adresse hatte schon einmal eine Testphase – deshalb ohne neue Testphase registriert. */
+  trialUsedBefore?: boolean;
 }
 
 export const getSession = cache(async (): Promise<Session | null> => {
@@ -56,6 +58,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
     demo: false,
     signupPlan: typeof user.user_metadata?.signup_plan === "string" ? user.user_metadata.signup_plan : undefined,
     trialDays: Number.isInteger(user.user_metadata?.trial_days) ? user.user_metadata.trial_days : undefined,
+    trialUsedBefore: user.user_metadata?.trial_used_before === true,
   };
 });
 

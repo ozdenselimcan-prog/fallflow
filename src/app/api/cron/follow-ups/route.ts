@@ -5,6 +5,7 @@ import { gmailProvider } from "@/lib/integrations/gmail";
 import { microsoftProvider } from "@/lib/integrations/microsoft";
 import { syncMailbox } from "@/lib/integrations/mail-sync";
 import { purgeStaleCases } from "@/lib/intake/retention";
+import { purgeOldTrialUsage } from "@/lib/billing/trial-usage";
 import { processCanceledCompanies } from "@/lib/billing/account-deletion";
 import { syncAllSubscriptions } from "@/lib/billing/stripe-sync";
 
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
 
   // Beendete Abos: 7 Tage vorher warnen, 30 Tage nach Vertragsende alle Daten löschen (AVV § 9).
   const deletion = await processCanceledCompanies();
+  await purgeOldTrialUsage();
 
   return NextResponse.json({ ...totals, mail: { gmail, microsoft }, billing, deletion });
 }

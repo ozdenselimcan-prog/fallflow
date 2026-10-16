@@ -7,7 +7,9 @@ import { plans } from "@/lib/config/pricing";
 export const metadata: Metadata = { title: "Registrieren" };
 
 export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
-  const { plan: planParam, trial: trialParam, ref: refParam } = await searchParams;
+  const { plan: planParam, trial: trialParam, ref: refParam, buy: buyParam } = await searchParams;
+  // "Direkt kaufen" auf der Preisseite: ohne Testphase, nach der Registrierung direkt zur Bezahlung.
+  const buy = buyParam === "1";
   const plan = plans.find((p) => p.id === planParam) ?? plans[0];
   // Standard 7 Tage; ein individueller Testzeitraum (z. B. 14 Tage für einen einzelnen Kunden) läuft nur
   // über einen gezielt verschickten Link mit ?trial=14 (bis 60, z. B. ?trial=60 für Pilotkunden) – nirgends auf der Seite verlinkt.
@@ -22,10 +24,21 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
       <h1 className="text-2xl font-semibold tracking-tight">Konto erstellen</h1>
       <p className="mb-1 mt-1 text-sm text-muted-foreground">In wenigen Minuten zum ersten Beratungsfall.</p>
       <p className="mb-6 text-sm text-muted-foreground">
-        {plan.name}-Plan, {trialDays} Tage kostenlos testen, danach {plan.priceEur} €/Monat. Jederzeit kündbar.
+        {buy ? (
+          <>
+            {plan.name}-Plan für {plan.priceEur} €/Monat, monatlich kündbar. Nach der Registrierung geht es direkt zur Bezahlung.{" "}
+            <Link href={`/signup?plan=${plan.id}`} className="underline">
+              Lieber erst kostenlos testen?
+            </Link>
+          </>
+        ) : (
+          <>
+            {plan.name}-Plan, {trialDays} Tage kostenlos testen – ohne Kreditkarte. Danach {plan.priceEur} €/Monat, jederzeit kündbar.
+          </>
+        )}
       </p>
-      {ref && <p className="mb-4 rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">Sie wurden von einem Kollegen empfohlen – dafür testen Sie {trialDays} Tage kostenlos.</p>}
-      <SignupForm plan={plan.id} trialDays={trialDays} referralCode={ref} />
+      {ref && !buy && <p className="mb-4 rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">Sie wurden von einem Kollegen empfohlen – dafür testen Sie {trialDays} Tage kostenlos.</p>}
+      <SignupForm plan={plan.id} trialDays={trialDays} referralCode={ref} buy={buy} />
       <p className="mt-4 text-xs text-muted-foreground">
         Hinweise zum Umgang mit Ihren Daten finden Sie in der <Link href="/datenschutz" className="underline">Datenschutzerklärung</Link>.
       </p>
