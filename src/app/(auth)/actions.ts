@@ -36,7 +36,8 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
     const { error } = await db.auth.signInWithPassword(parsed.data);
-    // Bewusst generische Meldung: keine Auskunft, ob die E-Mail existiert.
+    // Supabase meldet "nicht bestätigt" nur bei richtigem Passwort – sonst bewusst generisch (keine Auskunft, ob die E-Mail existiert).
+    if (error?.code === "email_not_confirmed") return { error: "Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse – den Link dazu haben wir Ihnen bei der Registrierung geschickt." };
     if (error) return { error: "E-Mail oder Passwort ist nicht korrekt." };
   }
   redirect("/dashboard");
@@ -81,7 +82,7 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
       options: {
         // Zustimmung zu AGB/AVV mit Zeitpunkt und Fassung am Konto festhalten (Nachweis).
         data: { first_name: firstName, last_name: lastName, company, terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_VERSION, signup_plan: plan ?? "starter", trial_days: direct ? 0 : trialDays, ...(trialUsedBefore ? { trial_used_before: true } : {}), ...(ref ? { ref } : {}) },
-        emailRedirectTo: `${siteConfig.appUrl}/auth/callback?next=${direct ? "/dashboard" : "/onboarding"}`,
+        emailRedirectTo: `${siteConfig.appUrl}/auth/confirm?next=${direct ? "/dashboard" : "/onboarding"}`,
       },
     });
     if (error) return { error: "Die Registrierung war nicht möglich. Bitte prüfen Sie Ihre Angaben." };
@@ -89,7 +90,7 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
     // noch die Bezahlseite (siehe lib/billing/access.ts). Fehler hier blockieren die Registrierung nicht (dann gilt Anlage + 7 Tage).
     if (data.user) await setTrialEnd(data.user.id, direct ? 0 : trialDays).catch((err) => console.error("[signup] Testphase:", err instanceof Error ? err.message : "Fehler"));
     if (data.user && !direct) await recordTrialUsage(email);
-    if (!data.session) return { message: "Fast geschafft: Wir haben Ihnen eine E-Mail zur Bestätigung geschickt." };
+    if (!data.session) return { message: `Fast geschafft! Wir haben Ihnen eine E-Mail an ${email} geschickt. Bitte klicken Sie auf den Link darin, um Ihre E-Mail-Adresse zu bestätigen – danach geht es direkt weiter. (Keine Mail? Bitte auch im Spam-Ordner nachsehen.)` };
     // Direktkauf: Das Dashboard zeigt zuerst die Bezahlseite, eingerichtet wird danach.
     if (direct) redirect("/dashboard");
   }
@@ -103,7 +104,7 @@ export async function forgotPasswordAction(input: unknown): Promise<ActionResult
 
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
-    await db.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: `${siteConfig.appUrl}/auth/callback?next=/reset-password` });
+    await db.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: `${siteConfig.appUrl}/auth/confirm?next=/reset-password` });
   }
   // Immer dieselbe Antwort, damit keine Konten enumeriert werden können.
   return { message: "Wenn ein Konto mit dieser E-Mail existiert, haben wir Ihnen einen Link zum Zurücksetzen gesendet." };
