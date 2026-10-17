@@ -8,8 +8,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error } = await searchParams;
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Anmelden</h1>
-      <p className="mb-6 mt-1 text-sm text-muted-foreground">Willkommen zurück bei FallFlow.</p>
+      <h1 className="text-3xl font-semibold tracking-tight">Willkommen zurück</h1>
+      <p className="mb-8 mt-2 text-muted-foreground">Melden Sie sich bei FallFlow an.</p>
       {error === "callback" && (
         <p role="alert" className="mb-4 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
           Der Bestätigungslink ist ungültig oder abgelaufen. Bitte melden Sie sich an oder fordern Sie einen neuen Link an.

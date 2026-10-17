@@ -22,6 +22,8 @@ interface FieldDef {
   autoComplete?: string;
   /** Bei type "checkbox": Beschriftung mit Links (z. B. AGB/AVV). */
   labelNode?: React.ReactNode;
+  /** Halbe Breite (ab kleinen Bildschirmen zwei nebeneinander, z. B. Vor- und Nachname). */
+  half?: boolean;
 }
 
 function AuthForm({ schema, fields, action, submitLabel, footer }: { schema: z.ZodType<Values>; fields: FieldDef[]; action: (v: Values) => Promise<ActionResult>; submitLabel: string; footer?: React.ReactNode }) {
@@ -36,7 +38,7 @@ function AuthForm({ schema, fields, action, submitLabel, footer }: { schema: z.Z
   return (
     <form
       noValidate
-      className="space-y-4"
+      className="grid gap-4 sm:grid-cols-2"
       onSubmit={handleSubmit((values) =>
         start(async () => {
           setResult({});
@@ -52,7 +54,7 @@ function AuthForm({ schema, fields, action, submitLabel, footer }: { schema: z.Z
     >
       {fields.map((f) =>
         f.type === "checkbox" ? (
-          <div key={f.name}>
+          <div key={f.name} className="sm:col-span-2">
             <label className="flex items-start gap-2.5 text-sm">
               <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" aria-label={f.label} {...register(f.name)} />
               <span className="text-muted-foreground">{f.labelNode ?? f.label}</span>
@@ -60,17 +62,19 @@ function AuthForm({ schema, fields, action, submitLabel, footer }: { schema: z.Z
             {errors[f.name]?.message && <p className="mt-1 text-sm text-danger">{errors[f.name]?.message as string}</p>}
           </div>
         ) : (
-          <Field key={f.name} label={f.label} error={errors[f.name]?.message as string | undefined}>
-            <Input type={f.type ?? "text"} autoComplete={f.autoComplete} {...register(f.name)} />
-          </Field>
+          <div key={f.name} className={f.half ? undefined : "sm:col-span-2"}>
+            <Field label={f.label} error={errors[f.name]?.message as string | undefined}>
+              <Input type={f.type ?? "text"} autoComplete={f.autoComplete} className="h-11" {...register(f.name)} />
+            </Field>
+          </div>
         ),
       )}
-      {result.error && <Notice tone="error">{result.error}</Notice>}
-      {result.message && <Notice tone="success">{result.message}</Notice>}
-      <Button type="submit" className="w-full" loading={pending}>
+      {result.error && <Notice tone="error" className="sm:col-span-2">{result.error}</Notice>}
+      {result.message && <Notice tone="success" className="sm:col-span-2">{result.message}</Notice>}
+      <Button type="submit" size="lg" className="w-full sm:col-span-2" loading={pending}>
         {submitLabel}
       </Button>
-      {footer}
+      {footer && <div className="sm:col-span-2">{footer}</div>}
     </form>
   );
 }
@@ -103,8 +107,8 @@ export function SignupForm({ plan, trialDays, referralCode, buy }: { plan?: stri
       action={(v) => signupAction({ ...v, plan, trialDays, referralCode, buy })}
       submitLabel="Konto erstellen"
       fields={[
-        { name: "firstName", label: "Vorname", autoComplete: "given-name" },
-        { name: "lastName", label: "Nachname", autoComplete: "family-name" },
+        { name: "firstName", label: "Vorname", autoComplete: "given-name", half: true },
+        { name: "lastName", label: "Nachname", autoComplete: "family-name", half: true },
         { name: "company", label: "Unternehmen", autoComplete: "organization" },
         { name: "email", label: "E-Mail", type: "email", autoComplete: "email" },
         { name: "password", label: "Passwort (mind. 8 Zeichen)", type: "password", autoComplete: "new-password" },

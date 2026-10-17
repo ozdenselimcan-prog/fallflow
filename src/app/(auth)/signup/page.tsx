@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { SignupForm } from "@/components/auth/auth-form";
 import { REFERRAL_CODE, REFERRAL_TRIAL_DAYS } from "@/lib/billing/referrals";
 import { plans } from "@/lib/config/pricing";
@@ -21,22 +22,26 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Konto erstellen</h1>
-      <p className="mb-1 mt-1 text-sm text-muted-foreground">In wenigen Minuten zum ersten Beratungsfall.</p>
-      <p className="mb-6 text-sm text-muted-foreground">
+      <h1 className="text-3xl font-semibold tracking-tight">{buy ? "Konto erstellen" : `${trialDays} Tage kostenlos testen`}</h1>
+      <p className="mt-2 text-muted-foreground">
         {buy ? (
           <>
-            {plan.name}-Plan für {plan.priceEur} €/Monat, monatlich kündbar. Nach der Registrierung geht es direkt zur Bezahlung.{" "}
+            {plan.name}-Plan für {plan.priceEur} €/Monat. Nach der Registrierung geht es direkt zur Bezahlung.{" "}
             <Link href={`/signup?plan=${plan.id}`} className="underline">
               Lieber erst kostenlos testen?
             </Link>
           </>
         ) : (
-          <>
-            {plan.name}-Plan, {trialDays} Tage kostenlos testen – ohne Kreditkarte. Danach {plan.priceEur} €/Monat, jederzeit kündbar.
-          </>
+          <>In wenigen Minuten zum ersten Beratungsfall.</>
         )}
       </p>
+      <ul className="mb-8 mt-4 flex flex-wrap gap-2 text-xs font-medium">
+        {(buy ? [`${plan.name}-Plan`, "Monatlich kündbar", "Server in der EU"] : ["Ohne Kreditkarte", `Danach ${plan.priceEur} €/Monat (${plan.name})`, "Jederzeit kündbar"]).map((t) => (
+          <li key={t} className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5">
+            <Check className="size-3.5" aria-hidden /> {t}
+          </li>
+        ))}
+      </ul>
       {ref && !buy && <p className="mb-4 rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">Sie wurden von einem Kollegen empfohlen – dafür testen Sie {trialDays} Tage kostenlos.</p>}
       <SignupForm plan={plan.id} trialDays={trialDays} referralCode={ref} buy={buy} />
       <p className="mt-4 text-xs text-muted-foreground">
