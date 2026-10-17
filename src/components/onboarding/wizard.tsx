@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
+import { AppointmentConfirmationCard } from "@/components/dashboard/appointment-confirmation-card";
 import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
 import { ServiceMessagesPanel, type ServiceMessageView, type ServiceTemplateView } from "@/components/dashboard/service-messages-panel";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
 import { SERVICES, WEEKDAY_LABELS } from "@/lib/cases/fields";
+import type { AssistantSettings } from "@/lib/data/types";
 import { apiFetch, useMutation } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +26,7 @@ interface Props {
   integrationResult?: string;
   documentTemplates: ServiceTemplateView[];
   serviceMessages: ServiceMessageView[];
+  assistant: AssistantSettings;
 }
 
 interface Availability {
@@ -40,7 +43,7 @@ const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Vorlagen & Nachrichten", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages, integrationResult }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages, assistant, integrationResult }: Props) {
   // Zurück von der Microsoft-Anmeldung: Angaben davor sind schon gespeichert, weiter beim letzten Schritt.
   const [step, setStep] = useState(integrationResult ? STEPS.length - 1 : 0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
@@ -138,6 +141,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
               Schicken Sie Kunden bei bestimmten Leistungen ein auszufüllendes Formular (z. B. eine Vollmacht)? Hier pro Leistung hochladen und den Nachrichtentext dazu festlegen. Mit einem Klick auf die PDF legen Sie fest, ob sie „ausgefüllt zurück“ kommen soll oder „nur zur Info“ dabei ist (z. B. eine Preisliste). Ohne eigene Nachricht schickt FallFlow einen kurzen Standardtext und nennt die benötigten Unterlagen. Nutzen Sie das nicht, überspringen Sie diesen Schritt einfach.
             </p>
             <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit />
+            <AppointmentConfirmationCard initial={assistant} canEdit />
           </div>
         )}
 

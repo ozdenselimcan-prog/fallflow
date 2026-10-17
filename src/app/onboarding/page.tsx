@@ -14,12 +14,13 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
   const { integration } = await searchParams;
   const session = await requireSession();
   const store = await getStore(session);
-  const [company, channels, connections, documentTemplates, serviceMessages] = await Promise.all([
+  const [company, channels, connections, documentTemplates, serviceMessages, assistant] = await Promise.all([
     store.getCompany(),
     store.listChannels(),
     listConnections(session.companyId),
     store.listDocumentTemplates(),
     store.listServiceMessages(),
+    store.getAssistant(),
   ]);
 
   const byProvider = new Map(connections.map((c) => [c.provider, toStatus(c)]));
@@ -39,6 +40,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
         connections={{ gmail: byProvider.get("microsoft") ?? byProvider.get("gmail") ?? null, microsoftAvailable: microsoftProvider.missingConfig().length === 0 }}
         documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
+        assistant={assistant}
       />
     </main>
   );
