@@ -42,8 +42,7 @@ export function ConsentBanner() {
     <div role="dialog" aria-label="Cookie-Einstellungen" className="fixed inset-x-0 bottom-0 z-50 p-3 sm:p-4">
       <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-lg sm:flex-row sm:items-center">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Wir möchten mit Google Ads messen, ob unsere Anzeigen zu Registrierungen führen. Dafür setzt Google Cookies – nur mit Ihrer Einwilligung. Technisch notwendige
-          Cookies (Anmeldung) sind immer aktiv.{" "}
+          Wir verwenden Cookies, um unsere Website zu verbessern und die Wirkung unserer Werbung zu messen. Notwendige Cookies sind immer aktiv.{" "}
           <Link href="/datenschutz#cookies" className="underline">
             Mehr erfahren
           </Link>
