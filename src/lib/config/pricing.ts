@@ -46,4 +46,7 @@ export const plans: Plan[] = [
   },
 ];
 
+/** Kleinunternehmerregelung: keine Umsatzsteuer. Fällt das weg, hier "zzgl. gesetzlicher MwSt." eintragen (und AGB § 5 anpassen). */
+export const VAT_NOTE = "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.";
+
 export const getPlan = (id: string) => plans.find((p) => p.id === id) ?? plans[0];

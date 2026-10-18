@@ -7,7 +7,7 @@ import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/states";
-import { plans } from "@/lib/config/pricing";
+import { plans, VAT_NOTE } from "@/lib/config/pricing";
 import { apiFetch } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -118,6 +118,7 @@ export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0, direct = 
           ))}
         </ul>
       )}
+      {canManage && <p className="mt-4 text-center text-xs text-muted-foreground">{VAT_NOTE}</p>}
       {error && <Notice tone="error" className="mx-auto mt-4 max-w-xl">{error}</Notice>}
       {canManage && (
         <p className="mt-6 text-center text-xs text-muted-foreground">

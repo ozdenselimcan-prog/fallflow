@@ -95,6 +95,8 @@ export default function DatenschutzPage() {
               <br />
               Deutschland
               <br />
+              Telefon: {siteConfig.phone}
+              <br />
               E-Mail: {siteConfig.supportEmail}
             </p>
             <p>

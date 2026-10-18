@@ -55,7 +55,7 @@ export default function AgbPage() {
         <Paragraphs
           items={[
             <>
-              Es gelten die bei Vertragsschluss auf der <Link href="/#preise" className="underline">Preisseite</Link> angegebenen Preise des gewählten Tarifs. Alle Preise verstehen sich zuzüglich der gesetzlichen Umsatzsteuer, soweit diese anfällt.
+              Es gelten die bei Vertragsschluss auf der <Link href="/#preise" className="underline">Preisseite</Link> angegebenen Preise des gewählten Tarifs. Der Anbieter ist Kleinunternehmer im Sinne von § 19 UStG; es wird keine Umsatzsteuer berechnet. Entfällt die Kleinunternehmerregelung, verstehen sich die Preise zuzüglich der gesetzlichen Umsatzsteuer.
             </>,
             "Die Vergütung ist monatlich im Voraus fällig und wird über den Zahlungsdienstleister Stripe eingezogen. Rechnungen werden elektronisch bereitgestellt.",
             "Gerät der Kunde mit einer Zahlung in Verzug, darf der Anbieter den Zugang nach vorheriger Ankündigung sperren, bis die offenen Beträge beglichen sind.",

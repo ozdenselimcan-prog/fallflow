@@ -26,7 +26,7 @@ import { CaseFilm } from "@/components/landing/case-film";
 import { buttonStyles } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { faqs } from "@/lib/config/faq";
-import { plans } from "@/lib/config/pricing";
+import { plans, VAT_NOTE } from "@/lib/config/pricing";
 import { cn } from "@/lib/utils";
 
 type Icon = ComponentType<{ className?: string }>;
@@ -260,7 +260,7 @@ export function PricingSection() {
               <span className="text-4xl font-semibold tracking-tight">{p.priceEur} €</span>
               <span className="text-muted-foreground">/Monat</span>
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">7 Tage kostenlos testen, ohne Kreditkarte – oder direkt starten. Monatlich kündbar.</p>
+            <p className="mt-1 text-xs text-muted-foreground">7 Tage kostenlos testen, ohne Kreditkarte – oder direkt starten. Monatlich kündbar. {VAT_NOTE}</p>
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
               {p.features.map((f) => (
                 <li key={f} className="flex items-start gap-2">

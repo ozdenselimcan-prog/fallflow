@@ -28,7 +28,15 @@ export default function ImpressumPage() {
           </section>
           <section>
             <h2>Kontakt</h2>
-            <p>E-Mail: {siteConfig.supportEmail}</p>
+            <p>
+              Telefon: <a href={`tel:${siteConfig.phone.replace(/s/g, "")}`}>{siteConfig.phone}</a>
+              <br />
+              E-Mail: {siteConfig.supportEmail}
+            </p>
+          </section>
+          <section>
+            <h2>Umsatzsteuer</h2>
+            <p>Kleinunternehmer im Sinne von § 19 UStG. Es wird keine Umsatzsteuer berechnet.</p>
           </section>
         </div>
       </main>
