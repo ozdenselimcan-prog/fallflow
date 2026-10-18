@@ -1,6 +1,7 @@
 import { Footer } from "@/components/landing/footer";
 import { Hero } from "@/components/landing/hero";
 import { Navbar } from "@/components/landing/navbar";
+import { ReviewsSection } from "@/components/landing/reviews";
 import {
   AudienceSection,
   DemoSection,
@@ -29,6 +30,7 @@ export default function HomePage() {
         <FeaturesSection />
         <NoCrmSection />
         <AudienceSection />
+        <ReviewsSection />
         <PricingSection />
         <FaqSection />
         <FinalCta />
