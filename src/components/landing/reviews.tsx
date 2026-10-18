@@ -10,6 +10,12 @@ export const TRUSTPILOT_URL = "https://de.trustpilot.com/review/fallflow.xyz";
  */
 const reviews = [
   {
+    name: "Hian Kkk",
+    date: "8. Oktober 2026",
+    title: "Viel mehr Automatisierung und wenig Kosten",
+    text: "Durch Fallflow konnten wir intern viel mehr automatisieren, es hat sich definitiv gelohnt. Der Preis ist da echt nicht zu übertreffen",
+  },
+  {
     name: "Kerim Tombulca",
     date: "17. Oktober 2026",
     title: "Alles",
@@ -32,12 +38,6 @@ const reviews = [
     date: "10. Oktober 2026",
     title: "Ich durfte Fallflow zwei Wochen...",
     text: "Ich durfte Fallflow zwei Wochen kostenlos testen und bin wirklich begeistert. Gerade als Energieberater ist eine effiziente Kundenkommunikation sehr wichtig. Die Möglichkeit, E-Mails zu automatisieren, finde ich super und sehe darin großes Potenzial, im Arbeitsalltag Zeit zu sparen. Definitiv ein Tool, das man sich als Energieberater einmal anschauen sollte!",
-  },
-  {
-    name: "Hian Kkk",
-    date: "8. Oktober 2026",
-    title: "Viel mehr Automatisierung und wenig Kosten",
-    text: "Durch Fallflow konnten wir intern viel mehr automatisieren, es hat sich definitiv gelohnt. Der Preis ist da echt nicht zu übertreffen",
   },
 ];
 
