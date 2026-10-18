@@ -263,7 +263,7 @@ export function PricingSection() {
             <p className="mt-1 text-xs text-muted-foreground">7 Tage kostenlos testen, ohne Kreditkarte – oder direkt starten. Monatlich kündbar. {VAT_NOTE}</p>
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
               {p.features.map((f) => (
-                <li key={f} className="flex items-start gap-2">
+                <li key={f} className={cn("flex items-start gap-2", p.extras.includes(f) && "font-semibold")}>
                   <Check className="mt-0.5 size-4 shrink-0 text-accent" />
                   {f}
                 </li>
