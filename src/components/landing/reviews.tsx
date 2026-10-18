@@ -33,6 +33,12 @@ const reviews = [
     title: "Ich durfte Fallflow zwei Wochen...",
     text: "Ich durfte Fallflow zwei Wochen kostenlos testen und bin wirklich begeistert. Gerade als Energieberater ist eine effiziente Kundenkommunikation sehr wichtig. Die Möglichkeit, E-Mails zu automatisieren, finde ich super und sehe darin großes Potenzial, im Arbeitsalltag Zeit zu sparen. Definitiv ein Tool, das man sich als Energieberater einmal anschauen sollte!",
   },
+  {
+    name: "Hian Kkk",
+    date: "8. Oktober 2026",
+    title: "Viel mehr Automatisierung und wenig Kosten",
+    text: "Durch Fallflow konnten wir intern viel mehr automatisieren, es hat sich definitiv gelohnt. Der Preis ist da echt nicht zu übertreffen",
+  },
 ];
 
 const initials = (name: string) =>
@@ -59,7 +65,7 @@ export function ReviewsSection() {
   return (
     <section className="py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Das sagen Energieberater, die FallFlow getestet haben</h2>
+        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Das sagen Energieberater über FallFlow</h2>
         <ul className="mt-10 grid gap-4 md:grid-cols-2">
           {reviews.map((r) => (
             <li key={r.name}>
@@ -80,7 +86,7 @@ export function ReviewsSection() {
         </ul>
         <div className="mt-8 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-2xl text-xs text-muted-foreground">
-            Unverändert übernommen von Trustpilot. Die Bewertungen stammen von Energieberatern, die FallFlow kostenlos getestet haben.
+            Unverändert übernommen von Trustpilot. Die Bewertungen stammen von Energieberatern, die FallFlow getestet haben bzw. nutzen.
           </p>
           <a href={TRUSTPILOT_URL} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium hover:underline">
             Alle Bewertungen auf Trustpilot <ExternalLink className="size-3.5" aria-hidden />
