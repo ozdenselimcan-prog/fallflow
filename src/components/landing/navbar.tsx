@@ -11,21 +11,21 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-white/90 backdrop-blur-[10px]">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Logo />
-        <nav aria-label="Hauptnavigation" className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
+    <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur-[10px]">
+      <div className="mx-auto flex h-[68px] max-w-6xl items-center justify-between px-4 sm:px-8">
+        <Logo imgClassName="h-9 sm:h-10" />
+        <nav aria-label="Hauptnavigation" className="hidden items-center gap-8 text-sm font-medium text-zinc-600 lg:flex">
           {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-foreground">
+            <Link key={l.href} href={l.href} className="transition-colors hover:text-zinc-900">
               {l.label}
             </Link>
           ))}
         </nav>
-        <div className="hidden items-center gap-2 lg:flex">
-          <Link href="/login" className={buttonStyles({ variant: "ghost" })}>
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link href="/login" className={buttonStyles({ variant: "ghost", className: "h-9 px-3 font-medium text-zinc-700" })}>
             Login
           </Link>
-          <Link href="/signup" className={buttonStyles()}>
+          <Link href="/signup" className={buttonStyles({ className: "h-10 px-5 font-semibold" })}>
             Kostenlos starten
           </Link>
         </div>
