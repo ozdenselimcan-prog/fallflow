@@ -58,7 +58,7 @@ export function Hero() {
   return (
     <section id="produkt" className="hero-grid-bg relative overflow-hidden">
       <HeroBackdrop />
-      <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
+      <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
       <div className="flex flex-col items-center">
         <span className="hero-reveal mb-5 inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">
           AI Intake &amp; Operations für Energieberater
