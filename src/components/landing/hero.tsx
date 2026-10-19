@@ -18,17 +18,17 @@ const checklist = [
  * Animation in s, null = steht still]. Spalten in 40-px-Schritten, passend zu .hero-grid-bg.
  */
 const cells: [number, number, string, number | null][] = [
-  [-15, 2, "bg-black/[0.04]", null],
-  [-12, 5, "bg-black/[0.08]", 0],
-  [-15, 6, "bg-black/[0.05]", 2.5],
-  [-11, 11, "bg-black/[0.06]", 4],
-  [-14, 12, "bg-black/[0.04]", null],
-  [-12, 13, "bg-black/[0.07]", 1.5],
-  [11, 3, "bg-black/[0.09]", 1],
-  [11, 5, "bg-black/[0.04]", null],
-  [14, 8, "bg-black/[0.06]", 3.5],
-  [11, 13, "bg-black/[0.05]", 5],
-  [13, 15, "bg-black/[0.07]", null],
+  [-15, 2, "bg-black/[0.08]", null],
+  [-12, 5, "bg-black/[0.18]", 0],
+  [-15, 6, "bg-black/[0.11]", 2.5],
+  [-11, 11, "bg-black/[0.13]", 4],
+  [-14, 12, "bg-black/[0.08]", null],
+  [-12, 13, "bg-black/[0.16]", 1.5],
+  [11, 3, "bg-black/[0.22]", 1],
+  [11, 5, "bg-black/[0.08]", null],
+  [14, 8, "bg-black/[0.13]", 3.5],
+  [11, 13, "bg-black/[0.11]", 5],
+  [13, 15, "bg-black/[0.16]", null],
 ];
 
 /** Hintergrund des Hero: Gitter mit einzelnen Zellen, aufgehellter Mitte und weichen Übergängen an den Rändern. */
@@ -39,8 +39,8 @@ function HeroBackdrop() {
         {cells.map(([col, row, shade, delay]) => (
           <span
             key={`${col}-${row}`}
-            className={`absolute size-[39px] rounded-[3px] ${shade} ${delay === null ? "" : "hero-cell-pulse"}`}
-            style={{ left: `calc(50% + ${col * 40 + 1}px)`, top: row * 40 + 1, animationDelay: delay === null ? undefined : `${delay}s` }}
+            className={`absolute size-[33px] rounded-md ${shade} ${delay === null ? "" : "hero-cell-pulse"}`}
+            style={{ left: `calc(50% + ${col * 40 + 4}px)`, top: row * 40 + 4, animationDelay: delay === null ? undefined : `${delay}s` }}
           />
         ))}
       </div>
