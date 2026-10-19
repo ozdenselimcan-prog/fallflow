@@ -28,12 +28,17 @@ export function TypedText({ text, startDelay = 450, speed = 42 }: { text: string
   }, [text, startDelay, speed]);
 
   const done = count >= text.length;
+  // Der noch nicht getippte Rest steht unsichtbar im Text – so liegt jede Zeile von Anfang an an ihrer endgültigen Stelle.
   return (
-    <span className="relative inline-block">
-      <span className="invisible">{text}</span>
-      <span aria-hidden className="absolute inset-0">
+    <span>
+      <span aria-hidden>
         {text.slice(0, count)}
-        {started && <span className={`typed-cursor ${done ? "typed-cursor-done" : ""}`} />}
+        {started && (
+          <span className="relative">
+            <span className={`typed-cursor ${done ? "typed-cursor-done" : ""}`} />
+          </span>
+        )}
+        <span className="invisible">{text.slice(count)}</span>
       </span>
       <span className="sr-only">{text}</span>
     </span>

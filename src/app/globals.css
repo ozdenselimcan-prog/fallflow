@@ -115,11 +115,11 @@ h3 {
   }
 }
 .typed-cursor {
-  display: inline-block;
+  position: absolute;
+  left: 0.04em;
+  top: 0.12em;
   width: 0.06em;
   height: 0.85em;
-  margin-left: 0.06em;
-  vertical-align: -0.05em;
   background: currentColor;
   animation: ff-cursor-blink 0.9s step-end infinite;
 }
