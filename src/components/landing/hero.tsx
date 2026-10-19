@@ -13,10 +13,51 @@ const checklist = [
   { label: "Grundriss", ok: false },
 ];
 
+/**
+ * Einzelne gefüllte Gitterzellen links und rechts der Überschrift: [Spalte ab Mitte, Zeile, Grauton, Verzögerung der
+ * Animation in s, null = steht still]. Spalten in 40-px-Schritten, passend zu .hero-grid-bg.
+ */
+const cells: [number, number, string, number | null][] = [
+  [-15, 2, "bg-black/[0.04]", null],
+  [-12, 5, "bg-black/[0.08]", 0],
+  [-15, 6, "bg-black/[0.05]", 2.5],
+  [-11, 11, "bg-black/[0.06]", 4],
+  [-14, 12, "bg-black/[0.04]", null],
+  [-12, 13, "bg-black/[0.07]", 1.5],
+  [11, 3, "bg-black/[0.09]", 1],
+  [11, 5, "bg-black/[0.04]", null],
+  [14, 8, "bg-black/[0.06]", 3.5],
+  [11, 13, "bg-black/[0.05]", 5],
+  [13, 15, "bg-black/[0.07]", null],
+];
+
+/** Hintergrund des Hero: Gitter mit einzelnen Zellen, aufgehellter Mitte und weichen Übergängen an den Rändern. */
+function HeroBackdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div className="hidden lg:block">
+        {cells.map(([col, row, shade, delay]) => (
+          <span
+            key={`${col}-${row}`}
+            className={`absolute size-[39px] rounded-[3px] ${shade} ${delay === null ? "" : "hero-cell-pulse"}`}
+            style={{ left: `calc(50% + ${col * 40 + 1}px)`, top: row * 40 + 1, animationDelay: delay === null ? undefined : `${delay}s` }}
+          />
+        ))}
+      </div>
+      {/* Mitte aufhellen, damit die Überschrift ruhig steht */}
+      <div className="absolute inset-0 bg-[radial-gradient(560px_at_50%_32%,rgba(255,255,255,0.85)_0%,rgba(255,255,255,0)_70%)]" />
+      {/* Übergänge: links und rechts ins Weiße, oben leicht, unten ganz in den nächsten Abschnitt */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#fff_0%,rgba(255,255,255,0)_14%,rgba(255,255,255,0)_86%,#fff_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.8)_0%,rgba(255,255,255,0)_8%,rgba(255,255,255,0)_70%,#fff_100%)]" />
+    </div>
+  );
+}
+
 export function Hero() {
   return (
     <section id="produkt" className="hero-grid-bg relative overflow-hidden">
-      <div className="mx-auto flex max-w-3xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
+      <HeroBackdrop />
+      <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
       <div className="flex flex-col items-center">
         <span className="mb-5 inline-flex items-center rounded-full border border-black/15 px-4 py-2 text-[13px] font-semibold text-[#4b5563]">
           AI Intake &amp; Operations für Energieberater

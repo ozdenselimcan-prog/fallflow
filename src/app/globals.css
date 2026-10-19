@@ -60,10 +60,32 @@ h3 {
 }
 
 /* Weißer Hintergrund mit dezentem Gitternetz (ClothPilot-Look) */
+/* Gitter im Hero: horizontal zentriert, damit die Kästchen (HeroBackdrop) genau in den Zellen sitzen. */
 .hero-grid-bg {
   background-color: #ffffff;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(0, 0, 0, 0.065) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.065) 1px, transparent 1px);
   background-size: 40px 40px;
+  background-position: calc(50% - 20px) 0;
+}
+
+/* Einzelne Gitterzellen, die langsam auf- und abblenden. */
+@keyframes ff-cell-pulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.hero-cell-pulse {
+  animation: ff-cell-pulse 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-cell-pulse {
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
 dialog::backdrop {
