@@ -1,8 +1,5 @@
-import { ExternalLink, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
-
-/** Öffentliches Trustpilot-Profil von FallFlow. */
-export const TRUSTPILOT_URL = "https://de.trustpilot.com/review/fallflow.xyz";
 
 /**
  * Bewertungen von Trustpilot – wortgleich übernommen (inkl. Schreibweise), nicht gekürzt oder verändert.
@@ -88,9 +85,6 @@ export function ReviewsSection() {
           <p className="max-w-2xl text-xs text-muted-foreground">
             Unverändert übernommen von Trustpilot. Die Bewertungen stammen von Energieberatern, die FallFlow getestet haben bzw. nutzen.
           </p>
-          <a href={TRUSTPILOT_URL} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium hover:underline">
-            Alle Bewertungen auf Trustpilot <ExternalLink className="size-3.5" aria-hidden />
-          </a>
         </div>
       </div>
     </section>

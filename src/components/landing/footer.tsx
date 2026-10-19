@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ConsentSettingsLink } from "@/components/consent/consent-banner";
-import { TRUSTPILOT_URL } from "@/components/landing/reviews";
 import { Logo } from "@/components/ui/logo";
 import { siteConfig } from "@/lib/config/site";
 
@@ -29,9 +28,6 @@ export function Footer() {
               {l.label}
             </Link>
           ))}
-          <a href={TRUSTPILOT_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
-            Bewertungen auf Trustpilot
-          </a>
           <ConsentSettingsLink className="hover:text-foreground" />
         </nav>
         <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} {siteConfig.name}</p>

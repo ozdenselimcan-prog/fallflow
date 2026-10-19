@@ -1,6 +1,5 @@
-import { ArrowRight, CheckCircle2, X, Star } from "lucide-react";
+import { ArrowRight, CheckCircle2, X } from "lucide-react";
 import Link from "next/link";
-import { TRUSTPILOT_URL } from "@/components/landing/reviews";
 import { TypedText } from "@/components/landing/typed-text";
 import { Badge } from "@/components/ui/card";
 import { buttonStyles } from "@/components/ui/button";
@@ -81,9 +80,6 @@ export function Hero() {
           </Link>
         </div>
         <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Kostenlos testen, ohne Kreditkarte. Kein weiteres CRM – Ihre gewohnten Abläufe bleiben erhalten.</p>
-        <a href={TRUSTPILOT_URL} target="_blank" rel="noopener noreferrer" className="hero-reveal mt-3 inline-flex [animation-delay:320ms] items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
-          <Star className="size-3.5 fill-[#00b67a] text-[#00b67a]" aria-hidden /> Bewertungen von Testnutzern auf Trustpilot lesen
-        </a>
       </div>
 
       <div className="hero-reveal relative w-full max-w-xl text-left [animation-delay:420ms]" aria-label="Vorschau einer Fallakte">

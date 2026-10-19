@@ -194,7 +194,7 @@ export default function DatenschutzPage() {
               Schriftanbietern aufgebaut.
             </p>
             <p>
-              Unsere Website enthält Links zu anderen Websites, z. B. zu unserem Bewertungsprofil bei Trustpilot oder zu sozialen Netzwerken. Dabei handelt es sich um einfache Links:
+              Unsere Website enthält Links zu anderen Websites, z. B. zu sozialen Netzwerken. Dabei handelt es sich um einfache Links:
               Daten werden erst übertragen, wenn Sie einen Link anklicken und die andere Website aufrufen. Für die Datenverarbeitung dort ist der jeweilige Anbieter verantwortlich.
               Die auf unserer Website gezeigten Bewertungen haben wir als Text übernommen; es wird dafür kein Inhalt von Trustpilot nachgeladen.
             </p>
