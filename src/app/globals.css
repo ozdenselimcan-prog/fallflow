@@ -34,7 +34,7 @@
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
-  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -81,7 +81,60 @@ h3 {
 .hero-cell-pulse {
   animation: ff-cell-pulse 7s ease-in-out infinite;
 }
+/* Hero beim Laden: Elemente gleiten nacheinander ein, die zweite Zeile wird getippt (TypedText). */
+@keyframes ff-hero-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-reveal {
+  animation: ff-hero-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ff-cursor-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ff-cursor-out {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.typed-cursor {
+  display: inline-block;
+  width: 0.06em;
+  height: 0.85em;
+  margin-left: 0.06em;
+  vertical-align: -0.05em;
+  background: currentColor;
+  animation: ff-cursor-blink 0.9s step-end infinite;
+}
+.typed-cursor-done {
+  animation:
+    ff-cursor-blink 0.9s step-end 3,
+    ff-cursor-out 2.7s forwards;
+}
 @media (prefers-reduced-motion: reduce) {
+  .hero-reveal {
+    animation: none;
+  }
+  .typed-cursor {
+    display: none;
+  }
   .hero-cell-pulse {
     animation: none;
     opacity: 0.6;

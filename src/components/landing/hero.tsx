@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle2, X, Star } from "lucide-react";
 import Link from "next/link";
 import { TRUSTPILOT_URL } from "@/components/landing/reviews";
+import { TypedText } from "@/components/landing/typed-text";
 import { Badge } from "@/components/ui/card";
 import { buttonStyles } from "@/components/ui/button";
 
@@ -57,33 +58,35 @@ export function Hero() {
   return (
     <section id="produkt" className="hero-grid-bg relative overflow-hidden">
       <HeroBackdrop />
-      <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
+      <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
       <div className="flex flex-col items-center">
-        <span className="mb-5 inline-flex items-center rounded-full border border-black/15 px-4 py-2 text-[13px] font-semibold text-[#4b5563]">
+        <span className="hero-reveal mb-5 inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">
           AI Intake &amp; Operations für Energieberater
         </span>
-        <h1 className="text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[4rem] lg:leading-[1.1]">
+        <h1 className="hero-reveal text-balance text-[clamp(2rem,5vw+0.5rem,3.75rem)] font-black leading-[1.05] tracking-[-0.03em] text-zinc-900 [animation-delay:80ms]">
           Aus jeder Kundenanfrage
-          <span className="block text-muted-foreground">einen fertigen Beratungsfall.</span>
+          <span className="mt-1 block text-zinc-400">
+            <TypedText text="einen fertigen Beratungsfall." />
+          </span>
         </h1>
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+        <p className="hero-reveal mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 [animation-delay:160ms] sm:text-lg">
           Von der ersten E-Mail bis zur vollständigen Fallakte: FallFlow erledigt die Vorarbeit, damit Sie sich auf die Beratung konzentrieren können.
         </p>
-        <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+        <div className="hero-reveal mt-8 flex w-full max-w-sm flex-col gap-3 [animation-delay:240ms] sm:max-w-none sm:flex-row sm:justify-center">
           <Link href="/demo" className={buttonStyles({ size: "lg" })}>
             Demo ansehen <ArrowRight className="size-4" />
           </Link>
-          <Link href="/signup" className={buttonStyles({ variant: "secondary", size: "lg" })}>
+          <Link href="/signup" className={buttonStyles({ variant: "ghost", size: "lg", className: "border border-zinc-200 bg-white hover:bg-zinc-50" })}>
             Kostenlos starten
           </Link>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">Kostenlos testen, ohne Kreditkarte. Kein weiteres CRM – Ihre gewohnten Abläufe bleiben erhalten.</p>
-        <a href={TRUSTPILOT_URL} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+        <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Kostenlos testen, ohne Kreditkarte. Kein weiteres CRM – Ihre gewohnten Abläufe bleiben erhalten.</p>
+        <a href={TRUSTPILOT_URL} target="_blank" rel="noopener noreferrer" className="hero-reveal mt-3 inline-flex [animation-delay:320ms] items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
           <Star className="size-3.5 fill-[#00b67a] text-[#00b67a]" aria-hidden /> Bewertungen von Testnutzern auf Trustpilot lesen
         </a>
       </div>
 
-      <div className="relative w-full max-w-xl text-left" aria-label="Vorschau einer Fallakte">
+      <div className="hero-reveal relative w-full max-w-xl text-left [animation-delay:420ms]" aria-label="Vorschau einer Fallakte">
         <div className="rounded-lg border border-border bg-card p-2 shadow-[0_8px_28px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
             <span className="size-2.5 rounded-full bg-border" />
