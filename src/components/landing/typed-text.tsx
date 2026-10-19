@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
  * Tippt einen Text beim Laden Buchstabe für Buchstabe ein (mit blinkendem Cursor). Der volle Text ist von Anfang an da –
  * unsichtbar, damit nichts springt, und für Screenreader/Suchmaschinen lesbar. Bei "Bewegung reduzieren" sofort komplett.
  */
-export function TypedText({ text, startDelay = 150, speed = 22 }: { text: string; startDelay?: number; speed?: number }) {
+export function TypedText({ text, startDelay = 250, speed = 32 }: { text: string; startDelay?: number; speed?: number }) {
   const [count, setCount] = useState(0);
   const [started, setStarted] = useState(false);
 
