@@ -68,19 +68,52 @@ h3 {
   background-position: calc(50% - 20px) 0;
 }
 
-/* Einzelne Gitterzellen, die langsam auf- und abblenden. */
-@keyframes ff-cell-pulse {
+/* Einzelne Gitterzellen, die kurz mit leichtem 3D-Kippen aufploppen (HeroBackdrop). Vor ihrer Verzögerung stehen sie still. */
+@keyframes ff-cell-pop {
   0%,
   100% {
     opacity: 0;
+    box-shadow: none;
+    transform: rotateX(8deg) scale(0.88) translateY(6px);
   }
-  50% {
-    opacity: 1;
+  10% {
+    opacity: 0.88;
+    transform: rotateX(0deg) scale(1) translateY(0);
+    box-shadow:
+      0 1px 0 rgba(24, 24, 27, 0.1),
+      0 6px 14px rgba(24, 24, 27, 0.06),
+      0 14px 28px rgba(24, 24, 27, 0.03);
+  }
+  18% {
+    opacity: 0.45;
+    transform: rotateX(2deg) scale(0.98) translateY(1px);
+    box-shadow:
+      0 1px 0 rgba(24, 24, 27, 0.06),
+      0 4px 10px rgba(24, 24, 27, 0.04);
+  }
+  26%,
+  100% {
+    opacity: 0;
+    box-shadow: none;
+    transform: rotateX(6deg) scale(0.9) translateY(4px);
   }
 }
-.hero-cell-pulse {
-  animation: ff-cell-pulse 7s ease-in-out infinite;
+.hero-cells {
+  transform-style: preserve-3d;
+  perspective: 900px;
+  perspective-origin: 50% 35%;
 }
+.hero-cell {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(24, 24, 27, 0.06);
+  border-radius: 6px;
+  transform-origin: center bottom;
+  will-change: transform, opacity, box-shadow;
+  animation: ff-cell-pop 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* Hero beim Laden: Elemente gleiten nacheinander ein, die zweite Zeile wird getippt (TypedText). */
 @keyframes ff-hero-reveal {
   from {
@@ -135,9 +168,9 @@ h3 {
   .typed-cursor {
     display: none;
   }
-  .hero-cell-pulse {
+  .hero-cell {
     animation: none;
-    opacity: 0.6;
+    opacity: 0;
   }
 }
 

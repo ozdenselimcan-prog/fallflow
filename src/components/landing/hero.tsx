@@ -13,34 +13,42 @@ const checklist = [
   { label: "Grundriss", ok: false },
 ];
 
-/**
- * Einzelne gefüllte Gitterzellen links und rechts der Überschrift: [Spalte ab Mitte, Zeile, Grauton, Verzögerung der
- * Animation in s, null = steht still]. Spalten in 40-px-Schritten, passend zu .hero-grid-bg.
- */
-const cells: [number, number, string, number | null][] = [
-  [-15, 2, "bg-black/[0.08]", null],
-  [-12, 5, "bg-black/[0.18]", 0],
-  [-15, 6, "bg-black/[0.11]", 2.5],
-  [-11, 11, "bg-black/[0.13]", 4],
-  [-14, 12, "bg-black/[0.08]", null],
-  [-12, 13, "bg-black/[0.16]", 1.5],
-  [11, 3, "bg-black/[0.22]", 1],
-  [11, 5, "bg-black/[0.08]", null],
-  [14, 8, "bg-black/[0.13]", 3.5],
-  [11, 13, "bg-black/[0.11]", 5],
-  [13, 15, "bg-black/[0.16]", null],
-];
+/** Feste Zufallsfolge (gleich auf Server und im Browser, damit nichts springt). */
+function seeded(seed: number) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 30 Gitterzellen auf einer 1520 × 800 px großen Fläche (38 × 20 Zellen à 40 px), mittig über dem Gitter. */
+const SHADES = ["rgba(24,24,27,0.12)", "rgba(24,24,27,0.18)", "rgba(24,24,27,0.28)"];
+const cells = (() => {
+  const rnd = seeded(20261019);
+  const used = new Set<string>();
+  const out: { left: number; top: number; bg: string; delay: number; duration: number }[] = [];
+  while (out.length < 30) {
+    const col = Math.floor(rnd() * 38);
+    const row = Math.floor(rnd() * 20);
+    if (used.has(`${col}-${row}`)) continue;
+    used.add(`${col}-${row}`);
+    out.push({ left: col * 40 + 3, top: row * 40 + 3, bg: SHADES[Math.floor(rnd() * 3)], delay: rnd() * 28, duration: 5.5 + rnd() * 7.5 });
+  }
+  return out;
+})();
 
 /** Hintergrund des Hero: Gitter mit einzelnen Zellen, aufgehellter Mitte und weichen Übergängen an den Rändern. */
 function HeroBackdrop() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
-      <div className="hidden lg:block">
-        {cells.map(([col, row, shade, delay]) => (
+      <div className="hero-cells absolute inset-y-0 left-1/2 w-[1520px] -translate-x-1/2">
+        {cells.map((c, i) => (
           <span
-            key={`${col}-${row}`}
-            className={`absolute size-[33px] rounded-md ${shade} ${delay === null ? "" : "hero-cell-pulse"}`}
-            style={{ left: `calc(50% + ${col * 40 + 4}px)`, top: row * 40 + 4, animationDelay: delay === null ? undefined : `${delay}s` }}
+            key={i}
+            className="hero-cell"
+            style={{ left: c.left, top: c.top, background: c.bg, animationDelay: `${c.delay.toFixed(2)}s`, animationDuration: `${c.duration.toFixed(2)}s` }}
           />
         ))}
       </div>
