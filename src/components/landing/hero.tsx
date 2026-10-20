@@ -32,6 +32,8 @@ const cells = (() => {
   while (out.length < 30) {
     const col = Math.floor(rnd() * 38);
     const row = Math.floor(rnd() * 20);
+    // Hinter Überschrift, Text und Buttons frei lassen (Spalte 19 liegt in der Mitte).
+    if (row >= 2 && row <= 13 && Math.abs(col - 18.5) <= 10.5) continue;
     if (used.has(`${col}-${row}`)) continue;
     used.add(`${col}-${row}`);
     out.push({ left: col * 40 + 3, top: row * 40 + 3, bg: SHADES[Math.floor(rnd() * 3)], delay: rnd() * 28, duration: 5.5 + rnd() * 7.5 });
