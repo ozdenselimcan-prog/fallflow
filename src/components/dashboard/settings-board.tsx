@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Download, FileText } from "lucide-react";
+import { Check, Copy, Download, FileText, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { Plan } from "@/lib/config/pricing";
@@ -10,12 +10,20 @@ import { Button, buttonStyles } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Notice } from "@/components/ui/states";
+import { apiFetch } from "@/lib/use-api";
 import { cn, formatDate } from "@/lib/utils";
 import type { SettingsData } from "@/lib/dashboard/settings-data";
 
 /** Empfehlungsprogramm: eigener Link zum Kopieren und Stand der Empfehlungen (siehe lib/billing/referrals.ts). */
-function ReferralCard({ referral }: { referral: NonNullable<SettingsData["billing"]["referral"]> }) {
+function ReferralCard({ referral: initial, canEdit }: { referral: NonNullable<SettingsData["billing"]["referral"]>; canEdit: boolean }) {
+  const [referral, setReferral] = useState(initial);
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(initial.code);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const prefix = referral.link.slice(0, referral.link.length - referral.code.length);
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(referral.link);
@@ -25,16 +33,65 @@ function ReferralCard({ referral }: { referral: NonNullable<SettingsData["billin
       setCopied(false);
     }
   }
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await apiFetch<{ referral: typeof referral }>("PUT", "/api/referral", { code: draft });
+      setReferral(res.referral);
+      setDraft(res.referral.code);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Der Link konnte nicht geändert werden.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Card>
       <CardHeader title="Kollegen empfehlen – 1 Monat gratis" description="Empfehlen Sie FallFlow anderen Energieberatern. Ihr Kollege testet 14 statt 7 Tage kostenlos. Sobald er danach Kunde wird, schreiben wir Ihnen einen Monatsbeitrag gut – für jeden geworbenen Kollegen." />
       <div className="space-y-3 p-5">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input readOnly value={referral.link} onFocus={(e) => e.currentTarget.select()} aria-label="Ihr Empfehlungslink" className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-muted/40 px-3 text-sm" />
-          <Button variant="secondary" onClick={copy}>
-            {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Kopiert" : "Link kopieren"}
-          </Button>
-        </div>
+        {editing ? (
+          <div className="space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex h-10 min-w-0 flex-1 items-center rounded-lg border border-border bg-card text-sm focus-within:border-accent">
+                <span className="hidden shrink-0 pl-3 text-muted-foreground sm:inline">{prefix}</span>
+                <input
+                  autoFocus
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && save()}
+                  aria-label="Name Ihres Empfehlungslinks"
+                  placeholder="z. B. energie-mueller"
+                  className="h-full min-w-0 flex-1 bg-transparent px-3 outline-none sm:pl-0"
+                />
+              </div>
+              <Button onClick={save} loading={saving}>
+                Speichern
+              </Button>
+              <Button variant="ghost" disabled={saving} onClick={() => { setEditing(false); setDraft(referral.code); setError(null); }}>
+                Abbrechen
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              3–30 Zeichen: Buchstaben, Ziffern und Bindestriche (z. B. Ihr Büroname). Achtung: Ihr bisheriger Link funktioniert danach nicht mehr – bereits geworbene Kollegen bleiben Ihnen zugeordnet.
+            </p>
+            {error && <Notice tone="error">{error}</Notice>}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input readOnly value={referral.link} onFocus={(e) => e.currentTarget.select()} aria-label="Ihr Empfehlungslink" className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-muted/40 px-3 text-sm" />
+            <Button variant="secondary" onClick={copy}>
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Kopiert" : "Link kopieren"}
+            </Button>
+            {canEdit && (
+              <Button variant="ghost" onClick={() => setEditing(true)}>
+                <Pencil className="size-4" /> Namen ändern
+              </Button>
+            )}
+          </div>
+        )}
         <p className="text-sm text-muted-foreground">
           {referral.signedUp === 0
             ? "Noch niemand hat sich über Ihren Link angemeldet."
@@ -213,7 +270,7 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
                 )}
               </div>
             </Card>
-            {data.billing.referral && <ReferralCard referral={data.billing.referral} />}
+            {data.billing.referral && <ReferralCard referral={data.billing.referral} canEdit={data.connections.canManage} />}
             {data.connections.canManage && (
               <Card>
                 <CardHeader title="Ihre Daten" description="Alle Fälle mit Fallakte, Nachrichten und Dokumenten, alle Termine und Ihre Vorlagen als ZIP-Datei – z. B. zur Sicherung oder vor einer Kündigung." />
