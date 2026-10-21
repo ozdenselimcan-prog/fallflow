@@ -115,7 +115,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="truncate text-sm font-medium">{displayName(t)}</p>
-                    {t.last && <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(t.last.createdAt)}</span>}
+                    {t.last && <span className="shrink-0 text-xs text-muted-foreground" suppressHydrationWarning>{timeAgo(t.last.createdAt)}</span>}
                   </div>
                   {t.last && <p className="mt-0.5 truncate text-xs text-muted-foreground">{t.last.content}</p>}
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">

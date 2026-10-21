@@ -84,7 +84,7 @@ export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseR
                   <StatusBadge status={c.status} />
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{SOURCE_LABELS[c.source]}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{timeAgo(c.updatedAt)}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-muted-foreground" suppressHydrationWarning>{timeAgo(c.updatedAt)}</td>
               </tr>
             ))}
           </tbody>
