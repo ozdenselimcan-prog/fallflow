@@ -17,6 +17,8 @@ export const signupSchema = z.object({
   password: passwordSchema,
   company: str(120).min(1, "Unternehmen erforderlich"),
   plan: z.enum(["starter", "pro", "business"]).optional(),
+  /** Empfehlungscode eines Kollegen, selbst eingetippt (optional). */
+  referral: z.string().trim().max(60).optional(),
   /** Zustimmung zu AGB und AVV (Pflicht bei der Registrierung). */
   acceptTerms: z.boolean().refine((v) => v, "Bitte akzeptieren Sie AGB und AVV."),
 });

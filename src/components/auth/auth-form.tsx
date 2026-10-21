@@ -112,6 +112,8 @@ export function SignupForm({ plan, trialDays, referralCode, buy }: { plan?: stri
         { name: "company", label: "Unternehmen", autoComplete: "organization" },
         { name: "email", label: "E-Mail", type: "email", autoComplete: "email" },
         { name: "password", label: "Passwort (mind. 8 Zeichen)", type: "password", autoComplete: "new-password" },
+        // Empfohlen von einem Kollegen, aber nicht über dessen Link gekommen (z. B. anderes Gerät): Code selbst eintragen.
+        ...(referralCode || buy ? [] : [{ name: "referral", label: "Empfehlungscode eines Kollegen (optional)", autoComplete: "off" }]),
         {
           name: "acceptTerms",
           label: "AGB und AVV akzeptieren",

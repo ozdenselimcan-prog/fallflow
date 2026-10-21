@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { REFERRAL_CODE } from "@/lib/billing/referrals";
+import { normalizeReferralCode, REFERRAL_TRIAL_DAYS, referralCodeExists } from "@/lib/billing/referrals";
 import { hasUsedTrial } from "@/lib/billing/trial-usage";
 import { siteConfig } from "@/lib/config/site";
 import { rateLimit } from "@/lib/rate-limit";
@@ -65,10 +65,15 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
   // über den gezielt verschickten Signup-Link mit ?trial=14 (siehe signup/page.tsx), sonst bleibt es beim Standard.
   const rawTrialDays = typeof input === "object" && input !== null ? (input as Record<string, unknown>).trialDays : undefined;
   const trialDaysNum = Number(rawTrialDays);
-  const trialDays = Number.isInteger(trialDaysNum) && trialDaysNum >= 1 && trialDaysNum <= 60 ? trialDaysNum : 7;
+  const baseTrialDays = Number.isInteger(trialDaysNum) && trialDaysNum >= 1 && trialDaysNum <= 60 ? trialDaysNum : 7;
   // Empfehlungscode eines anderen Büros – die Zuordnung übernimmt ein Datenbank-Trigger (Migration 0023).
+  // Empfehlung: über den Link (bzw. das gemerkte Cookie) oder selbst eingetippt. Nur ein existierender Code zählt.
   const rawRef = typeof input === "object" && input !== null ? (input as Record<string, unknown>).referralCode : undefined;
-  const ref = typeof rawRef === "string" && REFERRAL_CODE.test(rawRef) ? rawRef : undefined;
+  const refCandidate = normalizeReferralCode(typeof rawRef === "string" && rawRef ? rawRef : (parsed.data.referral ?? ""));
+  const ref = refCandidate && (await referralCodeExists(refCandidate)) ? refCandidate : undefined;
+  if (parsed.data.referral && !ref && !rawRef) return { error: "Diesen Empfehlungscode kennen wir nicht. Bitte prüfen Sie ihn oder lassen Sie das Feld leer." };
+  // Empfohlene Kollegen testen 14 statt 7 Tage.
+  const trialDays = ref ? Math.max(baseTrialDays, REFERRAL_TRIAL_DAYS) : baseTrialDays;
   // "Direkt kaufen" auf der Preisseite: keine Testphase, nach der Registrierung sofort zur Bezahlung.
   const buy = typeof input === "object" && input !== null && (input as Record<string, unknown>).buy === true;
 

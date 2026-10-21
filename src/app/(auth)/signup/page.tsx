@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Check } from "lucide-react";
+import { cookies } from "next/headers";
 import { SignupForm } from "@/components/auth/auth-form";
+import { REFERRAL_COOKIE } from "@/lib/billing/referral-code";
 import { REFERRAL_CODE, REFERRAL_TRIAL_DAYS } from "@/lib/billing/referrals";
 import { plans } from "@/lib/config/pricing";
 
@@ -17,7 +19,9 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
   const parsedTrial = Number(trialParam);
   const customTrial = Number.isInteger(parsedTrial) && parsedTrial >= 1 && parsedTrial <= 60 ? parsedTrial : null;
   // Empfehlungslink eines anderen Büros (?ref=CODE): 14 Tage statt 7 (siehe lib/billing/referrals.ts).
-  const ref = typeof refParam === "string" && REFERRAL_CODE.test(refParam.toLowerCase()) ? refParam.toLowerCase() : undefined;
+  // Ohne Link in der Adresse: der beim Öffnen des Empfehlungslinks gemerkte Code (Cookie, siehe proxy.ts).
+  const rawRef = typeof refParam === "string" ? refParam : (await cookies()).get(REFERRAL_COOKIE)?.value;
+  const ref = rawRef && REFERRAL_CODE.test(rawRef.toLowerCase()) ? rawRef.toLowerCase() : undefined;
   const trialDays = Math.max(customTrial ?? 7, ref ? REFERRAL_TRIAL_DAYS : 7);
 
   return (

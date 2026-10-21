@@ -10,8 +10,17 @@ import { createAdminClient } from "@/lib/supabase/clients";
  *   Stripe gutgeschrieben – es wird mit der nächsten Rechnung verrechnet.
  */
 export const REFERRAL_TRIAL_DAYS = 14;
-/** Empfehlungscode: 3–30 Zeichen, Kleinbuchstaben, Ziffern und Bindestriche (nicht am Anfang/Ende). Büros können ihn selbst wählen. */
-export const REFERRAL_CODE = /^[a-z0-9](?:[a-z0-9-]{1,28})[a-z0-9]$/;
+import { REFERRAL_CODE } from "./referral-code";
+
+export { REFERRAL_CODE };
+
+/** Gibt es diesen Empfehlungscode wirklich? (Nur dann gibt es die 14 Tage.) */
+export async function referralCodeExists(code: string): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin || !REFERRAL_CODE.test(code)) return false;
+  const { data } = await admin.from("referral_codes").select("code").eq("code", code).maybeSingle();
+  return Boolean(data);
+}
 const RESERVED_CODES = new Set(["admin", "fallflow", "support", "test", "demo", "login", "signup"]);
 
 /** Macht aus einer Eingabe wie "Energie Müller GmbH" einen gültigen Code ("energie-mueller-gmbh"). */

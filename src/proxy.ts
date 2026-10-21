@@ -1,5 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { REFERRAL_CODE, REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS } from "@/lib/billing/referral-code";
+
+/** Empfehlungslink geöffnet (?ref=CODE): Code merken, damit die Empfehlung auch bei einer späteren Registrierung ohne Link zählt. */
+function rememberReferral(request: NextRequest, response: NextResponse) {
+  const ref = request.nextUrl.searchParams.get("ref")?.toLowerCase();
+  if (ref && REFERRAL_CODE.test(ref)) response.cookies.set(REFERRAL_COOKIE, ref, { maxAge: REFERRAL_COOKIE_DAYS * 86_400, path: "/", sameSite: "lax", httpOnly: true, secure: true });
+  return response;
+}
 
 const PROTECTED = ["/dashboard", "/onboarding"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
@@ -8,7 +16,7 @@ const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return NextResponse.next(); // Demo-Modus: keine Authentifizierung
+  if (!url || !anon) return rememberReferral(request, NextResponse.next()); // Demo-Modus: keine Authentifizierung
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, anon, {
@@ -38,7 +46,7 @@ export async function proxy(request: NextRequest) {
     redirect.pathname = "/dashboard";
     return NextResponse.redirect(redirect);
   }
-  return response;
+  return rememberReferral(request, response);
 }
 
 export const config = {

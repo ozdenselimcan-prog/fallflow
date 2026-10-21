@@ -154,6 +154,7 @@ export default function DatenschutzPage() {
               items={[
                 "Anmelde-Cookies unseres Authentifizierungsdienstes (Supabase, Namen beginnend mit „sb-“): halten Sie nach dem Login angemeldet. Sie werden beim Abmelden bzw. nach Ablauf der Sitzung gelöscht.",
                 "Ihre Auswahl im Cookie-Hinweis (localStorage-Eintrag „ff_consent_v1“): damit der Hinweis nicht bei jedem Besuch erneut erscheint. Er bleibt gespeichert, bis Sie ihn in Ihrem Browser löschen oder Ihre Wahl über „Cookie-Einstellungen“ ändern.",
+                "Empfehlungscode (Cookie „ff_ref“): nur wenn Sie einen Empfehlungslink eines Kollegen öffnen. Es speichert ausschließlich den Code aus dem Link, damit Sie die zugesagten 14 Tage Testphase auch erhalten, wenn Sie sich später ohne den Link registrieren. Es wird nach 30 Tagen gelöscht.",
               ]}
             />
             <p>Rechtsgrundlage für die damit verbundene Verarbeitung ist Art. 6 Abs. 1 lit. b DSGVO (Login) bzw. Art. 6 Abs. 1 lit. f DSGVO (Speichern Ihrer Auswahl).</p>
@@ -259,7 +260,7 @@ export default function DatenschutzPage() {
 
           <Section id="empfehlung" title="10. Empfehlungsprogramm">
             <p>
-              Jedes Büro erhält einen persönlichen Empfehlungslink. Registriert sich ein anderes Büro über diesen Link, speichern wir, welches Büro es empfohlen hat. Wird das
+              Jedes Büro erhält einen persönlichen Empfehlungslink. Registriert sich ein anderes Büro über diesen Link – oder gibt es den Empfehlungscode bei der Registrierung selbst ein bzw. registriert sich innerhalb von 30 Tagen nach dem Öffnen des Links im selben Browser –, speichern wir, welches Büro es empfohlen hat. Wird das
               geworbene Büro zahlender Kunde, schreiben wir dem empfehlenden Büro bei Stripe ein Guthaben gut. Das empfehlende Büro sieht dabei nur die Zahl seiner erfolgreichen
               Empfehlungen, keine Daten des geworbenen Büros.
             </p>
