@@ -87,6 +87,9 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
         emailRedirectTo: `${siteConfig.appUrl}/auth/confirm?next=${direct ? "/dashboard" : "/onboarding"}`,
       },
     });
+    // Zweiter Versuch kurz nach der ersten Registrierung: Die Bestätigungsmail ist schon unterwegs.
+    if (error?.code === "over_email_send_rate_limit" || error?.status === 429)
+      return { message: `Wir haben Ihnen bereits eine E-Mail an ${email} geschickt. Bitte klicken Sie auf den Link darin, um Ihre E-Mail-Adresse zu bestätigen. (Keine Mail? Bitte auch im Spam-Ordner nachsehen – nach einigen Minuten können Sie es erneut versuchen.)` };
     if (error) return { error: "Die Registrierung war nicht möglich. Bitte prüfen Sie Ihre Angaben." };
     // Testphase ohne Zahlungsmethode: Ende festhalten (7 Tage bzw. Testzeitraum aus dem Link). Danach zeigt FallFlow nur
     // noch die Bezahlseite (siehe lib/billing/access.ts). Fehler hier blockieren die Registrierung nicht (dann gilt Anlage + 7 Tage).
