@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { REFERRAL_CODE } from "@/lib/billing/referrals";
-import { hasUsedTrial, recordTrialUsage } from "@/lib/billing/trial-usage";
+import { hasUsedTrial } from "@/lib/billing/trial-usage";
 import { siteConfig } from "@/lib/config/site";
 import { rateLimit } from "@/lib/rate-limit";
 import { createAdminClient, createUserClient } from "@/lib/supabase/clients";
@@ -51,7 +51,9 @@ async function setTrialEnd(userId: string, trialDays: number) {
   if (!member?.company_id) return;
   // 0 Tage (Direktkauf): Ende = jetzt → FallFlow zeigt sofort die Bezahlseite (siehe isDirectPurchase).
   const end = new Date(Date.now() + trialDays * 86_400_000).toISOString();
-  await admin.from("subscriptions").update({ current_period_end: end }).eq("company_id", member.company_id).is("stripe_customer_id", null);
+  // Nur, wenn noch kein Ende gesetzt ist: Eine erneute Registrierung mit derselben (noch unbestätigten) Adresse darf eine
+  // laufende Testphase nie verkürzen.
+  await admin.from("subscriptions").update({ current_period_end: end }).eq("company_id", member.company_id).is("stripe_customer_id", null).is("current_period_end", null);
 }
 
 export async function signupAction(input: unknown): Promise<ActionResult> {
@@ -89,7 +91,8 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
     // Testphase ohne Zahlungsmethode: Ende festhalten (7 Tage bzw. Testzeitraum aus dem Link). Danach zeigt FallFlow nur
     // noch die Bezahlseite (siehe lib/billing/access.ts). Fehler hier blockieren die Registrierung nicht (dann gilt Anlage + 7 Tage).
     if (data.user) await setTrialEnd(data.user.id, direct ? 0 : trialDays).catch((err) => console.error("[signup] Testphase:", err instanceof Error ? err.message : "Fehler"));
-    if (data.user && !direct) await recordTrialUsage(email);
+    // Als "Testphase genutzt" zählt die Adresse erst nach der Bestätigung (siehe /auth/confirm) – sonst würde eine zweite
+    // Registrierung vor dem Klick auf den Bestätigungslink die Testphase verlieren.
     if (!data.session) return { message: `Fast geschafft! Wir haben Ihnen eine E-Mail an ${email} geschickt. Bitte klicken Sie auf den Link darin, um Ihre E-Mail-Adresse zu bestätigen – danach geht es direkt weiter. (Keine Mail? Bitte auch im Spam-Ordner nachsehen.)` };
     // Direktkauf: Das Dashboard zeigt zuerst die Bezahlseite, eingerichtet wird danach.
     if (direct) redirect("/dashboard");

@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { recordTrialUsage } from "@/lib/billing/trial-usage";
 import { siteConfig } from "@/lib/config/site";
 import { createUserClient } from "@/lib/supabase/clients";
 import { isSupabaseConfigured } from "@/lib/utils";
@@ -21,12 +22,16 @@ export async function GET(req: NextRequest) {
 
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
-    if (tokenHash && type && OTP_TYPES.includes(type)) {
-      const { error } = await db.auth.verifyOtp({ token_hash: tokenHash, type });
-      if (!error) return NextResponse.redirect(new URL(next, siteConfig.appUrl));
-    } else if (code) {
-      const { error } = await db.auth.exchangeCodeForSession(code);
-      if (!error) return NextResponse.redirect(new URL(next, siteConfig.appUrl));
+    let ok = false;
+    if (tokenHash && type && OTP_TYPES.includes(type)) ok = !(await db.auth.verifyOtp({ token_hash: tokenHash, type })).error;
+    else if (code) ok = !(await db.auth.exchangeCodeForSession(code)).error;
+    if (ok) {
+      // E-Mail-Adresse bestätigt: Ab jetzt gilt die kostenlose Testphase dieser Adresse als genutzt (einmal je Adresse).
+      if (type === "signup" || type === "email" || code) {
+        const { data } = await db.auth.getUser();
+        if (data.user?.email && data.user.user_metadata?.trial_used_before !== true) await recordTrialUsage(data.user.email);
+      }
+      return NextResponse.redirect(new URL(next, siteConfig.appUrl));
     }
   }
   return NextResponse.redirect(new URL("/login?error=callback", siteConfig.appUrl));
