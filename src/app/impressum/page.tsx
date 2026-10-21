@@ -29,7 +29,7 @@ export default function ImpressumPage() {
           <section>
             <h2>Kontakt</h2>
             <p>
-              Telefon: <a href={`tel:${siteConfig.phone.replace(/s/g, "")}`}>{siteConfig.phone}</a>
+              Telefon: <a href={`tel:${siteConfig.phone.replace(/\s/g, "")}`}>{siteConfig.phone}</a>
               <br />
               E-Mail: {siteConfig.supportEmail}
             </p>

@@ -8,7 +8,7 @@ export function LegalPage({ title, updated, intro, children }: { title: string; 
     <>
       <Navbar />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight hyphens-auto break-words sm:text-3xl">{title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">Stand: {updated}</p>
         {intro && <div className="mt-4 leading-relaxed">{intro}</div>}
         <div className="mt-8 space-y-8 leading-relaxed [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold">{children}</div>
