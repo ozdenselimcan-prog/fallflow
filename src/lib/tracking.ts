@@ -4,7 +4,12 @@
  * Google-Ads-Conversion-Tracking – nur nach ausdrücklicher Einwilligung (§ 25 TDDDG). Ohne NEXT_PUBLIC_GOOGLE_ADS_ID
  * ist alles abgeschaltet (kein Banner, kein Google-Code). Die Wahl liegt nur im Browser des Besuchers (localStorage).
  */
-export const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "";
+/** Mehrere Google-Ads-Konten möglich (kommagetrennt, z. B. "AW-1,AW-2") – jedes Konto sieht dann die Conversions. */
+const GOOGLE_ADS_IDS = (process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+export const GOOGLE_ADS_ID = GOOGLE_ADS_IDS[0] ?? "";
 const LABELS = {
   /** Registrierung abgeschlossen (erste Seite des Fragebogens) */
   signup: process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL ?? "",
@@ -68,7 +73,7 @@ export function loadGoogleTag() {
   };
   window.gtag("consent", "default", { ad_storage: "granted", ad_user_data: "granted", ad_personalization: "denied", analytics_storage: "denied" });
   window.gtag("js", new Date());
-  window.gtag("config", GOOGLE_ADS_ID);
+  for (const id of GOOGLE_ADS_IDS) window.gtag("config", id);
   const s = document.createElement("script");
   s.async = true;
   s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GOOGLE_ADS_ID)}`;
