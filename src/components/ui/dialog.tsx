@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 
 /** Modal auf Basis des nativen <dialog>-Elements (Fokusfalle und Escape inklusive). */
-export function Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Dialog({ open, onClose, title, children, wide = false }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card p-0 text-foreground shadow-xl"
+      className={`m-auto ${wide ? "w-[min(60rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} rounded-2xl border border-border bg-card p-0 text-foreground shadow-xl`}
     >
       {open && (
         <div className="p-5">

@@ -4,6 +4,9 @@ import { ArrowRight, CalendarCheck, CheckCircle2, Hourglass, Inbox, PartyPopper,
 import { CaseTable } from "@/components/dashboard/case-table";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Card, CardHeader } from "@/components/ui/card";
+import { buttonStyles } from "@/components/ui/button";
+import { SetupVideoButton } from "@/components/ui/setup-video";
+import { listConnections } from "@/lib/integrations/connections-store";
 import { requireSession } from "@/lib/auth/session";
 import { getStore } from "@/lib/data";
 import { buildAttention } from "@/lib/intake/attention";
@@ -29,6 +32,8 @@ export default async function DashboardPage() {
     store.listDocumentTemplates(),
     store.listServiceMessages(),
   ]);
+  // Noch kein Postfach verbunden: Hinweis mit Einrichtungs-Video (nicht im Demo-Modus).
+  const mailboxConnected = session.demo || (await listConnections(session.companyId).catch(() => [])).some((c) => c.status === "connected");
 
   const tiles = [
     { label: "Neue Anfragen", value: stats.newRequests, icon: Inbox, href: "/dashboard/intake?status=NEW" },
@@ -53,6 +58,21 @@ export default async function DashboardPage() {
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">Von der ersten Kundenanfrage zum vollständig vorbereiteten Beratungsfall.</p>
       </div>
+
+      {!mailboxConnected && (
+        <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold">Fast geschafft: Verbinden Sie Ihr E-Mail-Postfach</p>
+            <p className="mt-1 text-sm text-muted-foreground">Erst dann übernimmt FallFlow Ihre Kundenanfragen automatisch. Im Video sehen Sie in 90 Sekunden, wie die Einrichtung funktioniert.</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-4">
+            <SetupVideoButton />
+            <Link href="/dashboard/settings/connections" className={buttonStyles({ size: "sm" })}>
+              Postfach verbinden
+            </Link>
+          </div>
+        </Card>
+      )}
 
       <section aria-label="Kennzahlen" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         {tiles.map(({ label, value, icon: Icon, href }) => (

@@ -7,6 +7,7 @@ const links = [
   { label: "Produkt", href: "/#produkt" },
   { label: "Preise", href: "/#preise" },
   { label: "FAQ", href: "/#faq" },
+  { label: "Anleitung", href: "/anleitung" },
   { label: "AGB", href: "/agb" },
   { label: "AVV", href: "/avv" },
   { label: "Datenschutz", href: "/datenschutz" },

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { AppointmentConfirmationCard } from "@/components/dashboard/appointment-confirmation-card";
+import { SetupVideoButton } from "@/components/ui/setup-video";
 import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
 import { ServiceMessagesPanel, type ServiceMessageView, type ServiceTemplateView } from "@/components/dashboard/service-messages-panel";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
@@ -102,6 +103,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
             <p className="text-muted-foreground">
               In wenigen Schritten richten wir Ihr Büro ein: Firmendaten, Ihre Leistungen, Ihre Vorlagen &amp; Nachrichten, die Terminvergabe, den Website-Chat und Ihr E-Mail-Postfach. Alles lässt sich später in den Einstellungen ändern.
             </p>
+            <SetupVideoButton label="Erst kurz ansehen, wie es geht" className="mt-4" />
           </div>
         )}
 

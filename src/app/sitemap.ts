@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/so-funktioniert-es", priority: 0.8, changeFrequency: "monthly" },
     { path: "/preise", priority: 0.8, changeFrequency: "monthly" },
     { path: "/faq", priority: 0.6, changeFrequency: "monthly" },
+    { path: "/anleitung", priority: 0.6, changeFrequency: "monthly" },
     { path: "/signup", priority: 0.7, changeFrequency: "monthly" },
     { path: "/agb", priority: 0.2, changeFrequency: "yearly" },
     { path: "/avv", priority: 0.2, changeFrequency: "yearly" },
