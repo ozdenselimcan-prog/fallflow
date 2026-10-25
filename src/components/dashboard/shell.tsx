@@ -24,6 +24,14 @@ const core: NavItem[] = [
   { href: "/dashboard/cases", label: "Beratungsfälle", icon: FolderOpen },
   { href: "/dashboard/calendar", label: "Termine", icon: CalendarDays },
 ];
+const MOBILE_NAV: (NavItem & { short: string })[] = [
+  { href: "/dashboard", label: "Dashboard", short: "Start", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/intake", label: "AI Intake", short: "Anfragen", icon: Workflow },
+  { href: "/dashboard/inbox", label: "Posteingang", short: "Posteingang", icon: Inbox },
+  { href: "/dashboard/cases", label: "Beratungsfälle", short: "Fälle", icon: FolderOpen },
+  { href: "/dashboard/calendar", label: "Termine", short: "Termine", icon: CalendarDays },
+];
+
 const config: NavItem[] = [
   { href: "/dashboard/assistant", label: "KI-Assistent", icon: Sparkles },
   { href: "/dashboard/settings/connections", label: "Verbindungen", icon: Globe },
@@ -119,8 +127,23 @@ export function DashboardShell({ companyName, userName, userEmail, openRequests,
             </button>
           </form>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:pb-8">{children}</main>
       </div>
+      {/* Am Handy: die wichtigsten Bereiche als Leiste unten (wie in einer App); der Rest bleibt im Menü oben links. */}
+      <nav aria-label="Schnellzugriff" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+        {MOBILE_NAV.map((item) => {
+          const active = isActive(item);
+          return (
+            <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={cn("relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium", active ? "text-foreground" : "text-muted-foreground")}>
+              <item.icon className={cn("size-5", active && "stroke-[2.4]")} aria-hidden />
+              {item.short}
+              {item.href === "/dashboard/inbox" && attentionCount > 0 && (
+                <span className="absolute right-[22%] top-1.5 min-w-4 rounded-full bg-warning px-1 text-center text-[10px] font-semibold leading-4 text-white">{attentionCount}</span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

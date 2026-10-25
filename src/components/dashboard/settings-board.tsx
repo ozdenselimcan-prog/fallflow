@@ -168,14 +168,14 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
 
   return (
     <div>
-      <nav aria-label="Einstellungen" className="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-border px-4 sm:mx-0 sm:px-0">
+      <nav aria-label="Einstellungen" className="mb-6 grid grid-cols-4 border-b border-border sm:flex sm:gap-1">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
             aria-current={tab === t.id ? "page" : undefined}
-            className={cn("whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium", tab === t.id ? "border-accent text-accent" : "border-transparent text-muted-foreground hover:text-foreground")}
+            className={cn("truncate border-b-2 px-1 py-2.5 text-xs font-medium sm:px-4 sm:text-sm", tab === t.id ? "border-accent text-accent" : "border-transparent text-muted-foreground hover:text-foreground")}
           >
             {t.label}
           </button>
