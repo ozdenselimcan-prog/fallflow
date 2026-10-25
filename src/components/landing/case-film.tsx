@@ -143,6 +143,8 @@ export function CaseFilm() {
   // Linke Seite: welche Mail ist gerade "geöffnet"?
   const leftView = t < s3 ? "mail" : t < s4 ? "reply" : t < s6 ? "answer" : "question";
   const inSceneSix = t >= s6;
+  // Am Handy ist nur Platz für eine Seite: Fallakte zeigen, wenn dort gerade etwas passiert, sonst das Postfach.
+  const mobilePanel: "mail" | "case" = (t >= s2 + 1500 && t < s3) || (t >= s4 && t < s6) ? "case" : "mail";
 
   const jump = (i: number) => {
     setT(SCENES[i].start);
@@ -201,9 +203,16 @@ export function CaseFilm() {
           </Reveal>
         </div>
 
+        <div className="flex gap-1.5 border-b border-border px-4 py-2 md:hidden" aria-hidden>
+          {(["mail", "case"] as const).map((k) => (
+            <span key={k} className={cn("rounded-full px-3 py-1 text-xs font-medium transition-colors duration-300", mobilePanel === k ? "bg-foreground text-background" : "bg-muted text-muted-foreground")}>
+              {k === "mail" ? "Postfach" : "Fallakte"}
+            </span>
+          ))}
+        </div>
         <div className="grid md:grid-cols-[1.15fr_1fr]">
           {/* ---------------- Links: Postfach ---------------- */}
-          <div className="relative h-[19rem] overflow-hidden border-b border-border p-4 sm:h-[22rem] sm:p-5 md:h-[25rem] md:border-r md:border-b-0">
+          <div className={cn("relative h-[21rem] overflow-hidden p-4 sm:h-[22rem] sm:p-5 md:h-[25rem] md:border-r", mobilePanel !== "mail" && "max-md:hidden")}>
             <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground">
               <Inbox className="size-3.5" aria-hidden /> POSTEINGANG
             </p>
@@ -312,7 +321,7 @@ export function CaseFilm() {
           </div>
 
           {/* ---------------- Rechts: Fallakte ---------------- */}
-          <div className="relative h-[25rem] overflow-hidden bg-background/60 p-4 sm:h-[24rem] sm:p-5 md:h-[25rem]">
+          <div className={cn("relative h-[21rem] overflow-hidden bg-background/60 p-4 sm:h-[22rem] sm:p-5 md:h-[25rem]", mobilePanel !== "case" && "max-md:hidden")}>
             <div className={cn("transition-all duration-500", inSceneSix ? "pointer-events-none scale-[0.97] opacity-0" : "opacity-100")}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold tracking-wider text-muted-foreground">FALLAKTE</p>
