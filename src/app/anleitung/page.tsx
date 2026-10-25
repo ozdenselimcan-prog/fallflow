@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "@/components/landing/footer";
+import { MobileCta } from "@/components/landing/mobile-cta";
 import { Navbar } from "@/components/landing/navbar";
 import { buttonStyles } from "@/components/ui/button";
 import { SetupVideoPlayer } from "@/components/ui/setup-video";
@@ -45,6 +46,7 @@ export default function AnleitungPage() {
         </div>
       </main>
       <Footer />
+      <MobileCta />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/landing/footer";
+import { MobileCta } from "@/components/landing/mobile-cta";
 import { Navbar } from "@/components/landing/navbar";
 import { DemoSection, FinalCta, FlowSection, MailFlowSection, SolutionSection } from "@/components/landing/sections";
 
@@ -22,6 +23,7 @@ export default function Page() {
         <FinalCta />
       </main>
       <Footer />
+      <MobileCta />
     </>
   );
 }

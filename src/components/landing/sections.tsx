@@ -176,25 +176,47 @@ const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = 
   { icon: Ruler, title: "Bauteilwerte-Richtwerte", text: "U-Werte für Wand, Fenster & Dach nach Baualtersklasse, einzeln übernehmbar in die Fallakte." },
 ];
 
+const MOBILE_FEATURES = 6;
+
+function FeatureCard({ icon: I, title, text, soon }: (typeof features)[number]) {
+  return (
+    <Card className="h-full p-5">
+      <span className="flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
+        <I className="size-5" />
+      </span>
+      <h3 className="mt-4 flex flex-wrap items-center gap-2 font-semibold">
+        {title}
+        {soon && <Badge>in Vorbereitung</Badge>}
+      </h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
+    </Card>
+  );
+}
+
 export function FeaturesSection() {
   return (
     <Section id="funktionen" tinted title="Alles, was zwischen Anfrage und Beratungsfall liegt.">
+      {/* Am Handy erst die 6 wichtigsten, der Rest aufklappbar – sonst wird die Seite sehr lang. */}
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {features.map(({ icon: I, title, text, soon }) => (
-          <li key={title}>
-            <Card className="h-full p-5">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
-                <I className="size-5" />
-              </span>
-              <h3 className="mt-4 flex flex-wrap items-center gap-2 font-semibold">
-                {title}
-                {soon && <Badge>in Vorbereitung</Badge>}
-              </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
-            </Card>
+        {features.map((f, i) => (
+          <li key={f.title} className={i >= MOBILE_FEATURES ? "hidden sm:block" : undefined}>
+            <FeatureCard {...f} />
           </li>
         ))}
       </ul>
+      <details className="group mt-4 sm:hidden">
+        <summary className="flex h-11 cursor-pointer list-none items-center justify-center rounded-full border border-border bg-card text-sm font-semibold [&::-webkit-details-marker]:hidden">
+          <span className="group-open:hidden">Alle {features.length} Funktionen anzeigen</span>
+          <span className="hidden group-open:inline">Weniger anzeigen</span>
+        </summary>
+        <ul className="mt-4 grid gap-4">
+          {features.slice(MOBILE_FEATURES).map((f) => (
+            <li key={f.title}>
+              <FeatureCard {...f} />
+            </li>
+          ))}
+        </ul>
+      </details>
     </Section>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { ConsentBanner } from "@/components/consent/consent-banner";
 import { siteConfig } from "@/lib/config/site";
 
@@ -28,6 +29,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <ConsentBanner />
+        {/* Besucherstatistik ohne Cookies und ohne persönliche Profile (siehe Datenschutzerklärung). */}
+        <Analytics />
       </body>
     </html>
   );

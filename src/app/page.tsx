@@ -1,4 +1,5 @@
 import { Footer } from "@/components/landing/footer";
+import { MobileCta } from "@/components/landing/mobile-cta";
 import { Hero } from "@/components/landing/hero";
 import { Navbar } from "@/components/landing/navbar";
 import { ReviewsSection } from "@/components/landing/reviews";
@@ -36,6 +37,7 @@ export default function HomePage() {
         <FinalCta />
       </main>
       <Footer />
+      <MobileCta />
     </>
   );
 }

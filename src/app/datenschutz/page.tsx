@@ -142,6 +142,13 @@ export default function DatenschutzPage() {
               <strong>Hosting:</strong> Die Website und die Anwendung werden von Vercel Inc. (USA) betrieben; die Anwendung läuft in einem Rechenzentrum in der EU (Dublin, Irland).
               Server-Logs werden nach den Vorgaben des Hosting-Anbieters nur kurz – in der Regel wenige Tage – gespeichert und danach gelöscht.
             </p>
+            <p>
+              <strong>Besucherstatistik:</strong> Um zu verstehen, wie unsere Website genutzt wird (z. B. welche Seiten aufgerufen werden, von welcher Website
+              Besucher kommen, Gerätetyp und Land), nutzen wir Vercel Web Analytics. Dabei werden <strong>keine Cookies</strong> gesetzt und keine Daten im Browser
+              gespeichert; Besucher werden nicht seitenübergreifend verfolgt. Zur Unterscheidung von Besuchen wird aus der Anfrage ein Kennwert gebildet, der nach
+              24 Stunden verworfen wird. Wir erhalten nur zusammengefasste Zahlen. Rechtsgrundlage ist unser berechtigtes Interesse an der Verbesserung unseres
+              Angebots (Art. 6 Abs. 1 lit. f DSGVO).
+            </p>
           </Section>
 
           <Section id="cookies" title="4. Cookies und Speicherung im Browser">

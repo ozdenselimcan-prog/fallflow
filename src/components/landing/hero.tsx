@@ -82,11 +82,11 @@ export function Hero() {
           Von der ersten E-Mail bis zur vollständigen Fallakte: FallFlow erledigt die Vorarbeit, damit Sie sich auf die Beratung konzentrieren können.
         </p>
         <div className="hero-reveal mt-8 flex w-full max-w-sm flex-col gap-3 [animation-delay:240ms] sm:max-w-none sm:flex-row sm:justify-center">
-          <Link href="/demo" className={buttonStyles({ size: "lg" })}>
-            Demo ansehen <ArrowRight className="size-4" />
+          <Link href="/signup" className={buttonStyles({ size: "lg" })}>
+            7 Tage kostenlos testen <ArrowRight className="size-4" />
           </Link>
-          <Link href="/signup" className={buttonStyles({ variant: "ghost", size: "lg", className: "border border-zinc-200 bg-white hover:bg-zinc-50" })}>
-            Kostenlos starten
+          <Link href="/demo" className={buttonStyles({ variant: "ghost", size: "lg", className: "border border-zinc-200 bg-white hover:bg-zinc-50" })}>
+            Demo ansehen
           </Link>
         </div>
         <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Kostenlos testen, ohne Kreditkarte. Kein weiteres CRM – Ihre gewohnten Abläufe bleiben erhalten.</p>
