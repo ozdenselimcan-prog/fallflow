@@ -212,7 +212,7 @@ export function CaseFilm() {
         </div>
         <div className="grid md:grid-cols-[1.15fr_1fr]">
           {/* ---------------- Links: Postfach ---------------- */}
-          <div className={cn("relative h-[21rem] overflow-hidden p-4 sm:h-[22rem] sm:p-5 md:h-[25rem] md:border-r", mobilePanel !== "mail" && "max-md:hidden")}>
+          <div className={cn("relative h-[24rem] overflow-hidden p-4 sm:h-[24rem] sm:p-5 md:h-[25rem] md:border-r", mobilePanel !== "mail" && "max-md:hidden")}>
             <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground">
               <Inbox className="size-3.5" aria-hidden /> POSTEINGANG
             </p>
@@ -321,7 +321,7 @@ export function CaseFilm() {
           </div>
 
           {/* ---------------- Rechts: Fallakte ---------------- */}
-          <div className={cn("relative h-[21rem] overflow-hidden bg-background/60 p-4 sm:h-[22rem] sm:p-5 md:h-[25rem]", mobilePanel !== "case" && "max-md:hidden")}>
+          <div className={cn("relative h-[24rem] overflow-hidden bg-background/60 p-4 sm:h-[24rem] sm:p-5 md:h-[25rem]", mobilePanel !== "case" && "max-md:hidden")}>
             <div className={cn("transition-all duration-500", inSceneSix ? "pointer-events-none scale-[0.97] opacity-0" : "opacity-100")}>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold tracking-wider text-muted-foreground">FALLAKTE</p>
