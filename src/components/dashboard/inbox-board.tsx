@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Check, ExternalLink } from "lucide-react";
+import { ArrowLeft, AlertCircle, Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChannelBadge, StatusBadge } from "@/components/dashboard/badges";
@@ -40,6 +40,8 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
   // "attention" = nur Unterhaltungen, auf die der Energieberater selbst antworten soll.
   const [channel, setChannel] = useState<MessageChannel | "attention" | null>(attentionCount ? "attention" : null);
   const [selectedId, setSelectedId] = useState<string | null>((threads.find((t) => t.attention) ?? threads[0])?.caseId ?? null);
+  // Am Handy: entweder Liste oder geöffnetes Gespräch (sonst stünde das Gespräch weit unten unter der Liste).
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { pending, error, run } = useMutation();
 
   const enriched = useMemo(
@@ -104,12 +106,16 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_1fr]">
-          <ul className="max-h-[42rem] divide-y divide-border overflow-y-auto rounded-2xl border border-border bg-card">
+          <ul className={cn("max-h-[42rem] divide-y divide-border overflow-y-auto rounded-2xl border border-border bg-card max-lg:max-h-none", mobileOpen && "max-lg:hidden")}>
             {filtered.map((t) => (
               <li key={t.caseId}>
                 <button
                   type="button"
-                  onClick={() => setSelectedId(t.caseId)}
+                  onClick={() => {
+                    setSelectedId(t.caseId);
+                    setMobileOpen(true);
+                    if (window.matchMedia("(max-width: 1023px)").matches) window.scrollTo({ top: 0 });
+                  }}
                   aria-current={selected?.caseId === t.caseId ? "true" : undefined}
                   className={cn("block w-full px-4 py-3 text-left hover:bg-background/70", selected?.caseId === t.caseId && "bg-accent-soft/60")}
                 >
@@ -132,7 +138,10 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
           </ul>
 
           {selected && (
-            <div className="space-y-3">
+            <div className={cn("space-y-3", !mobileOpen && "max-lg:hidden")}>
+              <button type="button" onClick={() => setMobileOpen(false)} className="inline-flex h-10 items-center gap-1.5 text-sm font-medium text-muted-foreground lg:hidden">
+                <ArrowLeft className="size-4" aria-hidden /> Alle Nachrichten
+              </button>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">{displayName(selected)}</h2>
                 <Link href={`/dashboard/cases/${selected.caseId}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
