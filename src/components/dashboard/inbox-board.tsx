@@ -114,7 +114,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
                   onClick={() => {
                     setSelectedId(t.caseId);
                     setMobileOpen(true);
-                    if (window.matchMedia("(max-width: 1023px)").matches) window.scrollTo({ top: 0 });
+                    if (window.matchMedia("(max-width: 1023px)").matches) setTimeout(() => document.getElementById("inbox-detail")?.scrollIntoView({ block: "start" }), 0);
                   }}
                   aria-current={selected?.caseId === t.caseId ? "true" : undefined}
                   className={cn("block w-full px-4 py-3 text-left hover:bg-background/70", selected?.caseId === t.caseId && "bg-accent-soft/60")}
@@ -138,7 +138,7 @@ export function InboxBoard({ threads, canWrite }: { threads: InboxThread[]; canW
           </ul>
 
           {selected && (
-            <div className={cn("space-y-3", !mobileOpen && "max-lg:hidden")}>
+            <div id="inbox-detail" className={cn("scroll-mt-20 space-y-3", !mobileOpen && "max-lg:hidden")}>
               <button type="button" onClick={() => setMobileOpen(false)} className="inline-flex h-10 items-center gap-1.5 text-sm font-medium text-muted-foreground lg:hidden">
                 <ArrowLeft className="size-4" aria-hidden /> Alle Nachrichten
               </button>
