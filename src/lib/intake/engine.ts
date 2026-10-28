@@ -189,7 +189,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // + ggf. PDF-Anhang raus, keine automatisch generierte Rückfrage-Liste ("Welche Art Gebäude...", "Baujahr...").
   // Sobald der Fall aber abgeschlossen ist (turn.done = true: Abschluss-Nachricht, Handoff, Terminbestätigung
   // o. Ä.), soll genau diese Abschlussmeldung auch per Mail raus – siehe Termin-Hinweis-Override oben.
-  const replies = silent || attention || inAppointmentFlow || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
+  // Erste E-Mail, die schon alle Angaben enthält: keine Chat-Begrüßung ("Gerne! Das habe ich schon verstanden: …") –
+  // der Kunde bekommt die Büro-Nachricht zur Leistung (unten) und ggf. den Terminhinweis.
+  const firstCompleteEmail = input.channel === "email" && first && turn.done && Boolean(turn.fields.service);
+  const replies = silent || attention || inAppointmentFlow || firstCompleteEmail || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);

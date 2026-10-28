@@ -454,3 +454,15 @@ describe("processIntakeMessage – Absage durch den Kunden", () => {
     expect(after).toEqual(before);
   });
 });
+
+describe("processIntakeMessage – erste E-Mail mit allen Angaben", () => {
+  it("antwortet mit der Büro-Nachricht, nicht mit der Chat-Begrüßung", async () => {
+    const store = freshStore();
+    const text =
+      "Guten Tag, wir möchten eine Energieberatung für unser Einfamilienhaus, Baujahr 1998, 140 m² Wohnfläche, Gasheizung. Wir sind Eigentümer. Adresse: Musterstraße 1, 80331 München. Viele Grüße, Max Mustermann, Tel. 0170 1234567";
+    const turn = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text, source: "email", channel: "email", identity: { email: "max@engine-test.de", name: "Max Mustermann" } });
+    const all = turn.replies.join(" ");
+    expect(all).not.toMatch(/schon verstanden|Gerne!/);
+    expect(all).toContain("Vielen Dank für Ihre Anfrage zur Leistung „Energieberatung“");
+  });
+});
