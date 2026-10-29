@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AiPauseNotice } from "@/components/dashboard/ai-pause-notice";
+import { AI_PAUSED_KEY } from "@/lib/intake/engine";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye } from "lucide-react";
@@ -16,6 +18,8 @@ import { can } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
 import { hasAiTools } from "@/lib/billing/limits";
 import { FIELD_GROUPS } from "@/lib/cases/fields";
+import { CORE_FIELD_KEYS } from "@/lib/ai/business-profile";
+import { templateQuestionLabels } from "@/lib/intake/template-questions";
 import { FORM_ENTRIES_KEY, parseFormEntries } from "@/lib/cases/form-entries";
 import { attentionOf } from "@/lib/cases/attention";
 import { getStore } from "@/lib/data";
@@ -27,7 +31,7 @@ import { formatDateTime, timeAgo } from "@/lib/utils";
 export const metadata: Metadata = { title: "Fallakte" };
 
 const KNOWN_KEYS = new Set([...FIELD_GROUPS.flatMap((g) => g.fields.map((f) => f.key)), "appointmentWish"]);
-const SOURCE_LABELS = { widget: "Website-Chat", email: "E-Mail", phone: "Telefon", manual: "Manuell angelegt", demo: "Demo" } as const;
+const SOURCE_LABELS = { widget: "Website-Chat", email: "E-Mail", phone: "Telefon", whatsapp: "WhatsApp", manual: "Manuell angelegt", demo: "Demo" } as const;
 
 export default async function CaseDetailPage({ params }: PageProps<"/dashboard/cases/[id]">) {
   const { id } = await params;
@@ -49,12 +53,28 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
   ]);
   if (!c) notFound();
   const canWrite = can(session.role, "cases:write");
-  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
+  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) };
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
   const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
-  const checklist = buildChecklist({ questions, fields: c.fields, documents, foerderOverrides, serviceMessages, templateSends, includeFields: c.source !== "email" });
+  const profiled = foerderOverrides.profiled;
+  const checklist = buildChecklist({ questions, fields: c.fields, documents, foerderOverrides, serviceMessages, templateSends, includeFields: c.source !== "email" || profiled });
   const readiness = readinessOf(c.status, checklist);
-  const extra = questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
+  // Betrieb mit Betriebsprofil: Kunde, die branchenspezifischen Angaben aus dem Profil und das Anliegen –
+  // keine Energieberatungs-Gruppen (Gebäude, Heizung, Eigentümerstatus).
+  const core: readonly string[] = CORE_FIELD_KEYS;
+  // WhatsApp-Fragen nur zeigen, wenn beantwortet (bei anderen Kanälen werden sie nie gestellt).
+  const profileFields = questions.filter((q) => !core.includes(q.key) && (!q.whatsappOnly || c.fields[q.key])).map((q) => ({ key: q.key, label: q.label }));
+  const formFields = templateQuestionLabels(company.businessProfile.templateQuestions).filter((f) => c.fields[f.key]);
+  const customGroups = profiled
+    ? [
+        { title: "Kunde", fields: [{ key: "name", label: "Name" }, { key: "email", label: "E-Mail" }, { key: "phone", label: "Telefon" }, { key: "street", label: "Straße, Nr." }, { key: "postalCode", label: "PLZ" }, { key: "city", label: "Ort" }] },
+        ...(profileFields.length ? [{ title: "Angaben zum Auftrag", fields: profileFields }] : []),
+        // Im Chat (WhatsApp/Telefon) einzeln erfragte Angaben aus den PDF-Formularen – nur die beantworteten.
+        ...(formFields.length ? [{ title: "Angaben aus Formularen", fields: formFields }] : []),
+        { title: "Anliegen", fields: [{ key: "service", label: "Gewünschte Leistung" }, { key: "description", label: "Beschreibung" }, { key: "priority", label: "Priorität" }] },
+      ]
+    : undefined;
+  const extra = profiled ? [] : questions.filter((q) => !KNOWN_KEYS.has(q.key)).map((q) => ({ key: q.key, label: q.label }));
   const requiredKeys = questions.filter((q) => q.active && q.required).map((q) => q.key);
   const formEntries = parseFormEntries(c.fields[FORM_ENTRIES_KEY]);
   const skippedFiles = (c.fields[SKIPPED_ATTACHMENTS_KEY] ?? "").split("\n").filter(Boolean);
@@ -82,7 +102,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
           <ReadinessBadge readiness={readiness} />
         </div>
         <p className="text-sm text-muted-foreground">
-          Beratungsfall · {SOURCE_LABELS[c.source]} · eingegangen am {formatDateTime(c.createdAt)} · zuletzt aktiv {timeAgo(c.updatedAt)}
+          Anfrage · {SOURCE_LABELS[c.source]} · eingegangen am {formatDateTime(c.createdAt)} · zuletzt aktiv {timeAgo(c.updatedAt)}
         </p>
         <CaseActions caseId={c.id} customerName={c.customerName} email={c.fields.email ?? ""} status={c.status} canWrite={canWrite} />
       </header>
@@ -119,6 +139,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
         </aside>
 
         <div className="space-y-6 lg:order-1 lg:col-span-2">
+          {c.fields[AI_PAUSED_KEY] === "1" && <AiPauseNotice caseId={c.id} canWrite={canWrite} />}
           <AiStatusCard checklist={checklist} status={c.status} />
           <SummaryCard summary={c.summary} />
           {returnForms.length > 0 && (
@@ -159,7 +180,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
               </ul>
             </Card>
           )}
-          <CaseEditor caseId={c.id} fields={c.fields} canWrite={canWrite} extra={extra} requiredKeys={requiredKeys} />
+          <CaseEditor caseId={c.id} fields={c.fields} canWrite={canWrite} extra={extra} requiredKeys={requiredKeys} customGroups={customGroups} serviceOptions={profiled ? [...company.services.filter((s) => s !== "Sonstiges"), "Sonstiges"] : undefined} />
           {formEntries.length > 0 && (
             <Card>
               <CardHeader title="Weitere Angaben aus ausgefüllten Formularen" description="Vom Kunden in die zurückgeschickten PDF-Vorlagen eingetragen." />
@@ -188,8 +209,8 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             uploadLink={currentUploadLink(c)}
             canWrite={canWrite}
           />
-          <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} locked={!hasAiTools(subscription.plan)} />
-          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email)} />
+          {!profiled && <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} locked={!hasAiTools(subscription.plan)} />}
+          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email) || (c.source === "whatsapp" && Boolean(c.fields.phone))} />
         </div>
       </div>
     </div>

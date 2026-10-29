@@ -21,14 +21,14 @@ const core: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/intake", label: "AI Intake", icon: Workflow },
   { href: "/dashboard/inbox", label: "Posteingang", icon: Inbox },
-  { href: "/dashboard/cases", label: "Beratungsfälle", icon: FolderOpen },
+  { href: "/dashboard/cases", label: "Fälle", icon: FolderOpen },
   { href: "/dashboard/calendar", label: "Termine", icon: CalendarDays },
 ];
 const MOBILE_NAV: (NavItem & { short: string })[] = [
   { href: "/dashboard", label: "Dashboard", short: "Start", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/intake", label: "AI Intake", short: "Anfragen", icon: Workflow },
   { href: "/dashboard/inbox", label: "Posteingang", short: "Posteingang", icon: Inbox },
-  { href: "/dashboard/cases", label: "Beratungsfälle", short: "Fälle", icon: FolderOpen },
+  { href: "/dashboard/cases", label: "Fälle", short: "Fälle", icon: FolderOpen },
   { href: "/dashboard/calendar", label: "Termine", short: "Termine", icon: CalendarDays },
 ];
 

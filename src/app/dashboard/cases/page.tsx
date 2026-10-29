@@ -6,7 +6,7 @@ import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/form";
-import { SERVICES, STATUS_LABELS } from "@/lib/cases/fields";
+import { STATUS_LABELS } from "@/lib/cases/fields";
 import { requireSession } from "@/lib/auth/session";
 import { getStore } from "@/lib/data";
 import { buildCaseMeta } from "@/lib/intake/meta";
@@ -14,7 +14,7 @@ import { daysAgoIso } from "@/lib/utils";
 import { caseQuerySchema } from "@/lib/validation";
 import { CASE_STATUSES } from "@/lib/data/types";
 
-export const metadata: Metadata = { title: "Beratungsfälle" };
+export const metadata: Metadata = { title: "Fälle" };
 
 const DATE_RANGES = [
   { value: "", label: "Alle" },
@@ -42,12 +42,12 @@ export default async function CasesPage({ searchParams }: PageProps<"/dashboard/
     store.listDocumentTemplates(),
     store.listServiceMessages(),
   ]);
-  const meta = buildCaseMeta(cases, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, templateDocs, templates, serviceMessages);
+  const meta = buildCaseMeta(cases, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) }, templateDocs, templates, serviceMessages);
 
   return (
     <>
       <LiveRefresh active everyMs={15000} />
-      <PageHeader title="Beratungsfälle" description={`${cases.length} ${cases.length === 1 ? "Fall" : "Fälle"}${hasFilters ? " (gefiltert)" : ""}`} />
+      <PageHeader title="Fälle" description={`${cases.length} ${cases.length === 1 ? "Fall" : "Fälle"}${hasFilters ? " (gefiltert)" : ""}`} />
 
       <form method="get" className="mb-5 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
         <div className="relative sm:col-span-2">
@@ -64,7 +64,7 @@ export default async function CasesPage({ searchParams }: PageProps<"/dashboard/
         </Select>
         <Select name="service" defaultValue={filters.service ?? ""} aria-label="Leistung">
           <option value="">Alle Leistungen</option>
-          {SERVICES.map((s) => (
+          {company.services.map((s) => (
             <option key={s}>{s}</option>
           ))}
         </Select>

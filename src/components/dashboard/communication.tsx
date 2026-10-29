@@ -119,7 +119,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 maxLength={200}
-                placeholder="Betreff (leer = „Ihre Anfrage zur Energieberatung“)"
+                placeholder="Betreff (leer = „Ihre Anfrage“)"
                 aria-label="Betreff"
               />
             )}
@@ -127,7 +127,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={2000}
-              placeholder={mode === "phone_note" ? "Was wurde besprochen? Angaben wie Baujahr oder Heizung werden übernommen …" : "Nachricht an den Kunden …"}
+              placeholder={mode === "phone_note" ? "Was wurde besprochen? Angaben des Kunden werden automatisch übernommen …" : "Nachricht an den Kunden …"}
               aria-label="Nachricht"
               className="min-h-20"
             />

@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 };
 
 const steps = [
-  ["Konto erstellen", "7 Tage kostenlos testen, ohne Kreditkarte. Danach E-Mail-Adresse bestätigen."],
-  ["Firmendaten und Leistungen", "Name, Website und Adresse Ihres Büros – und welche Leistungen Sie anbieten."],
+  ["Konto erstellen", "7 Tage kostenlos testen, ohne Kreditkarte."],
+  ["Firmendaten und Ihr Betrieb", "Beschreiben Sie Ihren Betrieb in 2–3 Sätzen – die KI schlägt Leistungen, Angaben und Unterlagen vor, Sie passen sie an."],
   ["Vorlagen & Nachrichten", "Pro Leistung Ihr eigener Text und Ihre PDF-Formulare, die automatisch an den Kunden gehen."],
   ["Termine und Website-Chat", "Wann Sie Termine anbieten; den Chat-Code schicken Sie bei Bedarf Ihrem Webdesigner."],
   ["E-Mail-Postfach verbinden", "Outlook / Microsoft 365 mit einem Klick, Gmail, GMX, IONOS & Co. mit (App-)Passwort."],
@@ -27,7 +27,7 @@ export default function AnleitungPage() {
       <Navbar />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">So richten Sie FallFlow ein</h1>
-        <p className="mt-3 text-muted-foreground">In etwa 10 Minuten startklar – hier sehen Sie jeden Schritt in 90 Sekunden.</p>
+        <p className="mt-3 text-muted-foreground">In etwa 10 Minuten startklar – hier sehen Sie jeden Schritt in unter 2 Minuten.</p>
         <SetupVideoPlayer className="mt-8" />
         <ol className="mt-10 grid gap-4 sm:grid-cols-2">
           {steps.map(([title, text], i) => (

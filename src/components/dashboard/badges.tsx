@@ -1,4 +1,4 @@
-import { Globe, Mail, Phone } from "lucide-react";
+import { Globe, Mail, MessageCircle, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/card";
 import { STATUS_LABELS } from "@/lib/cases/fields";
 import type { CaseStatus, MessageChannel } from "@/lib/data/types";
@@ -42,6 +42,7 @@ const channelInfo = {
   website: { label: "Website", icon: Globe },
   email: { label: "E-Mail", icon: Mail },
   phone: { label: "Telefon", icon: Phone },
+  whatsapp: { label: "WhatsApp", icon: MessageCircle },
 } as const;
 
 export const channelLabel = (c: MessageChannel) => channelInfo[c].label;

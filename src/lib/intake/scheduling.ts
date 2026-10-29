@@ -155,6 +155,8 @@ export interface SlotSearch {
   maxAppointmentsPerDay?: number | null;
   /** Urlaubszeitraum (inklusive Start-/Enddatum "YYYY-MM-DD") – an diesen Tagen werden keine Termine vergeben. */
   vacation?: { from: string; until: string } | null;
+  /** Belegte Zeiten aus einem verbundenen Kalender (Outlook) – blockieren Slots, zählen aber nicht als Termin pro Tag. */
+  blocked?: Pick<Appointment, "startsAt" | "durationMin">[];
 }
 
 function parseYmdString(s: string): Ymd {
@@ -186,9 +188,17 @@ function countOnDay(ymd: Ymd, existing: Pick<Appointment, "startsAt" | "duration
 }
 
 /** Erster freier Slot an einem einzelnen Kalendertag innerhalb der Bürozeit, oder null (Tag komplett belegt oder Tagesobergrenze erreicht). */
-function firstFreeSlotOnDay(ymd: Ymd, slotStart: string, slotEnd: string, slotMinutes: number, existing: Pick<Appointment, "startsAt" | "durationMin">[], maxPerDay?: number | null): Date | null {
+function firstFreeSlotOnDay(
+  ymd: Ymd,
+  slotStart: string,
+  slotEnd: string,
+  slotMinutes: number,
+  existing: Pick<Appointment, "startsAt" | "durationMin">[],
+  maxPerDay?: number | null,
+  blocked: Pick<Appointment, "startsAt" | "durationMin">[] = [],
+): Date | null {
   if (maxPerDay && countOnDay(ymd, existing) >= maxPerDay) return null;
-  const busy = busyRanges(existing);
+  const busy = busyRanges([...existing, ...blocked]);
   const start = parseTime(slotStart);
   const end = parseTime(slotEnd);
   let cursorMin = start.h * 60 + start.m;
@@ -214,7 +224,7 @@ export function findNextSlot(input: SlotSearch): Date | null {
   for (let i = 0; i <= horizon; i++) {
     const day = addDays(start, i);
     if (!allowedDays.has(weekdayOf(day)) || isOnVacation(day, input.vacation)) continue;
-    const slot = firstFreeSlotOnDay(day, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay);
+    const slot = firstFreeSlotOnDay(day, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay, input.blocked);
     if (slot) return slot;
   }
   return null;
@@ -226,7 +236,7 @@ export type DateSlotReason = "ok" | "not_a_working_day" | "fully_booked" | "on_v
 export function findSlotOnDate(ymd: Ymd, input: Omit<SlotSearch, "customerDays" | "from">): { slot: Date | null; reason: DateSlotReason } {
   if (!input.workingDays.includes(weekdayOf(ymd))) return { slot: null, reason: "not_a_working_day" };
   if (isOnVacation(ymd, input.vacation)) return { slot: null, reason: "on_vacation" };
-  const slot = firstFreeSlotOnDay(ymd, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay);
+  const slot = firstFreeSlotOnDay(ymd, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay, input.blocked);
   return slot ? { slot, reason: "ok" } : { slot: null, reason: "fully_booked" };
 }
 
@@ -242,7 +252,7 @@ export const formatYmd = (ymd: Ymd) => dateFmt.format(new Date(Date.UTC(ymd.y, y
 export function availabilityQuestion(workingDays: number[]): string {
   const names = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
   const example = workingDays.length >= 5 ? `${names[workingDays[0]]} bis ${names[workingDays[workingDays.length - 1]]}` : workingDays.map((d) => names[d]).join(", ");
-  return `An welchen Wochentagen (oder an welchem konkreten Datum) passt es Ihnen am besten für ein Beratungsgespräch? (z. B. „${example}“ oder „15. Oktober“)`;
+  return `An welchen Wochentagen (oder an welchem konkreten Datum) passt es Ihnen am besten für einen Termin? (z. B. „${example}“ oder „15. Oktober“)`;
 }
 
 // Der konkrete Termin wird dem Kunden bewusst NICHT direkt von der KI genannt – ein Mitarbeiter bestätigt

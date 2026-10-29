@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { obviousHumanQuestion, withoutProcessQuestions } from "./personal-reply";
+import { customerQuestion, obviousHumanQuestion, withoutProcessQuestions } from "./personal-reply";
 
 describe("withoutProcessQuestions", () => {
   it("entfernt Fragen zum Ablauf – die beantwortet die KI mit Nachricht und Formular", () => {
@@ -27,5 +27,20 @@ describe("obviousHumanQuestion – Fragen zur Form von Unterlagen", () => {
   });
   it("Angaben ohne Frage bleiben unberührt", () => {
     expect(obviousHumanQuestion("Anbei das unterschriebene Formular.")).toBeNull();
+  });
+});
+
+describe("customerQuestion – Terminfragen", () => {
+  const business = { industry: "Elektroinstallation", humanTopics: ["Preise"] };
+  it("nur nach einem freien Termin gefragt: der Betrieb antwortet selbst", async () => {
+    expect(await customerQuestion("Hallo, wann habt ihr einen Termin frei?\nGruß Jonas Wagner", business)).toBeTruthy();
+    expect(await customerQuestion("Guten Tag, wann hätten Sie Zeit für eine Wallbox-Installation?\nViele Grüße\nJonas Wagner, 0171 2345678", business)).toBeTruthy();
+  });
+  it("Anliegen genannt und nach Termin gefragt: normal beantworten", async () => {
+    expect(await customerQuestion("Hallo, wir möchten eine Wallbox in unserer Garage installieren lassen, 11 kW. Wann hätten Sie Zeit?\nViele Grüße Jonas Wagner", business)).toBeNull();
+    expect(await customerQuestion("Wir brauchen eine neue Unterverteilung, wann könnt ihr vorbeikommen?", business)).toBeNull();
+  });
+  it("Preisfrage bleibt eine Frage, auch neben einer Terminfrage", async () => {
+    expect(await customerQuestion("Wir möchten eine Wallbox installieren lassen. Was kostet das und wann hätten Sie Zeit?", business)).toBeTruthy();
   });
 });

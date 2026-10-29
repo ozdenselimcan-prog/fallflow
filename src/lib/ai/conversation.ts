@@ -1,3 +1,4 @@
+import { FIELD_GROUPS } from "@/lib/cases/fields";
 import { isAnswered, SKIPPED } from "@/lib/cases/completeness";
 import type { AssistantSettings, CaseDocument, MessageChannel, Question, Tone } from "@/lib/data/types";
 import { buildChecklist, deriveFields, isRelevant, type FoerderDocumentOverrides } from "@/lib/intake/checklist";
@@ -76,7 +77,7 @@ const PHRASES: Record<Tone, Phrases> = {
     noFollowUp: "Vielen Dank. Ihre Anfrage wurde an unser Team übergeben.",
   },
   friendly: {
-    intro: "Gerne!",
+    intro: "Vielen Dank für Ihre Nachricht!",
     recognized: "Das habe ich schon verstanden:",
     noted: "Notiert:",
     corrected: "Korrigiert:",
@@ -87,7 +88,7 @@ const PHRASES: Record<Tone, Phrases> = {
     noFollowUp: "Vielen Dank! Ihre Anfrage ist bei uns angekommen und wir melden uns bei Ihnen.",
   },
   short: {
-    intro: "Gerne.",
+    intro: "Danke für Ihre Anfrage.",
     recognized: "Erkannt:",
     noted: "Notiert:",
     corrected: "Korrigiert:",
@@ -177,6 +178,17 @@ export function parseAnswer(q: Question, raw: string): Parsed {
   }
 }
 
+/** Zerlegt eine Adresse in Straße/Hausnummer, PLZ und Ort (beide Reihenfolgen). Ohne PLZ: alles als Straße. */
+export function splitAddress(raw: string): { street: string; postalCode: string; city: string } {
+  const t = raw.replace(/\s+/g, " ").trim().replace(/[.!]$/, "");
+  const streetFirst = t.match(/^(.*?\d+\s*[a-z]?)[,\s]+(\d{5})\s*([^\d,]*)$/i);
+  if (streetFirst) return { street: streetFirst[1].trim(), postalCode: streetFirst[2], city: streetFirst[3].trim() };
+  const cityFirst = t.match(/^(\d{5})\s+([^,\d]+?),\s*(.+)$/);
+  if (cityFirst) return { street: cityFirst[3].trim(), postalCode: cityFirst[1], city: cityFirst[2].trim() };
+  const plz = t.match(/(?<!\d)\d{5}(?!\d)/)?.[0] ?? "";
+  return { street: t, postalCode: plz, city: "" };
+}
+
 export function quickRepliesFor(q: Question): string[] {
   const skip = q.required ? SKIP_LABEL_REQUIRED : SKIP_LABEL_OPTIONAL;
   return q.type === "choice" ? [...q.options, skip] : [skip];
@@ -187,7 +199,7 @@ export function quickRepliesFor(q: Question): string[] {
  * eine nach der anderen – sonst müsste der Kunde für jede einzelne Angabe eine neue Mail schreiben.
  * Der Website-Chat bleibt bei einer Frage nach der anderen, das passt besser zu einem laufenden Gespräch.
  */
-export const isInteractive = (channel?: MessageChannel) => !channel || channel === "website";
+export const isInteractive = (channel?: MessageChannel) => !channel || channel === "website" || channel === "phone" || channel === "whatsapp";
 
 function missingPrompt(questions: Question[], fields: Record<string, string>, channel?: MessageChannel): { text: string; single: Question | null } {
   const missing = activeQuestions(questions).filter((q) => isRelevant(q, fields) && !isAnswered(fields, q.key));
@@ -201,16 +213,16 @@ function describeRecognized(keys: string[], fields: Record<string, string>, ques
   return keys
     .filter((k) => fields[k] && fields[k] !== SKIPPED && !FREE_TEXT_KEYS.has(k))
     .map((k) => {
-      const label = questions.find((q) => q.key === k)?.label ?? k;
+      const label = questions.find((q) => q.key === k)?.label ?? FIELD_GROUPS.flatMap((g) => g.fields).find((x) => x.key === k)?.label ?? k;
       const value = k === "livingArea" ? `${fields[k]} m²` : fields[k];
-      return `${label} ${value}`;
+      return `${label}: ${value}`;
     })
     .join(", ");
 }
 
 const result = (input: TurnInput, fields: Record<string, string>, extra: Partial<TurnResult> & { replies: string[] }): TurnResult => {
   const pending = nextPending(input.questions, fields);
-  const checklist = buildChecklist({ questions: input.questions, fields, documents: input.documents ?? [], foerderOverrides: input.foerderOverrides, includeFields: isInteractive(input.channel) });
+  const checklist = buildChecklist({ questions: input.questions, fields, documents: input.documents ?? [], foerderOverrides: input.foerderOverrides, includeFields: isInteractive(input.channel) || Boolean(input.foerderOverrides?.profiled) });
   return {
     fields,
     quickReplies: [],
@@ -290,11 +302,8 @@ export function applyTurn(input: TurnInput): TurnResult {
     if (!settings.autoFollowUp) {
       return result(input, fields, { replies: [p.noFollowUp], done: true, recognizedKeys: recognized });
     }
+    // Kurz danken und direkt die nächste Frage stellen – keine Aufzählung, was die KI schon erkannt hat.
     replies.push(p.intro);
-    const known = describeRecognized(recognized, fields, questions);
-    if (known) replies.push(`${p.recognized} ${known}. Falls etwas nicht stimmt, schreiben Sie mir einfach die Korrektur.`);
-    if (!nextPending(questions, fields)) replies.push("Ich habe alle nötigen Angaben aus Ihrer Nachricht entnehmen können.");
-    else replies.push("Für Ihren Fall fehlen mir noch ein paar Angaben.");
   } else if (!pendingBefore) {
     // Fall bereits vollständig erfasst – nur noch Terminwunsch bzw. Hinweis
     if (settings.appointmentBooking && text.trim() === APPOINTMENT_LABEL) {
@@ -302,10 +311,30 @@ export function applyTurn(input: TurnInput): TurnResult {
     }
     return result(input, fields, { replies: ["Ihre Anfrage liegt bereits vor. Ein Mitarbeiter meldet sich bei Ihnen."], done: true });
   } else {
-    const parsed: Parsed = input.isQuestion ? { ok: false } : parseAnswer(pendingBefore, text);
+    // Freitext-Fragen: Bei E-Mails bzw. längeren Nachrichten nicht die ganze Nachricht übernehmen, sondern den
+    // von der KI herausgelesenen Wert (z. B. "Einfamilienhaus" statt der kompletten Antwortmail).
+    const extractedValue = pendingBefore.type === "text" ? input.extracted?.[pendingBefore.key] : undefined;
+    const wholeMessage = pendingBefore.type === "text" && (text.trim().includes("\n") || text.trim().length > 80);
+    const parsed: Parsed = input.isQuestion
+      ? { ok: false }
+      : extractedValue
+        ? { ok: true, value: extractedValue }
+        : wholeMessage
+          ? { ok: false }
+          : parseAnswer(pendingBefore, text);
     if (parsed.ok) {
       fields[pendingBefore.key] = parsed.value;
       recognized.push(pendingBefore.key);
+      // Adresse in einer Antwort ("Lindenweg 7, 82166 Gräfelfing"): Straße, PLZ und Ort getrennt übernehmen.
+      if (pendingBefore.key === "street" && /\d{5}/.test(text)) {
+        const a = splitAddress(text);
+        if (a.street) fields.street = a.street;
+        if (a.postalCode && !isAnswered(fields, "postalCode")) {
+          fields.postalCode = a.postalCode;
+          recognized.push("postalCode");
+        }
+        if (a.city && !fields.city) fields.city = a.city;
+      }
       // Längere Nachrichten enthalten oft weitere Angaben – auch diese übernehmen.
       if (text.trim().length > 40) recognized.push(...mergeExtracted(fields, input.extracted, { allowFreeText: false }, questions));
     } else {
@@ -321,10 +350,6 @@ export function applyTurn(input: TurnInput): TurnResult {
       recognized.push(...gained);
     }
     Object.assign(fields, deriveFields(fields));
-    // Nur zusätzlich erkannte Angaben nennen – die direkte Antwort braucht keine Bestätigung.
-    const extras = recognized.filter((k) => k !== pendingBefore.key);
-    const known = describeRecognized(extras, fields, questions);
-    if (known) replies.push(`${p.noted} ${known}.`);
   }
 
   const pending = nextPending(questions, fields);
@@ -334,7 +359,7 @@ export function applyTurn(input: TurnInput): TurnResult {
     return result(input, fields, { replies, quickReplies: ask.single ? quickRepliesFor(ask.single) : [], recognizedKeys: recognized });
   }
 
-  const complete = buildChecklist({ questions, fields, documents: input.documents ?? [], includeFields: isInteractive(input.channel) }).dataComplete;
+  const complete = buildChecklist({ questions, fields, documents: input.documents ?? [], includeFields: isInteractive(input.channel) || Boolean(input.foerderOverrides?.profiled) }).dataComplete;
   replies.push(complete ? p.done : p.noFollowUp);
   return result(input, fields, {
     replies,

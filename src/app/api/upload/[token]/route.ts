@@ -29,7 +29,7 @@ export const GET = publicRoute("upload-info", 60, async (_req, ctx: RouteContext
     questions,
     fields: caseRecord.fields,
     documents,
-    foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) },
     serviceMessages,
     templateSends,
   });

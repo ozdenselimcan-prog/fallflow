@@ -1,6 +1,7 @@
 import {
   ArrowDown,
   ArrowRight,
+  Building2,
   CalendarCheck,
   Check,
   ClipboardCheck,
@@ -11,11 +12,12 @@ import {
   Globe,
   Inbox,
   Mail,
+  MessageCircle,
   MessageCircleQuestion,
-  PiggyBank,
+  Phone,
   Repeat,
-  Ruler,
   ScatterChart,
+  Siren,
   Sparkles,
   Workflow,
 } from "lucide-react";
@@ -44,15 +46,15 @@ function Section({ id, title, intro, children, tinted }: { id?: string; title: s
 }
 
 const flow = [
-  { title: "Kundenanfrage", text: "Per E-Mail – Fragen beantwortet der Website-Chat" },
+  { title: "Kundenanfrage", text: "Per E-Mail, WhatsApp, Website-Chat oder Telefon" },
   { title: "KI-Qualifizierung", text: "Bekannte Angaben werden erkannt" },
   { title: "Fehlende Daten", text: "Die KI fordert per Mail nur an, was noch fehlt" },
-  { title: "Dokumente", text: "Formulare, Grundriss & Energieausweis kommen per Mail-Antwort" },
+  { title: "Unterlagen", text: "Formulare und Fotos kommen per Mail-Antwort" },
   { title: "Termin", text: "Terminvorschlag zum fertigen Fall" },
-  { title: "Fertiger Beratungsfall", text: "Der Berater übernimmt nur noch den fertigen Fall" },
+  { title: "Fertiger Auftrag", text: "Sie übernehmen nur noch den fertig vorbereiteten Fall" },
 ];
 
-/** Der Ablauf von der Anfrage bis zum fertigen Beratungsfall (Desktop horizontal, mobil vertikal). */
+/** Der Ablauf von der Anfrage bis zum fertigen Auftrag (Desktop horizontal, mobil vertikal). */
 export function FlowSection() {
   return (
     <section aria-labelledby="flow-title" className="border-y border-border bg-muted/60 py-12 sm:py-14">
@@ -95,7 +97,7 @@ export function MailFlowSection() {
 const problems: { icon: Icon; title: string }[] = [
   { icon: FileQuestion, title: "Unvollständige Anfragen" },
   { icon: Mail, title: "Rückfragen per E-Mail" },
-  { icon: ClipboardCheck, title: "Fehlende Gebäudedaten" },
+  { icon: ClipboardCheck, title: "Fehlende Angaben zum Auftrag" },
   { icon: ScatterChart, title: "Verstreute Informationen" },
   { icon: Repeat, title: "Manuelles Übertragen" },
   { icon: Clock, title: "Zeitverlust vor dem ersten Gespräch" },
@@ -103,7 +105,7 @@ const problems: { icon: Icon; title: string }[] = [
 
 export function ProblemSection() {
   return (
-    <Section title="Die eigentliche Arbeit beginnt oft vor der Beratung." intro="Bevor ein Energieberater fachlich arbeiten kann, müssen erst die Grundlagen geklärt sein – meist in mehreren Runden und über mehrere Kanäle.">
+    <Section title="Die eigentliche Arbeit beginnt oft vor dem Auftrag." intro="Bevor Sie ein Angebot machen oder einen Termin vergeben können, müssen erst die Grundlagen geklärt sein – meist in mehreren Runden und über mehrere Kanäle.">
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {problems.map(({ icon: I, title }) => (
           <li key={title}>
@@ -121,15 +123,15 @@ export function ProblemSection() {
 }
 
 const steps = [
-  { n: "01", title: "KI versteht die Anfrage", text: "„Einfamilienhaus von 1987, 160 qm, iSFP“ – Gebäudetyp, Baujahr, Fläche und Leistung werden sofort erkannt und übernommen." },
+  { n: "01", title: "KI versteht die Anfrage", text: "„Sturmschaden, Satteldach, ca. 10 m², Gräfelfing“ – Leistung, Angaben und Adresse werden sofort erkannt und übernommen." },
   { n: "02", title: "Ihre Antwort, automatisch", text: "Die KI schickt Ihre eigene Nachricht zur Leistung samt Ihren PDF-Formularen und sagt dem Kunden genau, welche Unterlagen noch fehlen." },
-  { n: "03", title: "Unterlagen kommen per Mail", text: "Ausgefüllte Formulare, Grundriss und Energieausweis schickt der Kunde einfach als Antwort – FallFlow prüft sie, liest die Angaben aus und legt alles in der Fallakte ab." },
+  { n: "03", title: "Unterlagen kommen per Mail", text: "Ausgefüllte Formulare, Fotos und andere Unterlagen schickt der Kunde einfach als Antwort – FallFlow prüft sie, liest die Angaben aus und legt alles in der Fallakte ab." },
   { n: "04", title: "Fertige Fallakte", text: "Sie erhalten eine Fallakte mit Vollständigkeit, Dokumenten, Verlauf, Zusammenfassung und Terminvorschlag. Fragen von Kunden beantworten Sie selbst – die KI erfindet keine Antworten." },
 ];
 
 export function SolutionSection() {
   return (
-    <Section id="so-funktioniert-es" tinted title="FallFlow erledigt die Datensammlung vor dem ersten Gespräch." intro="Vom ersten Kontakt bis zum vorbereiteten Fall – ohne dass jemand aus dem Büro Daten hinterhertelefonieren muss.">
+    <Section id="so-funktioniert-es" tinted title="FallFlow erledigt die Datensammlung vor dem ersten Gespräch." intro="Vom ersten Kontakt bis zum vorbereiteten Fall – ohne dass jemand aus Ihrem Betrieb Angaben hinterhertelefonieren muss.">
       <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {steps.map((s) => (
           <li key={s.n}>
@@ -147,7 +149,7 @@ export function SolutionSection() {
 
 export function DemoSection() {
   return (
-    <Section id="demo" title="Probieren Sie den Ablauf selbst aus." intro="Links der E-Mail-Verlauf zwischen Kunde und KI, rechts entsteht die Fallakte – Schritt für Schritt. Die Demo läuft ohne Anmeldung.">
+    <Section id="demo" title="Probieren Sie den Ablauf selbst aus." intro="Links der Verlauf zwischen Kunde und KI – per E-Mail oder WhatsApp –, rechts entsteht die Fallakte. Schritt für Schritt, ohne Anmeldung.">
       <MailDemo />
       <div className="mt-6">
         <Link href="/demo" className={buttonStyles({ variant: "secondary" })}>
@@ -160,20 +162,21 @@ export function DemoSection() {
 
 const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = [
   { icon: Workflow, title: "AI Intake", text: "Alle laufenden Anfragen mit klarem Status – von „Neu“ bis „Bereit zur Prüfung“." },
+  { icon: MessageCircle, title: "WhatsApp", text: "Kunden schreiben Ihnen per WhatsApp – die KI fragt Schritt für Schritt nach, Fotos landen in der Fallakte. Was gefragt wird, legen Sie selbst fest." },
+  { icon: Phone, title: "Telefon-Assistent", text: "Geht niemand ran, nimmt die KI den Anruf an, fragt das Nötige ab und legt den Fall an – mit KI-Hinweis, ohne Aufzeichnung." },
   { icon: MessageCircleQuestion, title: "Aufmerksamkeit benötigt", text: "Stellt ein Kunde eine Frage oder ist die Leistung unklar, antwortet nicht die KI, sondern Sie – FallFlow sagt Ihnen Bescheid." },
   { icon: ClipboardCheck, title: "Vollständigkeit in %", text: "Jeder Fall zeigt auf einen Blick, was vorliegt und was noch fehlt." },
-  { icon: FileText, title: "Fallakte", text: "Kunde, Gebäude, Anliegen, Dokumente, Kommunikation und Zusammenfassung an einem Ort." },
+  { icon: FileText, title: "Fallakte", text: "Kunde, Angaben zum Auftrag, Unterlagen, Kommunikation und Zusammenfassung an einem Ort." },
   { icon: FileUp, title: "Ausgefüllte PDFs auslesen", text: "Was der Kunde ins Formular einträgt, landet automatisch in der Fallakte – die PDF selbst natürlich auch." },
   { icon: Inbox, title: "Posteingang", text: "Alle Mails und Telefonnotizen, automatisch dem richtigen Kunden und Fall zugeordnet." },
   { icon: Globe, title: "Website-Chat", text: "Die KI beantwortet Besucherfragen zu Ihren Leistungen – eingebunden mit einem Script-Tag." },
   { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook, IONOS, Strato, T-Online und praktisch jedem Postfach." },
-  { icon: CalendarCheck, title: "Terminübergabe", text: "Vorbereitete Fälle lassen sich direkt mit einem Terminvorschlag weitergeben." },
+  { icon: CalendarCheck, title: "Termine & Outlook-Kalender", text: "Die KI schlägt freie Termine vor und lässt belegte Zeiten aus Ihrem Outlook-Kalender aus. Bestätigte Termine landen automatisch dort." },
   { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },
   { icon: FileText, title: "PDF-Vorlagen je Leistung", text: "Passende Vollmachten & Formulare gehen automatisch mit – zum Ausfüllen oder nur zur Info (z. B. Preisliste)." },
   { icon: Mail, title: "Testmail ausprobieren", text: "Sehen Sie vor dem Start genau, was Ihre Kunden bekommen – ohne dass etwas verschickt wird." },
-  { icon: Sparkles, title: "KI-Voreinschätzung", text: "Erste fachliche Einordnung des Falls auf Basis der Fallakte – der Berater prüft und entscheidet." },
-  { icon: PiggyBank, title: "Förderschätzung (BAFA/KfW)", text: "Grobe Förderquote als Entwurf – das Büro prüft und versendet erst nach Freigabe." },
-  { icon: Ruler, title: "Bauteilwerte-Richtwerte", text: "U-Werte für Wand, Fenster & Dach nach Baualtersklasse, einzeln übernehmbar in die Fallakte." },
+  { icon: Building2, title: "Für Ihre Branche eingerichtet", text: "Beschreiben Sie Ihren Betrieb in zwei Sätzen – die KI schlägt Leistungen, Angaben und Unterlagen vor. Sie entscheiden." },
+  { icon: Siren, title: "Notfälle & Reklamationen", text: "Themen, die Sie selbst beantworten wollen, erkennt FallFlow und gibt sie sofort an Sie weiter." },
 ];
 
 const MOBILE_FEATURES = 6;
@@ -195,7 +198,7 @@ function FeatureCard({ icon: I, title, text, soon }: (typeof features)[number]) 
 
 export function FeaturesSection() {
   return (
-    <Section id="funktionen" tinted title="Alles, was zwischen Anfrage und Beratungsfall liegt.">
+    <Section id="funktionen" tinted title="Alles, was zwischen Anfrage und Auftrag liegt.">
       {/* Am Handy erst die 6 wichtigsten, der Rest aufklappbar – sonst wird die Seite sehr lang. */}
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((f, i) => (
@@ -229,7 +232,7 @@ export function NoCrmSection() {
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
         <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Kein CRM. Kein ERP. Kein Allzweck-Chatbot.</h2>
         <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          FallFlow versucht nicht, Ihre Beratungssoftware zu ersetzen. Es übernimmt genau den Teil zwischen erster Kundenanfrage und fertigem Beratungsfall – und übergibt dann.
+          FallFlow versucht nicht, Ihre Branchensoftware zu ersetzen. Es übernimmt genau den Teil zwischen erster Kundenanfrage und fertig vorbereitetem Auftrag – und übergibt dann.
         </p>
         <ul className="mt-8 flex flex-wrap justify-center gap-2">
           {focus.map((f) => (
@@ -246,14 +249,14 @@ export function NoCrmSection() {
 }
 
 const audiences = [
-  { size: "1–2 Mitarbeiter", text: "Weniger Rückfragen-Ping-Pong, mehr Zeit für Beratungen." },
-  { size: "3–5 Mitarbeiter", text: "Einheitlich vorbereitete Fälle, die sich im Team klar zuordnen lassen." },
-  { size: "6–10 Mitarbeiter", text: "Gemeinsame Vorlagen, Rollen und ein zentraler Überblick über alle Anfragen und Dokumente." },
+  { size: "Handwerk", text: "Dachdecker, Elektriker, Maler, Sanitär & Heizung, Tischler – Anfragen mit Fotos und allen Angaben, bevor Sie losfahren." },
+  { size: "Dienstleister", text: "Hausverwaltungen, Reinigungsfirmen, Gartenbau, Umzugsunternehmen – Schadensmeldungen und Aufträge sauber erfasst." },
+  { size: "Betriebe mit Terminen", text: "Werkstätten, Salons, Praxen und Studios – die KI sammelt die Angaben, Sie bestätigen nur noch den Termin." },
 ];
 
 export function AudienceSection() {
   return (
-    <Section tinted title="Für kleine Energieberatungsbüros">
+    <Section tinted title="Für kleine Betriebe jeder Branche" intro="Mit fertigen Vorlagen für Dachdecker, Elektriker, Maler, SHK, Hausverwaltungen, Werkstätten, Friseure und viele mehr.">
       <ul className="grid gap-4 md:grid-cols-3">
         {audiences.map((a) => (
           <li key={a.size}>
@@ -264,13 +267,16 @@ export function AudienceSection() {
           </li>
         ))}
       </ul>
+      <Link href="/branchen" className={buttonStyles({ variant: "secondary", className: "mt-6" })}>
+        Alle Branchen ansehen <ArrowRight className="size-4" />
+      </Link>
     </Section>
   );
 }
 
 export function PricingSection() {
   return (
-    <Section id="preise" title="Einfache, monatliche Preise." intro="Wählen Sie den Plan, der zur Größe Ihres Büros passt.">
+    <Section id="preise" title="Einfache, monatliche Preise." intro="Wählen Sie den Plan, der zur Größe Ihres Betriebs passt.">
       <div className="grid gap-4 lg:grid-cols-3">
         {plans.map((p) => (
           <Card key={p.id} className={cn("flex flex-col p-6", p.highlighted && "border-accent ring-1 ring-accent")}>
@@ -326,7 +332,7 @@ export function FinalCta() {
   return (
     <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-4xl rounded-lg bg-black px-6 py-14 text-center text-white sm:px-12">
-        <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Verwandeln Sie Ihre nächste Kundenanfrage in einen fertigen Beratungsfall.</h2>
+        <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Verwandeln Sie Ihre nächste Kundenanfrage in einen fertig vorbereiteten Auftrag.</h2>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link href="/signup" className={buttonStyles({ size: "lg", className: "bg-white text-black hover:bg-white" })}>
             Kostenlos starten

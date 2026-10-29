@@ -20,6 +20,7 @@ export async function chatContext(store: Store): Promise<QuestionContext> {
     website: company.website,
     serviceNotes: serviceMessages.map((m) => ({ service: m.service, text: m.body })),
     availability: settings.workingDays.length ? `${settings.workingDays.map((d) => WEEKDAY_LABELS[d]).join(", ")}, ${settings.slotStart}–${settings.slotEnd} Uhr` : "",
+    business: company.businessProfile.industry ? company.businessProfile : null,
   };
 }
 

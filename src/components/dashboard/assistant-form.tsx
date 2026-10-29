@@ -181,7 +181,7 @@ export function AssistantForm({ initial, canEdit }: { initial: AssistantSettings
           </div>
         </fieldset>
         <p className="rounded-xl bg-muted px-4 py-3 text-xs text-muted-foreground">
-          Der Assistent sammelt ausschließlich Angaben, ordnet Anliegen ein und bereitet Termine vor. Er gibt keine verbindliche Energie-, Förder- oder Rechtsberatung und leitet bei Unsicherheit an Ihr Team weiter.
+          Der Assistent sammelt ausschließlich Angaben, ordnet Anliegen ein und bereitet Termine vor. Er gibt keine verbindlichen Preis-, Fach- oder Rechtsauskünfte und leitet bei Unsicherheit an Ihr Team weiter.
         </p>
         {error && <Notice tone="error">{error}</Notice>}
         {saved && <Notice tone="success">Gespeichert.</Notice>}

@@ -7,11 +7,11 @@ const SYSTEM = `Du prüfst ein vom Kunden zurückgeschicktes PDF-Dokument, das a
 Antworte AUSSCHLIESSLICH mit JSON: {"wrongDocument": true|false, "filled": true|false, "note": "<kurzer Hinweis auf Deutsch, max. 140 Zeichen>"}.
 
 Prüfe ZUERST, ob der Inhalt überhaupt zur erwarteten Vorlage "{title}" passt (Überschrift, typische Felder,
-erkennbarer Zweck). Der Name des Büros im Briefkopf (z. B. "Muster Energieberatung") sagt NICHTS über die Art des
-Dokuments aus – entscheidend sind Überschrift und Felder. Falls es offensichtlich ein ANDERES Dokument ist (z. B. eine andere Büro-Vorlage, ein
-Energieausweis, eine Rechnung o. Ä.), setze wrongDocument=true, filled=false und nenne im note kurz, welches
-Dokument es stattdessen zu sein scheint (z. B. "Das scheint die Vollmacht für Einzelmaßnahmen zu sein, nicht
-die erwartete iSFP-Vorlage.").
+erkennbarer Zweck). Der Name des Büros im Briefkopf (z. B. "Muster GmbH") sagt NICHTS über die Art des
+Dokuments aus – entscheidend sind Überschrift und Felder. Falls es offensichtlich ein ANDERES Dokument ist (z. B. eine andere Vorlage des Betriebs, ein
+Ausweis oder Zertifikat, eine Rechnung o. Ä.), setze wrongDocument=true, filled=false und nenne im note kurz, welches
+Dokument es stattdessen zu sein scheint (z. B. "Das scheint die Vollmacht zu sein, nicht
+das erwartete Auftragsformular.").
 
 Nur wenn es die richtige Vorlage ist (wrongDocument=false), prüfe ZUSÄTZLICH, ob sie ausgefüllt wirkt.
 Wichtig: Handschriftliche oder eingescannte/gezeichnete Unterschriften und Handschrift sind im extrahierten

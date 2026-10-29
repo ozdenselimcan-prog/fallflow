@@ -28,7 +28,7 @@ export interface InboxThread {
  * E-Mail-Adresse statt "Unbekannt" anzeigen – besser als Platzhalter. */
 const displayName = (t: Pick<InboxThread, "customerName" | "email">) => (t.customerName && t.customerName !== "Unbekannt" ? t.customerName : t.email || t.customerName);
 
-const CHANNEL_LABELS: Record<MessageChannel, string> = { website: "Website", email: "E-Mail", phone: "Telefon" };
+const CHANNEL_LABELS: Record<MessageChannel, string> = { website: "Website", email: "E-Mail", phone: "Telefon", whatsapp: "WhatsApp" };
 
 /**
  * Posteingang, komplett im Browser: Die erste Seitenladung holt alle Unterhaltungen einmal vom Server,

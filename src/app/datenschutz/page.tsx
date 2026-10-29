@@ -35,10 +35,10 @@ const sections = [
   ["registrierung", "8. Registrierung und Benutzerkonto"],
   ["zahlung", "9. Testphase, Abonnement und Zahlung"],
   ["empfehlung", "10. Empfehlungsprogramm"],
-  ["anwendung", "11. Nutzung von FallFlow durch Energieberatungsbüros"],
+  ["anwendung", "11. Nutzung von FallFlow durch Betriebe"],
   ["endkunden", "12. Daten von Endkunden der Büros"],
   ["ki", "13. KI-Funktionen (OpenAI)"],
-  ["chat", "14. Website-Chat auf den Websites der Büros"],
+  ["chat", "14. Website-Chat, Telefon-Assistent und WhatsApp der Büros"],
   ["systemmails", "15. System-E-Mails von FallFlow"],
   ["sentry", "16. Fehlerüberwachung"],
   ["empfaenger", "17. Empfänger und Auftragsverarbeiter"],
@@ -106,7 +106,7 @@ export default function DatenschutzPage() {
           </Section>
 
           <Section id="rollen" title="2. Wer ist wofür verantwortlich?">
-            <p>FallFlow ist eine Software für Energieberatungsbüros („Büros“). Dabei gibt es zwei unterschiedliche Rollen:</p>
+            <p>FallFlow ist eine Software für Unternehmen und Betriebe aller Branchen, die Kundenanfragen bearbeiten (im Folgenden „Büros“). Dabei gibt es zwei unterschiedliche Rollen:</p>
             <List
               items={[
                 <>
@@ -115,7 +115,7 @@ export default function DatenschutzPage() {
                 </>,
                 <>
                   <strong>Wir als Auftragsverarbeiter (Art. 28 DSGVO):</strong> für alle Daten, die ein Büro mit FallFlow über seine eigenen Kunden („Endkunden“) verarbeitet – z. B.
-                  Anfragen, E-Mails, Gebäudeangaben, Dokumente und Termine. Verantwortlich ist dafür das jeweilige Büro. Wir verarbeiten diese Daten nur nach dessen Weisung und auf
+                  Anfragen, E-Mails, Angaben zum Auftrag, Dokumente und Termine. Verantwortlich ist dafür das jeweilige Büro. Wir verarbeiten diese Daten nur nach dessen Weisung und auf
                   Grundlage unseres <Link href="/avv" className="underline">Auftragsverarbeitungsvertrags (AVV)</Link>.
                 </>,
               ]}
@@ -274,7 +274,7 @@ export default function DatenschutzPage() {
             <p>Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Durchführung des Empfehlungsprogramms als Teil des Vertrags).</p>
           </Section>
 
-          <Section id="anwendung" title="11. Nutzung von FallFlow durch Energieberatungsbüros">
+          <Section id="anwendung" title="11. Nutzung von FallFlow durch Betriebe">
             <p>
               FallFlow bearbeitet für das Büro eingehende Kundenanfragen: Es ruft E-Mails aus dem Postfach des Büros ab, ordnet sie Fällen zu, beantwortet sie mit den Texten und
               Formularen des Büros, nimmt zurückgeschickte Unterlagen in die Fallakte auf und schlägt Termine vor. Diese Verarbeitung erfolgt im Auftrag des Büros (Art. 28 DSGVO).
@@ -292,7 +292,7 @@ export default function DatenschutzPage() {
             </p>
             <h3>Dokumente</h3>
             <p>
-              Dokumente (z. B. ausgefüllte Formulare, Grundriss, Energieausweis, Fotos) erhält das Büro als Anhang einer E-Mail; FallFlow übernimmt PDF, JPG, PNG und WebP bis 10 MB
+              Dokumente (z. B. ausgefüllte Formulare, Fotos, Pläne) erhält das Büro als Anhang einer E-Mail; FallFlow übernimmt PDF, JPG, PNG und WebP bis 10 MB
               in die Fallakte. Die Dateien liegen in einem privaten Speicher ohne öffentliche Adresse und sind nur für Mitarbeiter des jeweiligen Büros abrufbar.
             </p>
             <h3>Zugriff durch uns</h3>
@@ -304,7 +304,7 @@ export default function DatenschutzPage() {
 
           <Section id="endkunden" title="12. Daten von Endkunden der Büros">
             <p>
-              Diese Informationen richten sich an Personen, die bei einem Energieberatungsbüro angefragt haben, das FallFlow nutzt (Art. 14 DSGVO). Verantwortlich ist das jeweilige
+              Diese Informationen richten sich an Personen, die bei einem Betrieb angefragt haben, der FallFlow nutzt (Art. 14 DSGVO). Verantwortlich ist das jeweilige
               Büro; wir verarbeiten die Daten in dessen Auftrag.
             </p>
             <p>
@@ -317,14 +317,14 @@ export default function DatenschutzPage() {
             <List
               items={[
                 "Kontaktdaten: Name, E-Mail-Adresse, Telefonnummer, Adresse",
-                "Gebäudeangaben: Gebäudetyp, Baujahr, Wohnfläche, Etagen, Heizung, Eigentümerstatus, Adresse des Gebäudes",
+                "Angaben zum Auftrag, die das Büro für seine Leistung abfragt (z. B. Art und Größe des Objekts, Fahrzeugdaten, Wunschtermin), Adresse des Einsatzorts",
                 "Anliegen und gewünschte Leistung, Inhalt der E-Mails, Chat-Nachrichten und Telefonnotizen",
-                "Dokumente, z. B. Grundriss, Energieausweis, Fotos, ausgefüllte Formulare des Büros (diese können weitere Angaben enthalten, etwa Geburtsdatum oder Steuer-Identifikationsnummer, wenn das Formular des Büros danach fragt)",
+                "Dokumente, z. B. Fotos, Pläne, ausgefüllte Formulare des Büros (diese können weitere Angaben enthalten, etwa Geburtsdatum oder Steuer-Identifikationsnummer, wenn das Formular des Büros danach fragt)",
                 "Terminwünsche sowie vorgeschlagene bzw. vereinbarte Beratungstermine",
               ]}
             />
             <p>
-              <strong>Zwecke und Rechtsgrundlage:</strong> Bearbeitung Ihrer Anfrage und Vorbereitung der Energieberatung durch das Büro (Art. 6 Abs. 1 lit. b DSGVO – vorvertragliche
+              <strong>Zwecke und Rechtsgrundlage:</strong> Bearbeitung Ihrer Anfrage und Vorbereitung des Auftrags durch das Büro (Art. 6 Abs. 1 lit. b DSGVO – vorvertragliche
               Maßnahmen auf Ihre Anfrage hin); Nachfragen zu fehlenden Angaben und Unterlagen sowie Terminabstimmung (Art. 6 Abs. 1 lit. b bzw. f DSGVO, Interesse an einer zügigen
               Bearbeitung).
             </p>
@@ -343,10 +343,10 @@ export default function DatenschutzPage() {
             </p>
             <List
               items={[
-                "Text eingehender E-Mails: um zu erkennen, ob es eine Kundenanfrage ist, welche Leistung gewünscht ist und welche Angaben (z. B. Baujahr, Heizung) bereits enthalten sind, und ob der Kunde eine Frage stellt, die das Büro selbst beantworten sollte",
+                "Text eingehender E-Mails: um zu erkennen, ob es eine Kundenanfrage ist, welche Leistung gewünscht ist und welche Angaben (z. B. Adresse, Art des Auftrags) bereits enthalten sind, und ob der Kunde eine Frage stellt, die das Büro selbst beantworten sollte",
                 "zurückgeschickte Formulare und Dokumente (Text sowie bei Scans und Fotos die Seiten als Bild): um ausgefüllte Angaben auszulesen und zu prüfen, ob das Formular vollständig ist",
                 "Fragen im Website-Chat eines Büros zusammen mit den Angaben des Büros zu seinen Leistungen: um die Frage zu beantworten",
-                "Angaben aus der Fallakte: um auf Wunsch des Büros eine Kurzzusammenfassung, eine erste fachliche Voreinschätzung oder eine grobe Förderschätzung als Entwurf zu erstellen",
+                "Angaben aus der Fallakte: um eine Kurzzusammenfassung für das Büro zu erstellen",
               ]}
             />
             <p>
@@ -359,10 +359,21 @@ export default function DatenschutzPage() {
             </p>
           </Section>
 
-          <Section id="chat" title="14. Website-Chat auf den Websites der Büros">
+          <Section id="chat" title="14. Website-Chat, Telefon-Assistent und WhatsApp der Büros">
             <p>
               Büros können ein Chat-Fenster von FallFlow auf ihrer eigenen Website einbinden. Darin beantwortet die KI allgemeine Fragen zu den Leistungen des Büros. Ihre Fragen werden
               dafür an FallFlow und an OpenAI (Abschnitt 13) übermittelt. Bitte geben Sie im Chat keine sensiblen Daten ein. Verantwortlich für den Chat auf seiner Website ist das jeweilige Büro. Das Chat-Widget setzt keine Cookies.
+            </p>
+            <p>
+              Büros können außerdem Anrufe an eine FallFlow-Telefonnummer weiterleiten. Dann nimmt eine KI den Anruf an – darauf wird zu Beginn jedes Gesprächs hingewiesen – und fragt
+              die Angaben zu Ihrem Anliegen ab. Verarbeitet werden Ihre Telefonnummer (sofern übermittelt), Zeitpunkt und Dauer des Anrufs sowie das Gesagte als Text; daraus entsteht
+              eine Anfrage in der Fallakte des Büros (Abschnitt 12). Das Gespräch wird nicht als Audiodatei aufgezeichnet. Für die Telefonie und die Spracherkennung bzw. Sprachausgabe
+              nutzen wir Twilio (Abschnitt 17), für das Verstehen der Angaben OpenAI (Abschnitt 13). Verantwortlich ist das jeweilige Büro; wir verarbeiten die Daten in dessen Auftrag.
+            </p>
+            <p>
+              Verbindet ein Büro sein WhatsApp-Business-Konto, beantwortet die KI auch Nachrichten, die Sie dem Büro per WhatsApp schicken. Verarbeitet werden Ihre
+              WhatsApp-Nummer, Ihr Profilname, Ihre Nachrichten sowie Fotos und Dokumente, die Sie schicken; daraus entsteht eine Anfrage in der Fallakte des Büros (Abschnitt 12).
+              Die Nachrichten laufen über die WhatsApp Business Platform von Meta (Abschnitt 17). Verantwortlich ist das jeweilige Büro; wir verarbeiten die Daten in dessen Auftrag.
             </p>
           </Section>
 
@@ -393,6 +404,8 @@ export default function DatenschutzPage() {
                 "Vercel Inc. (USA) – Hosting der Website und Anwendung, Rechenzentrum in der EU (Dublin)",
                 "Supabase Inc. (USA) – Datenbank, Anmeldung und Dateispeicher, Rechenzentrum in der EU (Irland)",
                 "OpenAI (USA) – KI-Funktionen (Abschnitt 13)",
+                "Twilio Inc. (USA) – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (Abschnitt 14)",
+                "Meta Platforms Ireland Ltd. (Irland) – WhatsApp Business Platform, nur wenn ein Büro WhatsApp verbindet (Abschnitt 14)",
                 "Resend / Plus Five Five, Inc. (USA) – Versand von System-E-Mails, Server in der EU (Irland)",
                 "Zoho Corporation B.V. (Niederlande) – unser eigenes E-Mail-Postfach, Rechenzentrum in der EU",
                 "Functional Software, Inc. / Sentry (USA) – Fehlerüberwachung, EU-Region (Frankfurt)",
@@ -409,7 +422,7 @@ export default function DatenschutzPage() {
           <Section id="drittland" title="18. Übermittlung in Drittländer">
             <p>
               Mehrere Dienstleister haben ihren Sitz in den USA. Auch wenn die Daten in Rechenzentren in der EU gespeichert werden, kann ein Zugriff aus den USA (z. B. für Wartung oder
-              Support) nicht ausgeschlossen werden; bei OpenAI werden Daten auch in den USA verarbeitet.
+              Support) nicht ausgeschlossen werden; bei OpenAI und Twilio (und ggf. Meta) werden Daten auch in den USA verarbeitet.
             </p>
             <p>
               Die Übermittlung stützt sich auf den Angemessenheitsbeschluss der EU-Kommission zum EU-US Data Privacy Framework (Art. 45 DSGVO), soweit der jeweilige Anbieter danach
@@ -446,7 +459,7 @@ export default function DatenschutzPage() {
           <Section id="automatisiert" title="21. Keine automatisierte Entscheidung, kein Profiling">
             <p>
               Die KI erkennt und sammelt Angaben, fasst sie zusammen und bereitet Antworten mit den Texten des Büros vor. Sie trifft keine Entscheidungen, die Ihnen gegenüber
-              rechtliche Wirkung entfalten oder Sie in ähnlicher Weise erheblich beeinträchtigen (Art. 22 DSGVO), und gibt keine Energie-, Förder- oder Rechtsberatung. Über die
+              rechtliche Wirkung entfalten oder Sie in ähnlicher Weise erheblich beeinträchtigen (Art. 22 DSGVO), und gibt keine verbindlichen Preis-, Fach- oder Rechtsauskünfte. Über die
               Bearbeitung einer Anfrage und die Beratung entscheidet stets ein Mitarbeiter des Büros. Wir erstellen keine Persönlichkeits- oder Werbeprofile.
             </p>
           </Section>

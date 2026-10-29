@@ -14,7 +14,9 @@ import { cn } from "@/lib/utils";
 const pad = (n: number) => String(n).padStart(2, "0");
 const toLocalInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const time = (iso: string) => new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+/** Immer deutsche Zeit – sonst rechnet der Server (UTC) anders als der Browser (Hydration-Fehler). */
+const TZ = "Europe/Berlin";
+const time = (iso: string) => new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
 const mondayOf = (d: Date) => {
@@ -74,8 +76,8 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
 
   const title =
     view === "month"
-      ? cursor.toLocaleDateString("de-DE", { month: "long", year: "numeric" })
-      : `${days[0].toLocaleDateString("de-DE", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric" })}`;
+      ? cursor.toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: TZ })
+      : `${days[0].toLocaleDateString("de-DE", { day: "numeric", month: "short", timeZone: TZ })} – ${days[6].toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "numeric", timeZone: TZ })}`;
 
   const openNew = (day: Date) => {
     setError(null);
@@ -191,7 +193,7 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
             const outside = view === "month" && d.getMonth() !== cursor.getMonth();
             return (
               <div key={d.toISOString()} className={cn("min-h-28 space-y-1 border-b border-r border-border p-1.5", outside && "bg-background/60", view === "week" && "min-h-64")}>
-                <button type="button" disabled={!canWrite} onClick={() => openNew(d)} className={cn("flex size-6 items-center justify-center rounded-full text-xs", dayKey(d) === today ? "bg-accent font-semibold text-white" : outside ? "text-muted-foreground/50" : "hover:bg-muted")} aria-label={`Termin am ${d.toLocaleDateString("de-DE")} anlegen`}>
+                <button type="button" disabled={!canWrite} onClick={() => openNew(d)} className={cn("flex size-6 items-center justify-center rounded-full text-xs", dayKey(d) === today ? "bg-accent font-semibold text-white" : outside ? "text-muted-foreground/50" : "hover:bg-muted")} aria-label={`Termin am ${d.toLocaleDateString("de-DE", { timeZone: TZ })} anlegen`}>
                   {d.getDate()}
                 </button>
                 {chips(d)}
@@ -210,7 +212,7 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
           .filter((d) => byDay.has(dayKey(d)) && (view === "week" || d.getMonth() === cursor.getMonth()))
           .map((d) => (
             <Card key={d.toISOString()} className="p-3">
-              <p className="mb-2 text-sm font-medium">{d.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}</p>
+              <p className="mb-2 text-sm font-medium">{d.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: TZ })}</p>
               <div className="space-y-1">{chips(d)}</div>
             </Card>
           ))}
@@ -229,7 +231,7 @@ export function Calendar({ appointments, canWrite }: { appointments: Appointment
             <p className="text-sm text-muted-foreground">
               Die KI hat diesen Termin vorbereitet. Der Kunde kennt den genauen Zeitpunkt noch nicht – erst nach Ihrer Freigabe (oder einem anderen von Ihnen gewählten Termin) erhält er eine Nachricht mit dem Termin.
             </p>
-            <p className="rounded-xl bg-background px-4 py-3 text-sm font-medium">{new Date(draft.startsAt).toLocaleString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr</p>
+            <p className="rounded-xl bg-background px-4 py-3 text-sm font-medium">{new Date(draft.startsAt).toLocaleString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: TZ })} Uhr</p>
             {error && <Notice tone="error">{error}</Notice>}
             <div className="flex items-center justify-between gap-2">
               <Button variant="ghost" onClick={remove} loading={pending}>

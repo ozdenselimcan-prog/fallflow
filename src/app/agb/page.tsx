@@ -16,7 +16,7 @@ export default function AgbPage() {
             <>
               Diese AGB gelten für alle Verträge über die Nutzung der Software „{siteConfig.name}“ (nachfolgend „FallFlow“) zwischen Selimcan Özden, Karlsteinstraße 2, 80937 München (nachfolgend „Anbieter“) und dem Kunden.
             </>,
-            "FallFlow richtet sich ausschließlich an Unternehmer im Sinne von § 14 BGB, insbesondere Energieberaterinnen und Energieberater, sowie an juristische Personen des öffentlichen Rechts. Mit der Registrierung bestätigt der Kunde, als Unternehmer zu handeln. Verträge mit Verbrauchern werden nicht geschlossen.",
+            "FallFlow richtet sich ausschließlich an Unternehmer im Sinne von § 14 BGB, insbesondere Handwerks- und Dienstleistungsbetriebe, sowie an juristische Personen des öffentlichen Rechts. Mit der Registrierung bestätigt der Kunde, als Unternehmer zu handeln. Verträge mit Verbrauchern werden nicht geschlossen.",
             "Abweichende oder ergänzende Geschäftsbedingungen des Kunden gelten nur, wenn der Anbieter ihnen ausdrücklich schriftlich zustimmt.",
           ]}
         />
@@ -25,8 +25,8 @@ export default function AgbPage() {
       <Section title="§ 2 Leistungen">
         <Paragraphs
           items={[
-            "FallFlow ist eine webbasierte Software (Software as a Service), die Kundenanfragen von Energieberatungsbüros vorbereitet: Sie wertet eingehende E-Mails aus dem vom Kunden verbundenen Postfach aus, beantwortet sie nach den Vorgaben des Kunden (Nachrichtentexte, PDF-Vorlagen), legt Fallakten mit Angaben und Dokumenten an, schlägt Termine vor und stellt einen Website-Chat bereit, der Fragen von Website-Besuchern beantwortet. Der jeweils aktuelle Funktionsumfang ergibt sich aus der Beschreibung auf der Website und dem gewählten Tarif.",
-            "FallFlow nutzt Verfahren der künstlichen Intelligenz. Automatisch erzeugte Inhalte (z. B. erkannte Angaben, Zusammenfassungen, Einschätzungen, Antworten im Website-Chat) können fehlerhaft oder unvollständig sein. FallFlow erbringt keine Energie-, Förder-, Steuer- oder Rechtsberatung. Fachliche Entscheidungen und die Prüfung der Fälle obliegen dem Kunden.",
+            "FallFlow ist eine webbasierte Software (Software as a Service), die Kundenanfragen von Unternehmen und Betrieben vorbereitet: Sie wertet eingehende E-Mails aus dem vom Kunden verbundenen Postfach aus, beantwortet sie nach den Vorgaben des Kunden (Nachrichtentexte, PDF-Vorlagen), legt Fallakten mit Angaben und Dokumenten an, schlägt Termine vor und stellt einen Website-Chat bereit, der Fragen von Website-Besuchern beantwortet. Optional beantwortet FallFlow auch WhatsApp-Nachrichten über die vom Kunden verbundene WhatsApp-Business-Nummer und nimmt Anrufe über eine FallFlow-Telefonnummer an (Telefon-Assistent). Der jeweils aktuelle Funktionsumfang ergibt sich aus der Beschreibung auf der Website und dem gewählten Tarif.",
+            "FallFlow nutzt Verfahren der künstlichen Intelligenz. Automatisch erzeugte Inhalte (z. B. erkannte Angaben, Zusammenfassungen, Einschätzungen, Antworten im Website-Chat) können fehlerhaft oder unvollständig sein. FallFlow erbringt keine Fach-, Steuer- oder Rechtsberatung und gibt keine verbindlichen Preisauskünfte. Fachliche Entscheidungen und die Prüfung der Fälle obliegen dem Kunden.",
             "Der Anbieter stellt FallFlow mit einer marktüblichen Verfügbarkeit bereit. Ausgenommen sind Zeiten der Wartung sowie Störungen, die der Anbieter nicht zu vertreten hat (z. B. Ausfälle von Internet, E-Mail-Anbietern des Kunden oder höhere Gewalt). Ein Anspruch auf eine bestimmte Verfügbarkeit besteht nicht.",
             "Der Anbieter darf FallFlow weiterentwickeln und Funktionen ändern, soweit der vertraglich vereinbarte Kern der Leistung erhalten bleibt und die Änderung für den Kunden zumutbar ist.",
           ]}

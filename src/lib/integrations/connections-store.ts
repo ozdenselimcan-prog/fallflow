@@ -11,6 +11,8 @@ import { decryptSecret, encryptionAvailable, encryptSecret } from "@/lib/crypto"
 
 /** "gmail" = Postfach per IMAP/SMTP (historischer Name), "microsoft" = Anmeldung über Microsoft (Outlook / Microsoft 365). */
 export type ConnectionProvider = "gmail" | "microsoft";
+/** Auch die Kalender-Verbindung liegt in derselben Tabelle (eigene Zeile, nicht im Postfach-Status sichtbar). */
+export type StoredProvider = ConnectionProvider | "outlook_calendar" | "whatsapp";
 
 export interface Connection {
   id: string;
@@ -78,7 +80,7 @@ function admin() {
 }
 
 /** Demo-Modus (kein Supabase konfiguriert): Kanal-Verbindungen gibt es nicht, statt eines Fehlers gilt „nicht verbunden“. */
-export async function getConnection(companyId: string, provider: ConnectionProvider): Promise<Connection | null> {
+export async function getConnection(companyId: string, provider: StoredProvider): Promise<Connection | null> {
   if (!isSupabaseConfigured()) return null;
   const { data, error } = await admin().from("connections").select("*").eq("company_id", companyId).eq("provider", provider).maybeSingle();
   if (error) {
@@ -101,7 +103,7 @@ export async function listActiveConnections(provider: ConnectionProvider): Promi
 
 export async function listConnections(companyId: string): Promise<Connection[]> {
   if (!isSupabaseConfigured()) return [];
-  const { data, error } = await admin().from("connections").select("*").eq("company_id", companyId);
+  const { data, error } = await admin().from("connections").select("*").eq("company_id", companyId).in("provider", ["gmail", "microsoft"]);
   if (error) {
     console.error("[connections] list company:", error.message);
     return [];
@@ -111,7 +113,7 @@ export async function listConnections(companyId: string): Promise<Connection[]> 
 
 export interface SaveConnectionInput {
   companyId: string;
-  provider: ConnectionProvider;
+  provider: StoredProvider;
   status?: Connection["status"];
   accountName?: string;
   accountEmail?: string;
@@ -142,8 +144,19 @@ export async function saveConnection(input: SaveConnectionInput): Promise<void> 
   if (error) throw new Error(`Verbindung konnte nicht gespeichert werden: ${error.message}`);
 }
 
-export async function deleteConnection(companyId: string, provider: ConnectionProvider): Promise<void> {
+export async function deleteConnection(companyId: string, provider: StoredProvider): Promise<void> {
   if (!isSupabaseConfigured()) return;
   const { error } = await admin().from("connections").delete().eq("company_id", companyId).eq("provider", provider);
   if (error) throw new Error(`Verbindung konnte nicht getrennt werden: ${error.message}`);
+}
+
+/** WhatsApp-Webhook: Welcher Betrieb hat diese Telefonnummer-ID verbunden? (Service Role, über alle Betriebe.) */
+export async function findWhatsAppConnection(phoneNumberId: string): Promise<Connection | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data, error } = await admin().from("connections").select("*").eq("provider", "whatsapp").eq("status", "connected").eq("metadata->>phoneNumberId", phoneNumberId).maybeSingle();
+  if (error) {
+    console.error("[connections] whatsapp lookup:", error.message);
+    return null;
+  }
+  return data ? mapRow(data) : null;
 }

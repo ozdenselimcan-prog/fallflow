@@ -30,9 +30,20 @@ const EXAMPLES: { label: string; subject: string; body: string }[] = [
  * "Testmail ausprobieren": Das Büro schreibt eine Beispiel-Anfrage wie ein Kunde und sieht sofort, was FallFlow
  * antworten würde (Text, angehängte PDFs, was danach noch fehlt). Es wird nichts versendet und kein Fall gespeichert.
  */
-export function TestMailCard() {
-  const [subject, setSubject] = useState(EXAMPLES[0].subject);
-  const [body, setBody] = useState(EXAMPLES[0].body);
+/** Beispiele passend zum Betrieb (erste Leistung aus dem Betriebsprofil). */
+function examplesFor(service?: string): typeof EXAMPLES {
+  if (!service) return EXAMPLES;
+  return [
+    { label: "Neue Anfrage", subject: `Anfrage ${service}`, body: `Guten Tag, wir hätten gern ein Angebot für ${service}. Viele Grüße, Erika Beispiel` },
+    { label: "Kunde stellt eine Frage", subject: service, body: `Hallo, wir interessieren uns für ${service}. Was kostet das bei Ihnen ungefähr und wie lange dauert es?` },
+    { label: "Leistung unklar", subject: "Anfrage", body: "Guten Tag, wir haben ein Problem und wissen nicht genau, ob Sie uns dabei helfen können." },
+  ];
+}
+
+export function TestMailCard({ service }: { service?: string } = {}) {
+  const examples = examplesFor(service);
+  const [subject, setSubject] = useState(examples[0].subject);
+  const [body, setBody] = useState(examples[0].body);
   const [preview, setPreview] = useState<Preview | null>(null);
   const { pending, error, run } = useMutation();
 
@@ -51,7 +62,7 @@ export function TestMailCard() {
       />
       <div className="space-y-4 px-5 pb-5">
         <div className="flex flex-wrap gap-2">
-          {EXAMPLES.map((e) => (
+          {examples.map((e) => (
             <button
               key={e.label}
               type="button"

@@ -1,4 +1,10 @@
-import { classifyInquiry } from "@/lib/ai/classify";
+import { extractionContext } from "@/lib/ai/case-extractor";
+import { classifyInquiry, type ClassifyBusiness } from "@/lib/ai/classify";
+import type { Company } from "@/lib/data/types";
+
+/** Betriebsprofil für die Anfrage-Prüfung – null = noch kein Profil (dann Energieberatungs-Prüfung). */
+const classifyBusiness = (c: Company): ClassifyBusiness | null =>
+  c.businessProfile?.industry ? { industry: c.businessProfile.industry, description: c.businessProfile.description, services: c.services } : null;
 import type { Store } from "@/lib/data/store";
 import type { CaseRecord } from "@/lib/data/types";
 import { extractForText } from "@/lib/intake/engine";
@@ -24,11 +30,12 @@ export interface IncomingMail {
  * Kurze Rückmeldungen ("Danke", "Dienstag passt", Rückfragen) bleiben im bisherigen Fall. (Übernommene Fälle
  * zählen ohnehin nicht mehr als offen, siehe findCaseByIdentity.)
  */
-async function isNewRequestAfterDoneCase(c: CaseRecord, text: string): Promise<boolean> {
+async function isNewRequestAfterDoneCase(store: Store, c: CaseRecord, text: string): Promise<boolean> {
   if (c.status !== "READY_FOR_REVIEW") return false;
   // Nicht sicher beurteilbar (KI nicht erreichbar) → im bisherigen Fall bleiben.
-  if ((await classifyInquiry(text)) !== true) return false;
-  const service = (await extractForText(text)).service ?? "";
+  const [company, questions] = await Promise.all([store.getCompany(), store.listQuestions()]);
+  if ((await classifyInquiry(text, classifyBusiness(company))) !== true) return false;
+  const service = (await extractForText(text, extractionContext(company, questions))).service ?? "";
   const otherService = Boolean(service && service !== "Sonstiges" && service !== (c.fields.service ?? ""));
   // Läuft noch eine Terminabstimmung, geht es bei derselben Leistung fast immer um den Termin – dann im alten Fall bleiben.
   const stage = c.fields.apptStage ?? "";
@@ -58,7 +65,7 @@ export async function handleInboundMail(store: Store, companyId: string, mail: I
     return { handled: true, caseId: previous.id, matchedExisting: true };
   }
   // Ist der bisherige Fall schon fertig und stellt der Kunde eine NEUE Anfrage, beginnt ein ganz neuer Fall.
-  const startNew = previous ? await isNewRequestAfterDoneCase(previous, fullText) : false;
+  const startNew = previous ? await isNewRequestAfterDoneCase(store, previous, fullText) : false;
   const existing = startNew ? null : previous;
   // Mails von Kunden mit bestehendem Fall kommen immer durch (auch ein knappes "Danke!" oder "Dienstag passt").
   // Neue Absender prüft die KI immer – auch mit Anhang, sonst würde z. B. eine Lieferantenrechnung als PDF zum Fall.
@@ -70,7 +77,7 @@ export async function handleInboundMail(store: Store, companyId: string, mail: I
   let unsure = false;
   // (Neue Anfrage nach fertigem Fall: schon als Anfrage erkannt, siehe isNewRequestAfterDoneCase.)
   if (!existing && !startNew) {
-    const verdict = await classifyInquiry(classifyText);
+    const verdict = await classifyInquiry(classifyText, classifyBusiness(await store.getCompany()));
     if (verdict === false || (verdict === null && opts.junk)) return { handled: false };
     unsure = verdict === null;
   }

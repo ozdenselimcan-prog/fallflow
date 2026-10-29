@@ -1,16 +1,21 @@
-import { extractFields } from "@/lib/ai/case-extractor";
-import { applyTurn, isInteractive, nextPending, type TurnResult } from "@/lib/ai/conversation";
+import { extractFields, extractionContext, type ExtractionContext } from "@/lib/ai/case-extractor";
+import { applyTurn, isInteractive, nextPending, parseAnswer, type TurnResult } from "@/lib/ai/conversation";
 import { formNotByEmail, looksLikeWithdrawal, mentionedServices } from "./request-signals";
-import { customerQuestion } from "@/lib/ai/personal-reply";
+import { customerQuestion, obviousHumanQuestion } from "@/lib/ai/personal-reply";
 import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { canCreateCase } from "@/lib/billing/usage";
+import { FIELD_GROUPS } from "@/lib/cases/fields";
 import type { Store } from "@/lib/data/store";
-import type { CaseSource, CaseStatus, DocumentKind, MessageChannel } from "@/lib/data/types";
+import { profileDocumentsFor, type CaseRecord, type CaseSource, type CaseStatus, type DocumentKind, type MessageChannel } from "@/lib/data/types";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
+import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calendar";
 import { refreshCase, ensureUploadToken, autoBookNextSlot, completionTextFor, matchServiceMaterials, uploadUrl } from "./case-ops";
+import { CONTACT_CHANNEL_KEY } from "./checklist";
+import { templateQuestionsFor } from "./template-questions";
+import { answerWebsiteChat } from "./website-chat";
 import { chatDocumentPrompt } from "./messages";
 import {
   appointmentCancelledText,
@@ -76,8 +81,8 @@ export interface IntakeTurn {
 const SHORT_TEXT = 25;
 
 /** Kurze Antworten („1987“, „Gas“) werten wir regelbasiert aus; nur längere Texte gehen an das KI-Modell. */
-export async function extractForText(text: string): Promise<Record<string, string>> {
-  return text.length > SHORT_TEXT ? (await extractFields(text)).fields : heuristicExtract(text);
+export async function extractForText(text: string, ctx: ExtractionContext | null = null): Promise<Record<string, string>> {
+  return text.length > SHORT_TEXT ? (await extractFields(text, ctx)).fields : heuristicExtract(text);
 }
 
 /**
@@ -86,32 +91,52 @@ export async function extractForText(text: string): Promise<Record<string, strin
  */
 export async function processIntakeMessage(store: Store, input: IntakeInput): Promise<IntakeTurn> {
   const { companyId } = input;
-  const [questions, settings, company, templates, serviceMessages] = await Promise.all([
+  const [baseQuestions, settings, company, templates, serviceMessages] = await Promise.all([
     store.listQuestions(),
     store.getAssistant(),
     store.getCompany(),
     store.listDocumentTemplates(),
     store.listServiceMessages(),
   ]);
-  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
+  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) };
   const existing = input.sessionId ? await store.getCase(input.sessionId) : null;
   if (input.sessionId && !existing) throw new SessionNotFoundError();
 
   const first = !existing;
+  // Das Team hat in diesem WhatsApp-Chat selbst geantwortet: KI schweigt, Nachricht kommt beim Team an.
+  if (input.channel === "whatsapp" && existing?.fields[AI_PAUSED_KEY] === "1") return recordWhilePaused(store, existing, input);
   // Monatliches Fall-Limit nur für wirklich NEUE Anfragen prüfen – ein laufender Fall wird nie
   // abgebrochen, nur weil das Büro zwischenzeitlich sein Kontingent erreicht hat.
   if (first && !(await canCreateCase(store)).allowed) throw new CaseLimitReachedError();
   const documents = existing ? await store.listDocuments(existing.id) : [];
   // "Automatische Antworten" aus: FallFlow schreibt dem Kunden per E-Mail nichts, bereitet den Fall aber trotzdem vor
   // (Angaben auslesen, Unterlagen ablegen, Vollständigkeit) – das Büro antwortet selbst.
-  const silent = input.channel === "email" && !settings.autoReply;
-  const extracted = await extractForText(input.text);
+  const silent = (input.channel === "email" || input.channel === "whatsapp") && !settings.autoReply;
+  const extracted = await extractForText(input.text, extractionContext(company, baseQuestions));
+  // WhatsApp und Telefon: statt PDF-Formulare zu schicken, deren Angaben einzeln abfragen (optionale Zusatzfragen).
+  const formChannel = input.channel === "whatsapp" || input.channel === "phone";
+  const serviceGuess = existing?.fields.service || extracted.service || "";
+  // Mit eigener WhatsApp-Liste gilt bei WhatsApp nur diese (siehe withAppliesTo) – dann keine Formular-Fragen zusätzlich.
+  const ownWhatsAppList = input.channel === "whatsapp" && Boolean(company.businessProfile?.whatsappQuestions?.length);
+  const questions = formChannel && serviceGuess && !ownWhatsAppList ? [...baseQuestions, ...(await templateQuestionsFor(store, templates, serviceGuess).catch(() => []))] : baseQuestions;
 
   const known: Record<string, string> = {};
   if (input.identity?.email) known.email = input.identity.email.toLowerCase();
   if (input.identity?.phone) known.phone = normalizePhone(input.identity.phone).display;
   if (input.identity?.name) known.name = input.identity.name;
+  // Anrufer: Kontakt läuft über die Telefonnummer – nach der E-Mail-Adresse fragt die KI am Telefon nicht (siehe isRelevant).
+  if (input.channel === "phone") known[CONTACT_CHANNEL_KEY] = "Telefon";
+  if (input.channel === "whatsapp") known[CONTACT_CHANNEL_KEY] = "WhatsApp";
   const startFields = existing?.fields ?? (settings.autoReply ? known : { ...known, description: input.text.slice(0, 1000) });
+
+  // WhatsApp: Zwischenfrage des Kunden mitten im Gespräch ("Haben Sie samstags offen?") – beantworten wie im Website-Chat
+  // (Preise, Notfälle u. Ä. beantwortet die KI dabei nicht, sondern markiert den Fall für das Team) und danach mit der
+  // offenen Frage weitermachen, statt die Zwischenfrage als Antwort zu werten.
+  if (input.channel === "whatsapp" && existing && settings.autoReply && !silent) {
+    const pendingQ = nextPending(questions, startFields);
+    const answersPending = pendingQ && pendingQ.type !== "text" && parseAnswer(pendingQ, input.text).ok;
+    if (input.text.includes("?") && !answersPending) return answerSideQuestion(store, existing, input, pendingQ?.prompt ?? "");
+  }
 
   const turnSettings = settings.autoReply ? settings : { ...settings, autoFollowUp: false };
   const pendingBefore = nextPending(questions, startFields)?.key ?? null;
@@ -135,6 +160,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   if (!attention && input.channel === "email" && existing && (existing.fields.apptStage ?? "") !== "" && (looksLikeCancellation(input.text) || looksLikeReschedule(input.text))) {
     attention = "Kunde möchte den Termin absagen oder verschieben";
   }
+  // Anruf: Notfall, Reklamation, Preisfrage o. Ä. gleich zu Beginn → das Team ruft zurück, die KI fragt nur noch das Nötigste.
+  if (!attention && (input.channel === "phone" || input.channel === "whatsapp") && first && settings.autoReply) {
+    const question = await customerQuestion(
+      input.text,
+      company.businessProfile?.industry ? { industry: company.businessProfile.industry, humanTopics: company.businessProfile.humanTopics } : null,
+    );
+    if (question) attention = input.channel === "phone" ? `Anruf: ${question}` : `Frage des Kunden: ${question}`;
+  }
   if (!attention && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
     const several = existing ? [] : mentionedServices(input.text, company.services);
@@ -145,9 +178,16 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     else if (existing && formNotByEmail(input.text)) attention = "Kunde schickt das Formular nicht per E-Mail (z. B. per Post) – bitte selbst klären";
     // Kunde zieht die Anfrage zurück: nicht mit "Vielen Dank, wir haben alles" antworten – das Büro entscheidet.
     else if (existing && looksLikeWithdrawal(input.text)) attention = "Kunde zieht die Anfrage zurück";
-    else if (!service || service === "Sonstiges") attention = "Leistung nicht erkannt";
-    else {
-      const question = await customerQuestion(input.text);
+    else if (!service || service === "Sonstiges") {
+      // Betriebe mit Profil: Ist es eine Reklamation, ein Notfall o. Ä., das als Grund nennen statt nur "Leistung nicht erkannt".
+      const profile = company.businessProfile;
+      const question = profile?.industry ? await customerQuestion(input.text, { industry: profile.industry, humanTopics: profile.humanTopics }) : null;
+      attention = question ? `Frage des Kunden: ${question}` : "Leistung nicht erkannt";
+    } else {
+      const question = await customerQuestion(
+        input.text,
+        company.businessProfile?.industry ? { industry: company.businessProfile.industry, humanTopics: company.businessProfile.humanTopics } : null,
+      );
       if (question) attention = `Frage des Kunden: ${question}`;
     }
   }
@@ -193,7 +233,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // der Kunde bekommt die Büro-Nachricht zur Leistung (unten) und ggf. den Terminhinweis.
   const firstCompleteEmail = input.channel === "email" && first && turn.done && Boolean(turn.fields.service);
   const replies = silent || attention || inAppointmentFlow || firstCompleteEmail || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
-  const label = (k: string) => questions.find((q) => q.key === k)?.label ?? k;
+  // WhatsApp: Auch wenn das Team selbst antwortet, bekommt der Kunde sofort eine kurze Bestätigung (kein Schweigen im Chat).
+  if (input.channel === "whatsapp" && attention && !silent) replies.push(WHATSAPP_HANDOFF_TEXT);
+  const label = (k: string) => questions.find((q) => q.key === k)?.label ?? FIELD_GROUPS.flatMap((g) => g.fields).find((f) => f.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
   // "KI fragt nach" nur im Chat – per E-Mail stellt die KI keine einzelnen Rückfragen.
@@ -205,7 +247,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // (Nachricht und Vorlage kommen vom Büro selbst, keine automatisch generierte Angaben-Checkliste). Vor refreshCase, damit der Fall
   // nicht in diesem Zug schon als "bereit zur Prüfung" gilt, obwohl gerade erst eine neue Vorlage aussteht.
   const caseNow = (await store.getCase(caseId))!;
-  const material = attention || silent ? null : await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
+  // Am Telefon keine Vorlagen-Links oder Anhänge vorlesen – die bekommt der Kunde, wenn das Team sich meldet.
+  const material = attention || silent || formChannel ? null : await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
   const attachments: InboundAttachment[] = material?.attachments ?? [];
   if (material) replies.push(...material.texts);
 
@@ -234,7 +277,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       items: checklist.items.filter((i) => i.kind === "document" && i.key.startsWith("doc:")).map((i) => ({ kind: i.key.replace("doc:", "") as DocumentKind, label: i.label, done: i.done, required: i.required })),
     };
     // Auch hier: die Textaufforderung ("Bitte senden Sie uns...") nur im Website-Chat, nicht per Mail (siehe oben).
-    if (refreshed.requestedNow.length && input.channel !== "email") replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
+    if (refreshed.requestedNow.length && (input.channel === "website" || input.channel === "whatsapp")) replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
   }
 
   // Terminvorschlag: Sobald der Fall vollständig ist (oder der Kunde ausdrücklich einen Termin wünscht),
@@ -250,7 +293,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay, vacation };
 
     const bookSlot = async (slot: Date, pendingText: string = appointmentPendingReviewText) => {
-      await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
+      await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
       await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
       await store.addEvent(caseId, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
       replies.push(pendingText);
@@ -259,18 +302,20 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     /** Versucht zuerst ein konkretes Datum, sonst einen Wochentag-Bereich aus dem Kundentext zu lesen und vorzuschlagen. Gibt zurück, ob etwas erkannt wurde. */
     const resolveAndPropose = async (text: string, pendingText: string = appointmentPendingReviewText): Promise<boolean> => {
       const existingAppts = await store.listAppointments();
+      // Belegte Zeiten im verbundenen Outlook-Kalender auslassen (ohne Verbindung: leer).
+      const blocked = await outlookBusy(companyId);
       const specificDate = parseSpecificDate(text);
       if (specificDate) {
-        const exact = findSlotOnDate(specificDate, { ...slotBase, existing: existingAppts });
+        const exact = findSlotOnDate(specificDate, { ...slotBase, existing: existingAppts, blocked });
         if (exact.reason === "ok" && exact.slot) {
           await bookSlot(exact.slot, pendingText);
           return true;
         }
         const info =
           exact.reason === "not_a_working_day" ? notAWorkingDayText(specificDate) : exact.reason === "on_vacation" ? onVacationText(specificDate) : fullyBookedText(specificDate);
-        const alt = findNextSlot({ ...slotBase, customerDays: settings.workingDays, existing: existingAppts, from: ymdToDate(specificDate) });
+        const alt = findNextSlot({ ...slotBase, customerDays: settings.workingDays, existing: existingAppts, blocked, from: ymdToDate(specificDate) });
         if (alt) {
-          await store.saveAppointment({ caseId, title: `Beratung ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
+          await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
           await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
           await store.addEvent(caseId, "appointment", `Wunschtermin nicht verfügbar, Alternative vorgeschlagen, wartet auf Freigabe: ${formatSlot(alt)}`);
           replies.push(`${info} ${pendingText}`);
@@ -288,7 +333,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
         replies.push(noOverlapText(settings.workingDays));
         return true;
       }
-      const slot = findNextSlot({ ...slotBase, customerDays: days, existing: existingAppts });
+      const slot = findNextSlot({ ...slotBase, customerDays: days, existing: existingAppts, blocked });
       if (slot) await bookSlot(slot, pendingText);
       else {
         await store.updateCase(caseId, { fields: { apptStage: "failed" } });
@@ -303,6 +348,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     const confirmedAppt = existing ? (await store.listAppointments()).find((a) => a.caseId === caseId && a.status === "confirmed") : undefined;
     if (existing && confirmedAppt && looksLikeCancellation(input.text)) {
       await store.deleteAppointment(confirmedAppt.id);
+      await removeAppointment(companyId, confirmedAppt.id);
       await store.addEvent(caseId, "appointment", `Termin vom Kunden abgesagt: ${formatSlot(new Date(confirmedAppt.startsAt))}`);
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       // Schlägt der Kunde in derselben Nachricht gleich einen neuen Termin vor, direkt weitersuchen
@@ -331,7 +377,17 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   let deliveryNote = "";
   // Website-Chat: jede Antwort eine eigene Sprechblase. E-Mail: alles in EINER Nachricht senden –
   // sonst bekäme der Kunde für einen einzigen Gesprächszug mehrere einzelne E-Mails.
-  const outgoing = isInteractive(input.channel) ? replies : replies.length ? [replies.join("\n\n")] : [];
+  // WhatsApp: Sind alle Angaben da, einmal um die typischen Unterlagen (Fotos …) bitten – direkt im Chat schicken.
+  if (input.channel === "whatsapp" && turn.done && !attention && !silent && company.businessProfile?.industry) {
+    const svc = turn.fields.service ?? "";
+    const docs = profileDocumentsFor(company.businessProfile, svc);
+    if (docs.length && refreshed.caseRecord.fields.docsRequestedFor !== svc) {
+      replies.push(`Wenn Sie haben, schicken Sie uns gern noch: ${docs.join(", ")} – einfach als Foto oder PDF hier im Chat.`);
+      await store.updateCase(caseId, { fields: { docsRequestedFor: svc }, keepTimestamp: true });
+    }
+  }
+  // WhatsApp: eine Nachricht pro Gesprächszug (wie E-Mail), statt mehrerer kurzer Nachrichten hintereinander.
+  const outgoing = isInteractive(input.channel) && input.channel !== "whatsapp" ? replies : replies.length ? [replies.join("\n\n")] : [];
   for (const reply of outgoing) {
     const subject = serviceMessages.find((m) => m.service === turn.fields.service)?.subject?.trim() || undefined;
     const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated, attachments, subject });
@@ -363,3 +419,57 @@ function eventForSource(source: CaseSource, simulated?: boolean) {
   return `Anfrage über den Website-Chat eingegangen${suffix}`;
 }
 
+
+/** Feld: "1" = KI antwortet in diesem Chat nicht automatisch (Team hat übernommen). */
+export const AI_PAUSED_KEY = "aiPaused";
+
+/** Nachricht bei pausierter KI nur speichern und dem Team zeigen ("Aufmerksamkeit benötigt"). */
+async function recordWhilePaused(store: Store, existing: CaseRecord, input: IntakeInput): Promise<IntakeTurn> {
+  await store.addMessage(existing.id, "user", input.text.slice(0, 2000), { channel: input.channel, simulated: Boolean(input.simulated), delivery: "delivered" });
+  if (!attentionOf(existing.fields)) {
+    await store.updateCase(existing.id, { fields: { [ATTENTION_KEY]: "Kunde hat im WhatsApp-Chat geantwortet" } });
+    await store.addEvent(existing.id, "handoff", "Kunde hat geantwortet – die KI ist in diesem Chat pausiert, bitte selbst antworten.");
+  }
+  const current = (await store.getCase(existing.id)) ?? existing;
+  return { sessionId: existing.id, replies: [], quickReplies: [], done: false, completeness: current.completeness, status: current.status, fields: current.fields, delivered: true, deliveryNote: "", upload: null, created: false };
+}
+
+const WHATSAPP_HANDOFF_TEXT = "Vielen Dank für Ihre Nachricht! Dazu meldet sich unser Team persönlich bei Ihnen.";
+
+/** Zwischenfrage im WhatsApp-Chat beantworten (siehe processIntakeMessage) und mit der offenen Frage weitermachen. */
+async function answerSideQuestion(store: Store, existing: CaseRecord, input: IntakeInput, pendingPrompt: string): Promise<IntakeTurn> {
+  const meta = { channel: input.channel, simulated: Boolean(input.simulated) };
+  const history = (await store.listMessages(existing.id))
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .slice(-8)
+    .map((m) => ({ role: m.role as "user" | "assistant", text: m.content.slice(0, 500) }));
+  await store.addMessage(existing.id, "user", input.text.slice(0, 2000), { ...meta, delivery: "delivered" });
+  const human = obviousHumanQuestion(input.text);
+  let answer: string;
+  if (human) {
+    answer = "Das klärt unser Team gern persönlich mit Ihnen – Sie bekommen dazu eine Antwort.";
+    await store.updateCase(existing.id, { fields: { [ATTENTION_KEY]: `Frage des Kunden: ${human}` } });
+    await store.addEvent(existing.id, "handoff", `Aufmerksamkeit benötigt (Frage des Kunden per WhatsApp: ${human}).`);
+  } else {
+    answer = await answerWebsiteChat(store, input.text, history);
+  }
+  const text = pendingPrompt ? `${answer}
+
+Zurück zu Ihrer Anfrage: ${pendingPrompt}` : answer;
+  const result = await deliverToCustomer({ companyId: input.companyId, channel: input.channel, email: existing.fields.email, phone: existing.fields.phone, text, simulated: input.simulated });
+  await store.addMessage(existing.id, "assistant", text, { ...meta, delivery: result.delivered ? "delivered" : "not_sent" });
+  const current = (await store.getCase(existing.id)) ?? existing;
+  return {
+    sessionId: existing.id,
+    replies: [text],
+    quickReplies: [],
+    done: false,
+    completeness: current.completeness,
+    status: current.status,
+    fields: current.fields,
+    delivered: result.delivered,
+    deliveryNote: result.reason,
+    upload: null,
+    created: false,
+  };
+}

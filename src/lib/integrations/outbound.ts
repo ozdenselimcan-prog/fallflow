@@ -1,4 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { getConnection } from "./connections-store";
+import { sendWhatsAppText } from "./whatsapp";
 import type { MessageChannel } from "@/lib/data/types";
 import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { getValidTokens } from "./tokens";
@@ -44,6 +46,19 @@ export async function deliverToCustomer(input: {
   if (input.channel === "website") return { delivered: true, reason: "" };
   if (input.simulated || simulation.getStore()) return { delivered: false, reason: "Simulation – es wurde nichts versendet." };
   if (input.channel === "phone") return { delivered: false, reason: "Telefonnotiz – kein Versand." };
+  if (input.channel === "whatsapp") {
+    try {
+      const conn = await getConnection(input.companyId, "whatsapp");
+      const phoneNumberId = typeof conn?.metadata.phoneNumberId === "string" ? conn.metadata.phoneNumberId : "";
+      if (!conn || conn.status !== "connected" || !conn.accessToken || !phoneNumberId) return { delivered: false, reason: "WhatsApp ist für dieses Büro nicht verbunden." };
+      if (!input.phone) return { delivered: false, reason: "Keine WhatsApp-Nummer vorhanden." };
+      await sendWhatsAppText(conn.accessToken, phoneNumberId, input.phone, input.text);
+      return { delivered: true, reason: "" };
+    } catch (err) {
+      console.error("[outbound] WhatsApp-Versand fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
+      return { delivered: false, reason: "WhatsApp-Versand fehlgeschlagen." };
+    }
+  }
 
   try {
     for (const provider of EMAIL_PROVIDERS) {

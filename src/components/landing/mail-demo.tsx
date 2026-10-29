@@ -31,14 +31,14 @@ interface Step {
 }
 
 const CUSTOMER = "Erika Beispiel <erika@beispiel.de>";
-const OFFICE = "Muster Energieberatung (FallFlow)";
+const OFFICE = "Muster Bedachungen (FallFlow)";
 
 const base: [string, string][] = [
-  ["Leistung", "iSFP"],
+  ["Leistung", "Dachreparatur"],
   ["Name", "Erika Beispiel"],
-  ["Gebäude", "Einfamilienhaus, Baujahr 1975"],
+  ["Schaden", "Satteldach, ca. 10 m² Ziegel fehlen"],
 ];
-const withForm: [string, string][] = [...base, ["Adresse", "Lindenweg 7, 82166 Gräfelfing"], ["Wohnfläche", "145 m²"], ["Aus dem Formular", "Dachform: Satteldach · 4 Bewohner"]];
+const withForm: [string, string][] = [...base, ["Adresse", "Lindenweg 7, 82166 Gräfelfing"], ["Wassereintritt", "nein"], ["Aus dem Formular", "Zugang über Garten · Gerüst möglich"]];
 
 const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
   {
@@ -46,7 +46,7 @@ const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
     label: "Normale Anfrage",
     steps: [
       {
-        mail: { from: "customer", sender: CUSTOMER, text: "Guten Tag, wir möchten für unser Einfamilienhaus von 1975 einen individuellen Sanierungsfahrplan erstellen lassen. Viele Grüße, Erika Beispiel" },
+        mail: { from: "customer", sender: CUSTOMER, text: "Guten Tag, nach dem Sturm fehlen auf unserem Satteldach einige Ziegel, ca. 10 m². Wir bitten um eine Dachreparatur. Viele Grüße, Erika Beispiel" },
         action: "Mail geht ein – die KI erkennt Kundenanfrage, Leistung und Angaben und legt die Fallakte an.",
         case: { status: { label: "Neu", tone: "accent" }, percent: 0, fields: base, checklist: [] },
       },
@@ -54,8 +54,8 @@ const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
         mail: {
           from: "ai",
           sender: OFFICE,
-          text: "Vielen Dank für Ihre Anfrage zum individuellen Sanierungsfahrplan. Im Anhang finden Sie unser Datenerfassungsblatt – bitte ausfüllen und einfach als Antwort auf diese E-Mail zurücksenden.\n\nDamit wir Ihre Anfrage bearbeiten können, schicken Sie uns bitte außerdem: Grundriss, Energieausweis – gern als PDF oder Foto.",
-          attachments: ["Datenerfassungsblatt.pdf"],
+          text: "Vielen Dank für Ihre Anfrage zur Dachreparatur. Im Anhang finden Sie unser Auftragsformular – bitte ausfüllen und einfach als Antwort auf diese E-Mail zurücksenden.\n\nDamit wir Ihre Anfrage bearbeiten können, schicken Sie uns bitte außerdem: Fotos vom Schaden, Foto der Hausansicht – gern einfach mit dem Handy fotografiert.",
+          attachments: ["Auftragsformular.pdf"],
         },
         action: "Die KI antwortet mit Ihrer Nachricht zur Leistung und Ihrer PDF-Vorlage – und sagt, welche Unterlagen noch fehlen.",
         case: {
@@ -63,42 +63,42 @@ const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
           percent: 0,
           fields: base,
           checklist: [
-            { label: "Datenerfassungsblatt (ausgefüllt)", done: false },
-            { label: "Grundriss", done: false },
-            { label: "Energieausweis", done: false },
+            { label: "Auftragsformular (ausgefüllt)", done: false },
+            { label: "Fotos vom Schaden", done: false },
+            { label: "Hausansicht", done: false },
           ],
         },
       },
       {
-        mail: { from: "customer", sender: CUSTOMER, text: "Hallo, anbei das ausgefüllte Formular und der Grundriss.", attachments: ["Datenerfassungsblatt_ausgefuellt.pdf", "Grundriss.pdf"] },
-        action: "Die KI prüft das Formular, übernimmt die eingetragenen Angaben in die Fallakte und legt beide PDFs ab.",
+        mail: { from: "customer", sender: CUSTOMER, text: "Hallo, anbei das ausgefüllte Formular und die Fotos vom Schaden.", attachments: ["Auftragsformular_ausgefuellt.pdf", "Schaden_1.jpg", "Schaden_2.jpg"] },
+        action: "Die KI prüft das Formular, übernimmt die eingetragenen Angaben in die Fallakte und legt Formular und Fotos ab.",
         case: {
           status: { label: "Wartet auf Kunde", tone: "warning" },
           percent: 67,
           fields: withForm,
           checklist: [
-            { label: "Datenerfassungsblatt (ausgefüllt)", done: true },
-            { label: "Grundriss", done: true },
-            { label: "Energieausweis", done: false },
+            { label: "Auftragsformular (ausgefüllt)", done: true },
+            { label: "Fotos vom Schaden", done: true },
+            { label: "Hausansicht", done: false },
           ],
         },
       },
       {
-        mail: { from: "ai", sender: OFFICE, text: "Vielen Dank, Ihre Unterlagen sind bei uns angekommen. Damit wir Ihre Anfrage abschließen können, fehlt uns noch: Energieausweis. Sie können ihn einfach als Antwort auf diese E-Mail schicken." },
+        mail: { from: "ai", sender: OFFICE, text: "Vielen Dank, Ihre Unterlagen sind bei uns angekommen. Damit wir Ihre Anfrage abschließen können, fehlt uns noch: ein Foto der Hausansicht. Sie können es einfach als Antwort auf diese E-Mail schicken." },
         action: "Fehlt noch etwas, sagt die KI genau was – nicht mehr und nicht weniger.",
         case: null,
       },
       {
-        mail: { from: "customer", sender: CUSTOMER, text: "Hier noch der Energieausweis.", attachments: ["Energieausweis.pdf"] },
+        mail: { from: "customer", sender: CUSTOMER, text: "Hier noch das Foto vom Haus.", attachments: ["Hausansicht.jpg"] },
         action: "Jetzt ist alles da.",
         case: {
           status: { label: "Bereit zur Prüfung", tone: "success" },
           percent: 100,
           fields: withForm,
           checklist: [
-            { label: "Datenerfassungsblatt (ausgefüllt)", done: true },
-            { label: "Grundriss", done: true },
-            { label: "Energieausweis", done: true },
+            { label: "Auftragsformular (ausgefüllt)", done: true },
+            { label: "Fotos vom Schaden", done: true },
+            { label: "Hausansicht", done: true },
           ],
           note: { tone: "success", text: "Termin vorgeschlagen: Montag, 09:00 Uhr – wartet auf Ihre Bestätigung im Kalender." },
         },
@@ -115,17 +115,54 @@ const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
     label: "Kunde stellt eine Frage",
     steps: [
       {
-        mail: { from: "customer", sender: "Max Muster <max@beispiel.de>", text: "Hallo, ich brauche einen Energieausweis für den Verkauf meiner Wohnung. Was kostet das bei Ihnen und wie lange dauert es?" },
+        mail: { from: "customer", sender: "Max Muster <max@beispiel.de>", text: "Hallo, wir möchten zwei Dachfenster einbauen lassen. Was kostet das bei Ihnen und wie lange dauert es?" },
         action: "Die KI erkennt eine echte Frage – darauf soll eine Person antworten, nicht die KI.",
         case: {
-          status: { label: "Antwort durch Büro nötig", tone: "warning" },
+          status: { label: "Ihre Antwort nötig", tone: "warning" },
           percent: 0,
           fields: [
-            ["Leistung", "Energieausweis"],
+            ["Leistung", "Dachfenster"],
             ["Name", "Max Muster"],
           ],
           checklist: [],
-          note: { tone: "warning", text: "Aufmerksamkeit benötigt: Frage des Kunden – Was kostet ein Energieausweis und wie lange dauert es? Keine automatische Antwort, Sie antworten selbst." },
+          note: { tone: "warning", text: "Aufmerksamkeit benötigt: Frage des Kunden – Was kosten zwei Dachfenster und wie lange dauert es? Keine automatische Antwort, Sie antworten selbst." },
+        },
+      },
+    ],
+  },
+  {
+    id: "whatsapp",
+    label: "Per WhatsApp",
+    steps: [
+      {
+        mail: { from: "customer", sender: "WhatsApp · Jonas (+49 170 …)", text: "Hallo, nach dem Sturm tropft es bei uns durchs Dach. Können Sie vorbeikommen?" },
+        action: "Nachricht kommt per WhatsApp – Name und Handynummer kennt FallFlow schon. Die KI fragt Schritt für Schritt, was auf Ihrer Seite „WhatsApp-Fragen“ steht.",
+        case: { status: { label: "Wird qualifiziert", tone: "accent" }, percent: 25, fields: [["Leistung", "Dachreparatur"], ["Name", "Jonas"], ["Kanal", "WhatsApp"]], checklist: [] },
+      },
+      {
+        mail: { from: "ai", sender: OFFICE, text: "Vielen Dank für Ihre Nachricht! Wie lautet die Adresse (Straße, Hausnummer, PLZ und Ort)?" },
+        action: "Eine Frage nach der anderen – wie in einem normalen Chat.",
+        case: null,
+      },
+      {
+        mail: { from: "customer", sender: "WhatsApp · Jonas (+49 170 …)", text: "Lindenweg 7, 82166 Gräfelfing" },
+        action: "Straße, PLZ und Ort werden getrennt in die Fallakte übernommen.",
+        case: { status: { label: "Wird qualifiziert", tone: "accent" }, percent: 60, fields: [["Leistung", "Dachreparatur"], ["Name", "Jonas"], ["Adresse", "Lindenweg 7, 82166 Gräfelfing"]], checklist: [] },
+      },
+      {
+        mail: { from: "ai", sender: OFFICE, text: "Danke! Dringt bereits Wasser ins Haus ein?" },
+        action: "Die nächste Frage aus Ihrer Liste.",
+        case: null,
+      },
+      {
+        mail: { from: "customer", sender: "WhatsApp · Jonas (+49 170 …)", text: "Ja, ein bisschen auf dem Dachboden.", attachments: ["Foto_Dachboden.jpg"] },
+        action: "Wasser dringt ein: FallFlow markiert den Fall sofort für Sie – das Foto liegt schon in der Fallakte.",
+        case: {
+          status: { label: "Aufmerksamkeit benötigt", tone: "warning" },
+          percent: 100,
+          fields: [["Leistung", "Dachreparatur"], ["Name", "Jonas"], ["Adresse", "Lindenweg 7, 82166 Gräfelfing"], ["Wassereintritt", "ja"]],
+          checklist: [{ label: "Foto vom Schaden", done: true }],
+          note: { tone: "warning", text: "Notfall: Wasser dringt ein – bitte melden Sie sich persönlich. Antworten Sie selbst im Chat, pausiert die KI dort." },
         },
       },
     ],
@@ -135,7 +172,7 @@ const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
     label: "Rechnung / Werbung",
     steps: [
       {
-        mail: { from: "customer", sender: "Elektro Schmidt <buchhaltung@elektro-schmidt.de>", text: "Sehr geehrte Damen und Herren, anbei unsere Rechnung Nr. 4711.", attachments: ["Rechnung_4711.pdf"] },
+        mail: { from: "customer", sender: "Baustoffhandel Schmidt <buchhaltung@baustoffe-schmidt.de>", text: "Sehr geehrte Damen und Herren, anbei unsere Rechnung Nr. 4711.", attachments: ["Rechnung_4711.pdf"] },
         action: "Keine Kundenanfrage – FallFlow ignoriert die Mail. Kein Fall, keine Antwort; sie bleibt einfach in Ihrem Postfach.",
         case: null,
       },

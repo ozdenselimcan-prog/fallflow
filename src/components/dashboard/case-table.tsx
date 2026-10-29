@@ -15,6 +15,7 @@ const SOURCE_LABELS: Record<CaseRecord["source"], string> = {
   widget: "Website",
   email: "E-Mail",
   phone: "Telefon",
+  whatsapp: "WhatsApp",
   manual: "Manuell",
   demo: "Demo",
 };
@@ -44,7 +45,7 @@ function MissingCell({ meta }: { meta?: CaseMeta }) {
 /** Desktop: Tabelle, Mobile: Karten. */
 export function CaseTable({ cases, meta = {}, emptyDescription }: { cases: CaseRecord[]; meta?: Record<string, CaseMeta>; emptyDescription?: string }) {
   if (cases.length === 0) {
-    return <EmptyState title="Noch keine Beratungsfälle." description={emptyDescription ?? "Sobald eine neue Anfrage eingeht, erscheint sie hier."} />;
+    return <EmptyState title="Noch keine Fälle." description={emptyDescription ?? "Sobald eine neue Anfrage eingeht, erscheint sie hier."} />;
   }
   return (
     <>

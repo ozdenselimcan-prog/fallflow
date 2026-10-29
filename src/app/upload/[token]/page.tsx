@@ -17,7 +17,7 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
   if (!found) {
     return (
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-16">
-        <EmptyState title="Dieser Link ist ungültig oder abgelaufen." description="Bitte wenden Sie sich an Ihr Energieberatungsbüro und bitten Sie um einen neuen Link." />
+        <EmptyState title="Dieser Link ist ungültig oder abgelaufen." description="Bitte wenden Sie sich an den Betrieb und bitten Sie um einen neuen Link." />
       </main>
     );
   }
@@ -37,7 +37,7 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
     questions,
     fields: caseRecord.fields,
     documents,
-    foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan },
+    foerderOverrides: { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) },
     serviceMessages,
     templateSends,
   });
@@ -49,7 +49,7 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
       <Logo />
       <h1 className="mt-8 text-2xl font-semibold tracking-tight">Unterlagen für Ihren Beratungstermin</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        {company.name} bereitet Ihren Beratungsfall vor.{" "}
+        {company.name} bereitet Ihre Anfrage vor.{" "}
         {open > 0 ? `Bitte laden Sie die folgenden Unterlagen hoch (${open} ${open === 1 ? "Dokument fehlt" : "Dokumente fehlen"} noch).` : "Alle benötigten Unterlagen sind bei uns angekommen – vielen Dank!"}
       </p>
       <UploadPanel className="mt-6" token={token} items={items} uploadsAvailable={storageAvailable()} />

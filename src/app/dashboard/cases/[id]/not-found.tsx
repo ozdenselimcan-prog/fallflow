@@ -6,7 +6,7 @@ export default function CaseNotFound() {
   return (
     <EmptyState
       title="Fall nicht gefunden"
-      description="Dieser Beratungsfall existiert nicht oder gehört nicht zu Ihrem Büro."
+      description="Dieser Fall existiert nicht oder gehört nicht zu Ihrem Büro."
       action={
         <Link href="/dashboard/cases" className={buttonStyles({ variant: "secondary" })}>
           Zur Fallliste

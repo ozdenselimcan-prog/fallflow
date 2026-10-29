@@ -8,6 +8,8 @@ import { IntegrationNotReadyError, replySubject, stripHtml, type InboundAttachme
  */
 
 const SCOPES = ["offline_access", "openid", "email", "User.Read", "Mail.Read", "Mail.Send"];
+/** Eigene Anmeldung nur für den Kalender (getrennt vom Postfach, siehe outlook-calendar.ts). */
+export const CALENDAR_SCOPES = ["offline_access", "openid", "email", "User.Read", "Calendars.ReadWrite"];
 const AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
 const GRAPH = "https://graph.microsoft.com/v1.0/me";
@@ -25,11 +27,11 @@ async function graphFetch<T>(path: string, tokens: ProviderTokens, init: Request
   return res.status === 202 || res.status === 204 ? null : ((await res.json()) as T);
 }
 
-async function tokenRequest(params: Record<string, string>): Promise<{ access_token: string; refresh_token?: string; expires_in: number }> {
+async function tokenRequest(params: Record<string, string>, scopes: string[] = SCOPES): Promise<{ access_token: string; refresh_token?: string; expires_in: number }> {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: process.env.MICROSOFT_CLIENT_ID ?? "", client_secret: process.env.MICROSOFT_CLIENT_SECRET ?? "", scope: SCOPES.join(" "), ...params }),
+    body: new URLSearchParams({ client_id: process.env.MICROSOFT_CLIENT_ID ?? "", client_secret: process.env.MICROSOFT_CLIENT_SECRET ?? "", scope: scopes.join(" "), ...params }),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error_description?: string };
@@ -61,28 +63,28 @@ interface GraphAttachment {
 const isPdf = (a: GraphAttachment) => a.contentType === "application/pdf" || /\.pdf$/i.test(a.name ?? "");
 
 export const microsoftProvider: MailSyncProvider & {
-  getAuthUrl(state: string, redirectUri: string): string;
-  exchangeCode(code: string, redirectUri: string): Promise<{ account: string; accessToken: string; refreshToken: string; expiresIn: number }>;
+  getAuthUrl(state: string, redirectUri: string, scopes?: string[]): string;
+  exchangeCode(code: string, redirectUri: string, scopes?: string[]): Promise<{ account: string; accessToken: string; refreshToken: string; expiresIn: number }>;
 } = {
   id: "microsoft",
   label: "Microsoft 365 / Outlook",
   missingConfig: () => ["MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET"].filter((k) => !process.env[k]),
 
-  getAuthUrl(state, redirectUri) {
+  getAuthUrl(state, redirectUri, scopes = SCOPES) {
     const params = new URLSearchParams({
       client_id: process.env.MICROSOFT_CLIENT_ID ?? "",
       redirect_uri: redirectUri,
       response_type: "code",
       response_mode: "query",
-      scope: SCOPES.join(" "),
+      scope: scopes.join(" "),
       prompt: "select_account",
       state,
     });
     return `${AUTH_URL}?${params}`;
   },
 
-  async exchangeCode(code, redirectUri) {
-    const body = await tokenRequest({ code, redirect_uri: redirectUri, grant_type: "authorization_code" });
+  async exchangeCode(code, redirectUri, scopes = SCOPES) {
+    const body = await tokenRequest({ code, redirect_uri: redirectUri, grant_type: "authorization_code" }, scopes);
     if (!body.refresh_token) throw new IntegrationNotReadyError("Microsoft hat keinen dauerhaften Zugriff erteilt (kein Refresh-Token).");
     const me = await graphFetch<{ mail?: string; userPrincipalName?: string }>("", { accessToken: body.access_token, refreshToken: null, expiresAt: null });
     return { account: (me?.mail || me?.userPrincipalName || "").toLowerCase(), accessToken: body.access_token, refreshToken: body.refresh_token, expiresIn: body.expires_in };
@@ -193,3 +195,9 @@ export const microsoftProvider: MailSyncProvider & {
     });
   },
 };
+
+/** Token-Erneuerung für die Kalender-Verbindung (mit den Kalender-Berechtigungen statt der Postfach-Berechtigungen). */
+export async function calendarRefresh(refreshToken: string): Promise<RefreshedTokens> {
+  const body = await tokenRequest({ refresh_token: refreshToken, grant_type: "refresh_token" }, CALENDAR_SCOPES);
+  return { accessToken: body.access_token, refreshToken: body.refresh_token ?? null, expiresIn: body.expires_in };
+}

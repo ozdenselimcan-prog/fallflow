@@ -42,6 +42,8 @@ export const casePatchSchema = z.object({
   assign: z.boolean().optional(),
   /** true = "Aufmerksamkeit benötigt" als erledigt markieren */
   resolveAttention: z.boolean().optional(),
+  /** true = KI antwortet in diesem (WhatsApp-)Chat wieder automatisch */
+  resumeAi: z.boolean().optional(),
 });
 
 export const caseQuerySchema = z.object({

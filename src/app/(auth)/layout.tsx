@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, Clock, CreditCard, ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import { Logo } from "@/components/ui/logo";
 import { Notice } from "@/components/ui/states";
 import { siteConfig } from "@/lib/config/site";
@@ -31,8 +31,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
 
         <div className="relative max-w-lg">
-          <p className="text-sm font-medium uppercase tracking-wider text-white/60">Für Energieberater</p>
-          <h2 className="mt-3 text-4xl font-semibold leading-tight tracking-tight">Weniger Büroarbeit. Mehr Zeit für Beratung.</h2>
+          <p className="text-sm font-medium uppercase tracking-wider text-white/60">Für Betriebe jeder Branche</p>
+          <h2 className="mt-3 text-4xl font-semibold leading-tight tracking-tight">Weniger Büroarbeit. Mehr Zeit für Ihre Kunden.</h2>
           <ul className="mt-8 space-y-3.5">
             {benefits.map((b) => (
               <li key={b} className="flex items-start gap-3 text-white/85">
@@ -44,12 +44,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           <div className="mt-10 rounded-xl bg-white p-5 text-neutral-900 shadow-2xl" aria-label="Beispiel einer fertigen Fallakte">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-neutral-500">BERATUNGSFALL</span>
+              <span className="text-xs font-semibold tracking-wider text-neutral-500">ANFRAGE</span>
               <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">Bereit zur Prüfung</span>
             </div>
             <p className="mt-2 text-lg font-semibold">Familie Schneider</p>
             <ul className="mt-2 flex flex-wrap gap-1.5 text-xs">
-              {["EFH", "Baujahr 1974", "168 m²", "Gasheizung", "iSFP"].map((t) => (
+              {["Badsanierung", "ca. 8 m²", "Bodengleiche Dusche", "Fotos ✓"].map((t) => (
                 <li key={t} className="rounded-full bg-neutral-100 px-2.5 py-1">
                   {t}
                 </li>

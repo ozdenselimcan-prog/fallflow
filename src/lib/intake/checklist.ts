@@ -23,6 +23,8 @@ export interface DocumentRequirement {
 export interface FoerderDocumentOverrides {
   energyCertificate: boolean;
   floorplan: boolean;
+  /** Betrieb mit Betriebsprofil (FallFlow): keine Energieberatungs-Standardunterlagen (Grundriss, Energieausweis). */
+  profiled?: boolean;
 }
 
 /** Standard-Dokumentbedarf einer Leistung, ohne jede Büro-Einstellung – Basis für die Checkbox-Anzeige "Vorlagen & Nachrichten". */
@@ -38,7 +40,7 @@ export function documentRequirements(fields: Record<string, string>, foerderOver
   const isFoerder = service === FOERDER_SERVICE;
   const out: DocumentRequirement[] = [];
   const override = serviceMessages?.find((m) => m.service === service);
-  const defaults = defaultDocumentRequirements(service);
+  const defaults = foerderOverrides?.profiled ? { floorplan: false, energyCertificate: false } : defaultDocumentRequirements(service);
   // Grundriss ist sonst immer Pflicht (Basis der Gebäudeaufnahme) – nur bei Fördermittelberatung über den
   // alten Firmen-Override einstellbar, es sei denn, das Büro hat es für diese Leistung ausdrücklich gesetzt.
   const wantsFloorplan = override?.requiresFloorplan ?? (isFoerder ? Boolean(foerderOverrides?.floorplan) : defaults.floorplan);
@@ -49,12 +51,21 @@ export function documentRequirements(fields: Record<string, string>, foerderOver
   if (wantsEnergyCert) {
     out.push({ kind: "energy_certificate", label: DOCUMENT_LABELS.energy_certificate, required: true, reason: "Ausgangswerte des Gebäudes" });
   }
-  out.push({ kind: "photos", label: DOCUMENT_LABELS.photos, required: false, reason: "Fassade, Heizung, Dach – erleichtert die Vorbereitung" });
+  out.push({ kind: "photos", label: DOCUMENT_LABELS.photos, required: false, reason: foerderOverrides?.profiled ? "erleichtert die Vorbereitung" : "Fassade, Heizung, Dach – erleichtert die Vorbereitung" });
   return out;
 }
 
 /** Ist diese Frage für den konkreten Fall relevant? Irrelevante Fragen stellt die KI nicht. */
-export function isRelevant(question: Pick<Question, "key">, fields: Record<string, string>): boolean {
+/** Feld "Kontakt über": "Telefon" = Anfrage kam per Anruf – dann wird keine E-Mail-Adresse erfragt. */
+export const CONTACT_CHANNEL_KEY = "contactChannel";
+
+export function isRelevant(question: Pick<Question, "key"> & { appliesTo?: string[]; whatsappOnly?: boolean; hiddenOnWhatsApp?: boolean }, fields: Record<string, string>): boolean {
+  const viaWhatsApp = fields[CONTACT_CHANNEL_KEY] === "WhatsApp";
+  if (question.whatsappOnly && !viaWhatsApp) return false;
+  if (question.hiddenOnWhatsApp && viaWhatsApp) return false;
+  if (question.key === "email" && (fields[CONTACT_CHANNEL_KEY] === "Telefon" || fields[CONTACT_CHANNEL_KEY] === "WhatsApp")) return false;
+  // Angaben aus dem Betriebsprofil, die nur bei bestimmten Leistungen gebraucht werden (Leistung noch offen = fragen).
+  if (question.appliesTo?.length && fields.service && !question.appliesTo.includes(fields.service)) return false;
   if (question.key === "floors") return fields.buildingType === "Mehrfamilienhaus" || FLOORS_SERVICES.includes(fields.service ?? "");
   return true;
 }

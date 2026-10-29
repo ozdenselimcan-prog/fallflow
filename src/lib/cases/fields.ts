@@ -1,7 +1,7 @@
 import type { AssistantSettings, CaseStatus, DocumentKind, Question } from "@/lib/data/types";
 
 /** Betreff automatischer E-Mails, solange das Büro für die Leistung keinen eigenen festgelegt hat. */
-export const DEFAULT_EMAIL_SUBJECT = "Ihre Anfrage zur Energieberatung";
+export const DEFAULT_EMAIL_SUBJECT = "Ihre Anfrage";
 
 export const SERVICES = [
   "Energieberatung",

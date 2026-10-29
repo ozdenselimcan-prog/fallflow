@@ -5,7 +5,7 @@ import type { DocumentKind } from "@/lib/data/types";
 const ACCUSATIVE: Record<DocumentKind, string> = {
   floorplan: "den Grundriss",
   energy_certificate: "den Energieausweis",
-  photos: "Fotos des Gebäudes",
+  photos: "Fotos",
   other: "weitere Unterlagen",
 };
 

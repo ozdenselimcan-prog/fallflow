@@ -3,24 +3,25 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { ConsentBanner } from "@/components/consent/consent-banner";
-import { siteConfig } from "@/lib/config/site";
+import { indexable, siteConfig } from "@/lib/config/site";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: `${siteConfig.name} – Aus jeder Kundenanfrage einen fertigen Beratungsfall`, template: `%s · ${siteConfig.name}` },
+  title: { default: `${siteConfig.name} – Kundenanfragen automatisch bearbeiten`, template: `%s · ${siteConfig.name}` },
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.appUrl),
-  keywords: ["Energieberater Software", "Energieberatung Kundenanfragen", "iSFP", "Energieausweis", "KI für Energieberater", "Fallakte", "E-Mail-Automatisierung", "Fördermittelberatung"],
+  robots: indexable ? undefined : { index: false, follow: false },
+  keywords: ["Kundenanfragen automatisieren", "KI E-Mail Assistent", "Anfragen automatisch beantworten", "KI für Handwerker", "KI für kleine Unternehmen", "Fallakte", "E-Mail-Automatisierung", "Kundenservice automatisieren"],
   openGraph: {
     type: "website",
     locale: "de_DE",
     siteName: siteConfig.name,
-    title: `${siteConfig.name} – Aus jeder Kundenanfrage einen fertigen Beratungsfall`,
+    title: `${siteConfig.name} – Kundenanfragen automatisch bearbeiten`,
     description: siteConfig.description,
   },
-  twitter: { card: "summary_large_image", title: `${siteConfig.name} – Aus jeder Kundenanfrage einen fertigen Beratungsfall`, description: siteConfig.description },
+  twitter: { card: "summary_large_image", title: `${siteConfig.name} – Kundenanfragen automatisch bearbeiten`, description: siteConfig.description },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

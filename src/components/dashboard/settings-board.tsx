@@ -6,6 +6,9 @@ import { useState } from "react";
 import type { Plan } from "@/lib/config/pricing";
 import { ConnectionsPanel } from "@/components/dashboard/connections-panel";
 import { CompanyForm, ProfileForm } from "@/components/dashboard/settings-forms";
+import { CalendarCard } from "@/components/dashboard/calendar-card";
+import { PhoneCard } from "@/components/dashboard/phone-card";
+import { WhatsAppCard } from "@/components/dashboard/whatsapp-card";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
@@ -50,7 +53,7 @@ function ReferralCard({ referral: initial, canEdit }: { referral: NonNullable<Se
 
   return (
     <Card>
-      <CardHeader title="Kollegen empfehlen – 1 Monat gratis" description="Empfehlen Sie FallFlow anderen Energieberatern. Ihr Kollege testet 14 statt 7 Tage kostenlos. Sobald er danach Kunde wird, schreiben wir Ihnen einen Monatsbeitrag gut – für jeden geworbenen Kollegen." />
+      <CardHeader title="Kollegen empfehlen – 1 Monat gratis" description="Empfehlen Sie FallFlow anderen Betrieben. Ihr Kollege testet 14 statt 7 Tage kostenlos. Sobald er danach Kunde wird, schreiben wir Ihnen einen Monatsbeitrag gut – für jeden geworbenen Kollegen." />
       <div className="space-y-3 p-5">
         {editing ? (
           <div className="space-y-2">
@@ -211,6 +214,9 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
               Jeder Kanal wird mit den eigenen Zugangsdaten Ihres Büros verbunden. FallFlow speichert diese Zugangsdaten verschlüsselt und ausschließlich für Ihr Büro – andere Kunden sehen sie nie.
             </p>
             <ConnectionsPanel {...data.connections} />
+            <WhatsAppCard canEdit={data.connections.canManage} />
+            <CalendarCard canEdit={data.connections.canManage} />
+            <PhoneCard canEdit={data.connections.canManage} />
           </>
         )}
 

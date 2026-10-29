@@ -83,7 +83,8 @@ export function AiStatusCard({ checklist, status }: { checklist: Checklist; stat
 export function PreparedCard({ checklist, fields, summary }: { checklist: Checklist; fields: Record<string, string>; summary: string }) {
   const checks: { label: string; ok: boolean }[] = [
     { label: "Kundendaten erkannt", ok: Boolean(fields.name && (fields.email || fields.phone)) },
-    { label: "Gebäude erkannt", ok: Boolean(fields.buildingType && fields.yearBuilt && fields.livingArea) },
+    // Gebäude-Prüfung nur bei Energieberatungs-Fällen (Baujahr/Wohnfläche) – andere Branchen haben keine Gebäudeangaben.
+    ...(fields.yearBuilt || fields.livingArea ? [{ label: "Gebäude erkannt", ok: Boolean(fields.buildingType && fields.yearBuilt && fields.livingArea) }] : []),
     { label: "Anliegen erkannt", ok: Boolean(fields.service) },
     { label: "Fehlende Informationen geprüft", ok: checklist.dataComplete },
     { label: "Dokumente geprüft", ok: checklist.unrequestedDocuments.length === 0 && checklist.missing.filter((i) => i.kind === "document").length === 0 },
@@ -91,7 +92,7 @@ export function PreparedCard({ checklist, fields, summary }: { checklist: Checkl
   ];
   return (
     <Card>
-      <CardHeader title="Fall automatisch vorbereitet" description="Prüfschritte der KI vor der Übergabe an den Berater" />
+      <CardHeader title="Fall automatisch vorbereitet" description="Prüfschritte der KI vor der Übergabe an Sie" />
       <ul className="grid gap-1.5 px-5 py-4">
         {checks.map((c) => (
           <li key={c.label} className="flex items-center gap-2 text-sm">

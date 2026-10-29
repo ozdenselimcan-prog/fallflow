@@ -16,7 +16,7 @@ export type QuestionType = (typeof QUESTION_TYPES)[number];
 export const TONES = ["professional", "friendly", "short"] as const;
 export type Tone = (typeof TONES)[number];
 
-export const CASE_SOURCES = ["widget", "email", "phone", "manual", "demo"] as const;
+export const CASE_SOURCES = ["widget", "email", "phone", "whatsapp", "manual", "demo"] as const;
 export type CaseSource = (typeof CASE_SOURCES)[number];
 
 export interface Company {
@@ -30,9 +30,74 @@ export interface Company {
   /** Bei der Leistung "Fördermittelberatung": zusätzlich Energieausweis/Grundriss verlangen? Standard: nein. */
   foerderEnergyCertificate: boolean;
   foerderFloorplan: boolean;
+  /** Betriebsprofil (FallFlow): Branche, Beschreibung, Unterlagen und Themen für den Menschen. Leer = noch nicht eingerichtet. */
+  businessProfile: BusinessProfile;
   /** Anlagezeitpunkt (ISO). */
   createdAt: string;
 }
+
+export interface BusinessProfile {
+  /** z. B. "Dachdeckerei" – leer, solange das Profil nicht eingerichtet ist */
+  industry: string;
+  /** Kurzbeschreibung des Betriebs in eigenen Worten (für KI-Antworten und Website-Chat) */
+  description: string;
+  /** Unterlagen, die Kunden typischerweise schicken sollen (z. B. "Fotos vom Schaden") */
+  documents: string[];
+  /** Themen, bei denen nicht die KI, sondern der Betrieb selbst antwortet (z. B. "Preise", "Notfälle") */
+  humanTopics: string[];
+  /** Je Leistung, welche dieser Unterlagen der Kunde schicken soll. Fehlt eine Leistung = alle Unterlagen. */
+  documentsByService?: Record<string, string[]>;
+  /** Braucht der Betrieb die Adresse des Kunden (Einsatz vor Ort)? Fehlt = ja. Friseur, Werkstatt o. Ä.: nein. */
+  needsAddress?: boolean;
+  /** Je Angabe (Schlüssel der Frage), bei welchen Leistungen sie gebraucht wird. Fehlt/leer = bei allen. */
+  fieldServices?: Record<string, string[]>;
+  /** Telefon-Assistent: nach Verbrauch der Inklusivminuten keine Anrufe mehr annehmen (statt Zusatzminuten). */
+  phoneStopAtLimit?: boolean;
+  /** Je PDF-Vorlage die darin abgefragten Angaben – im Chat (WhatsApp, Telefon) werden sie einzeln gefragt statt das PDF zu schicken. */
+  templateQuestions?: Record<string, { key: string; label: string; prompt: string }[]>;
+  /** Was im WhatsApp-Chat gefragt wird (eigene Seite, von der KI vorgeschlagen, vom Betrieb bearbeitet). Gesetzt = NUR diese
+   * Fragen (plus die Leistung, falls noch unklar); fehlt = wie im Website-Chat. */
+  whatsappQuestions?: WhatsAppQuestion[];
+}
+
+export interface WhatsAppQuestion {
+  /** Schlüssel in der Fallakte – Standardangaben (postalCode, street …) und Profil-Angaben werden wiederverwendet. */
+  key: string;
+  label: string;
+  prompt: string;
+  /** Nur bei diesen Leistungen fragen; leer = immer. */
+  services: string[];
+}
+
+/** Diese Standardfragen bleiben auch mit eigener WhatsApp-Liste aktiv (Name/Telefon kennt WhatsApp meist schon). */
+const WHATSAPP_ALWAYS = ["service", "name", "phone"];
+
+/** Ergänzt die Fragen um die Leistungen, für die sie laut Betriebsprofil gelten (z. B. "Heizungsart" nicht bei Badsanierung). */
+export function withAppliesTo(questions: Question[], profile: Pick<BusinessProfile, "fieldServices" | "whatsappQuestions">): Question[] {
+  const scope = profile.fieldServices ?? {};
+  const scoped = questions.map((q) => (scope[q.key]?.length ? { ...q, appliesTo: scope[q.key] } : q));
+  const wa = profile.whatsappQuestions ?? [];
+  if (!wa.length) return scoped;
+  // Eigene WhatsApp-Liste: übrige Fragen bei WhatsApp-Fällen ausblenden, WhatsApp-Fragen nur dort stellen.
+  const waByKey = new Map(wa.map((w) => [w.key, w]));
+  const base = scoped.map((q) => {
+    const w = waByKey.get(q.key);
+    if (w) return { ...q, label: w.label, prompt: w.prompt, appliesTo: w.services.length ? w.services : q.appliesTo };
+    return WHATSAPP_ALWAYS.includes(q.key) ? q : { ...q, hiddenOnWhatsApp: true };
+  });
+  const extra: Question[] = wa
+    .filter((w) => !scoped.some((q) => q.key === w.key))
+    .map((w, i) => ({ id: `wa-${w.key}`, companyId: "", key: w.key, label: w.label, prompt: w.prompt, type: "text", options: [], required: true, active: true, position: 100 + i, appliesTo: w.services.length ? w.services : undefined, whatsappOnly: true }));
+  return [...base, ...extra];
+}
+
+/** Unterlagen aus dem Betriebsprofil, die bei dieser Leistung angefragt werden. */
+export function profileDocumentsFor(profile: Pick<BusinessProfile, "documents" | "documentsByService">, service: string): string[] {
+  const chosen = profile.documentsByService?.[service];
+  return chosen ? profile.documents.filter((d) => chosen.includes(d)) : profile.documents;
+}
+
+export const EMPTY_BUSINESS_PROFILE: BusinessProfile = { industry: "", description: "", documents: [], humanTopics: [] };
 
 export interface Profile {
   id: string;
@@ -82,7 +147,7 @@ export interface CaseEvent {
   createdAt: string;
 }
 
-export const MESSAGE_CHANNELS = ["website", "email", "phone"] as const;
+export const MESSAGE_CHANNELS = ["website", "email", "phone", "whatsapp"] as const;
 export type MessageChannel = (typeof MESSAGE_CHANNELS)[number];
 
 /** delivered = beim Kunden angekommen (z. B. Website-Chat), not_sent = Kanal nicht verbunden, internal = interne Notiz. */
@@ -137,6 +202,12 @@ export interface Question {
   required: boolean;
   active: boolean;
   position: number;
+  /** Nur bei diesen Leistungen fragen (aus dem Betriebsprofil, nicht in der Fragen-Tabelle gespeichert). Fehlt = immer. */
+  appliesTo?: string[];
+  /** Nur im WhatsApp-Chat fragen (aus der WhatsApp-Liste, nicht in der Fragen-Tabelle gespeichert). */
+  whatsappOnly?: boolean;
+  /** Bei WhatsApp-Fällen nicht fragen (es gibt eine eigene WhatsApp-Liste). */
+  hiddenOnWhatsApp?: boolean;
 }
 
 export interface AssistantSettings {

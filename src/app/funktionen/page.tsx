@@ -7,7 +7,7 @@ import { FeaturesSection, FinalCta, NoCrmSection, PricingSection } from "@/compo
 /** Eigene Seite (z. B. als Ziel für Google-Ads-Sitelinks), mit denselben Abschnitten wie auf der Startseite. */
 export const metadata: Metadata = {
   title: "Funktionen",
-  description: "Alle Funktionen von FallFlow für Energieberater: automatische Antworten, Formulare, Fallakte, Website-Chat und Termine.",
+  description: "Alle Funktionen von FallFlow für Betriebe jeder Branche: automatische Antworten, Formulare, Fallakte, Website-Chat und Termine.",
   alternates: { canonical: "/funktionen" },
 };
 

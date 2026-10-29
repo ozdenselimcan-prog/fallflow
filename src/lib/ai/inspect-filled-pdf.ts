@@ -15,7 +15,7 @@ const MIN_VALUES_FOR_FILLED = 8;
 
 const RULES = EXTRACTION_SYSTEM_PROMPT.slice(EXTRACTION_SYSTEM_PROMPT.indexOf("Regeln:")).replace(/Der Text zwischen <anfrage>[^\n]*$/, "");
 
-const SYSTEM = `Du prüfst ein vom Kunden zurückgeschicktes Formular eines deutschen Energieberatungsbüros, das als die Vorlage "{title}"
+const SYSTEM = `Du prüfst ein vom Kunden zurückgeschicktes Formular eines deutschen Betriebs, das als die Vorlage "{title}"
 erwartet wird. Du siehst die PDF-Seiten wie ein Mensch – auch eingescannte, fotografierte oder von Hand ausgefüllte Formulare.
 
 1. wrongDocument: true nur, wenn es offensichtlich ein ANDERES Dokument ist (andere Überschrift/Zweck). Der Büroname im Briefkopf
@@ -34,7 +34,7 @@ erwartet wird. Du siehst die PDF-Seiten wie ein Mensch – auch eingescannte, fo
 4. Lies ALLE Eintragungen des Kunden aus (nicht den Vordruck, nicht die Angaben des Büros) und fülle damit das JSON:
    customer/property/heating/request wie unten beschrieben, und formEntries = alle übrigen Eintragungen
    ({"label": Bezeichnung aus dem Formular, "value": Eintrag}), angekreuzte Kästchen als value "Ja"/"Nein"/gewählte Option.
-   Name des Hausbesitzers/Antragstellers = customer.name; Adresse des Gebäudes = property.street/postalCode.
+   Name des Kunden bzw. Auftraggebers/Antragstellers = customer.name; Adresse des Objekts bzw. Einsatzorts = property.street/postalCode.
    Handschrift, die du nicht sicher lesen kannst, lässt du weg statt zu raten. Leere Felder bleiben leer – nichts erfinden,
    nichts aus dem Vordruck übernehmen. Ordne jeden Wert dem Feld zu, neben dem er steht (z. B. Telefonnummer ≠ Steuer-ID).
 

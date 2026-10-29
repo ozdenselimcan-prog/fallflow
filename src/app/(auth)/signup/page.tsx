@@ -36,7 +36,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
             </Link>
           </>
         ) : (
-          <>In wenigen Minuten zum ersten Beratungsfall.</>
+          <>In wenigen Minuten zur ersten automatisch bearbeiteten Anfrage.</>
         )}
       </p>
       <ul className="mb-8 mt-4 flex flex-wrap gap-2 text-xs font-medium">

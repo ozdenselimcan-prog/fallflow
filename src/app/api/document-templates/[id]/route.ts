@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { apiError, json, parseBody, withSession } from "@/lib/api";
-import { SERVICES } from "@/lib/cases/fields";
 import { deleteFile } from "@/lib/documents/storage";
 
-const updateSchema = z.object({ service: z.enum([...SERVICES, ""]).optional(), title: z.string().trim().min(1).max(160).optional(), alwaysInclude: z.boolean().optional(), requiresReturn: z.boolean().optional() });
+const updateSchema = z.object({ service: z.string().trim().max(80).optional(), title: z.string().trim().min(1).max(160).optional(), alwaysInclude: z.boolean().optional(), requiresReturn: z.boolean().optional() });
 
 /** Büro korrigiert/bestätigt die von der KI vorgeschlagene Leistung, den Titel, oder ob die Vorlage bei
  * jeder Anfrage (unabhängig von der Leistung) mitgeschickt werden soll. */

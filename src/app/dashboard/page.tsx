@@ -45,7 +45,7 @@ export default async function DashboardPage() {
 
   const attention = buildAttention({ cases, documents, appointments });
   const active = cases.filter((c) => c.status !== "CONVERTED").sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
-  const meta = buildCaseMeta(active, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, templateDocs, templates, serviceMessages);
+  const meta = buildCaseMeta(active, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) }, templateDocs, templates, serviceMessages);
   const nameOf = new Map(cases.map((c) => [c.id, c.customerName && c.customerName !== "Unbekannt" ? c.customerName : (c.fields.email ?? c.customerName)]));
 
   return (
@@ -56,7 +56,7 @@ export default async function DashboardPage() {
           {greeting()}
           {session.firstName ? `, ${session.firstName}` : ""}.
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Von der ersten Kundenanfrage zum vollständig vorbereiteten Beratungsfall.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Von der ersten Kundenanfrage zum vollständig vorbereiteten Auftrag.</p>
       </div>
 
       {!mailboxConnected && (

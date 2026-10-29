@@ -4,14 +4,16 @@ import { ArrowLeft, ArrowRight, CheckCircle2, CircleDashed } from "lucide-react"
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Checkbox, Field, Input } from "@/components/ui/form";
+import { Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { AppointmentConfirmationCard } from "@/components/dashboard/appointment-confirmation-card";
+import { BusinessProfileEditor, EMPTY_DRAFT, type ProfileDraft } from "@/components/onboarding/business-profile-editor";
 import { SetupVideoButton } from "@/components/ui/setup-video";
 import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
 import { ServiceMessagesPanel, type ServiceMessageView, type ServiceTemplateView } from "@/components/dashboard/service-messages-panel";
+import { WhatsAppCard } from "@/components/dashboard/whatsapp-card";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
-import { SERVICES, WEEKDAY_LABELS } from "@/lib/cases/fields";
+import { WEEKDAY_LABELS } from "@/lib/cases/fields";
 import type { AssistantSettings } from "@/lib/data/types";
 import { apiFetch, useMutation } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
@@ -27,6 +29,8 @@ interface Props {
   integrationResult?: string;
   documentTemplates: ServiceTemplateView[];
   serviceMessages: ServiceMessageView[];
+  /** Bereits gespeichertes Betriebsprofil (z. B. nach Microsoft-Anmeldung zurück in der Einrichtung) */
+  initialProfile?: ProfileDraft;
   assistant: AssistantSettings;
 }
 
@@ -42,18 +46,18 @@ const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotS
 /** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const STEPS = ["Willkommen", "Unternehmen", "Leistungen", "Vorlagen & Nachrichten", "Terminvergabe", "Website verbinden", "E-Mail verbinden"];
+const STEPS = ["Willkommen", "Unternehmen", "Ihr Betrieb", "Vorlagen & Nachrichten", "Terminvergabe", "Website verbinden", "WhatsApp", "E-Mail verbinden"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages, assistant, integrationResult }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages, assistant, integrationResult, initialProfile }: Props) {
   // Zurück von der Microsoft-Anmeldung: Angaben davor sind schon gespeichert, weiter beim letzten Schritt.
   const [step, setStep] = useState(integrationResult ? STEPS.length - 1 : 0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
   const [services, setServices] = useState<string[]>(initial.services);
+  const [profile, setProfile] = useState<ProfileDraft>(initialProfile ?? EMPTY_DRAFT);
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
   const [saved, setSaved] = useState(Boolean(integrationResult));
   const { pending, error, run } = useMutation();
 
-  const toggle = (list: string[], value: string, on: boolean) => (on ? [...list, value] : list.filter((x) => x !== value));
   const toggleDay = (day: number) => {
     const has = availability.workingDays.includes(day);
     const next = has ? availability.workingDays.filter((d) => d !== day) : [...availability.workingDays, day];
@@ -65,6 +69,12 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
   // Vor dem letzten Schritt (Kanäle verbinden) vorab speichern, damit bis dahin eingegebene Angaben
   // nicht verloren gehen, falls der nächste Schritt die Seite verlässt (z. B. Gmail-Test).
   const next = async () => {
+    // "Ihr Betrieb": Profil speichern – danach arbeitet der Assistent mit genau diesen Leistungen und Angaben.
+    if (step === 2) {
+      const ok = await run(() => apiFetch("PUT", "/api/business-profile", profile), { refresh: false });
+      if (!ok) return;
+      setServices(profile.services);
+    }
     if (step === STEPS.length - 2 && !saved) {
       const ok = await save();
       if (!ok) return;
@@ -101,7 +111,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
           <div className="space-y-3">
             <h1 className="text-2xl font-semibold tracking-tight">Willkommen bei FallFlow{firstName ? `, ${firstName}` : ""}</h1>
             <p className="text-muted-foreground">
-              In wenigen Schritten richten wir Ihr Büro ein: Firmendaten, Ihre Leistungen, Ihre Vorlagen &amp; Nachrichten, die Terminvergabe, den Website-Chat und Ihr E-Mail-Postfach. Alles lässt sich später in den Einstellungen ändern.
+              In wenigen Schritten richten wir FallFlow für Ihren Betrieb ein: Firmendaten, Ihre Leistungen und was der Assistent erfragen soll, Ihre Vorlagen &amp; Nachrichten, die Terminvergabe, den Website-Chat, WhatsApp und Ihr E-Mail-Postfach. Alles lässt sich später in den Einstellungen ändern.
             </p>
             <SetupVideoButton label="Erst kurz ansehen, wie es geht" className="mt-4" />
           </div>
@@ -127,12 +137,12 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
 
         {step === 2 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-semibold tracking-tight">Welche Leistungen bieten Sie an?</h1>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {SERVICES.map((s) => (
-                <Checkbox key={s} label={s} checked={services.includes(s)} onChange={(on) => setServices(toggle(services, s, on))} />
-              ))}
-            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">Ihr Betrieb</h1>
+            <p className="text-sm text-muted-foreground">
+              Damit der Assistent Ihre Anfragen richtig versteht, beschreiben Sie kurz Ihren Betrieb. Die KI schlägt daraus Ihre Leistungen, die nötigen
+              Angaben und Unterlagen vor – Sie prüfen und ändern alles nach Belieben.
+            </p>
+            <BusinessProfileEditor value={profile} onChange={setProfile} website={company.website} />
           </div>
         )}
 
@@ -142,7 +152,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
             <p className="text-sm text-muted-foreground">
               Schicken Sie Kunden bei bestimmten Leistungen ein auszufüllendes Formular (z. B. eine Vollmacht)? Hier pro Leistung hochladen und den Nachrichtentext dazu festlegen. Mit einem Klick auf die PDF legen Sie fest, ob sie „ausgefüllt zurück“ kommen soll oder „nur zur Info“ dabei ist (z. B. eine Preisliste). Ohne eigene Nachricht schickt FallFlow einen kurzen Standardtext und nennt die benötigten Unterlagen. Nutzen Sie das nicht, überspringen Sie diesen Schritt einfach.
             </p>
-            <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit />
+            <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit profile={{ documents: profile.documents, documentsByService: profile.documentsByService }} />
             <AppointmentConfirmationCard initial={assistant} canEdit />
           </div>
         )}
@@ -223,6 +233,21 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
 
         {step === 6 && (
           <div className="space-y-4">
+            <h1 className="text-2xl font-semibold tracking-tight">WhatsApp (optional)</h1>
+            <p className="text-sm text-muted-foreground">
+              Ihre Kunden schreiben Ihnen lieber per WhatsApp? Dann beantwortet die KI auch dort die Anfragen – mit den Fragen, die Sie selbst festlegen. Sie können diesen Schritt auch später unter Einstellungen → Verbindungen erledigen.
+            </p>
+            <WhatsAppCard canEdit />
+            <div>
+              <button type="button" onClick={next} className="text-sm font-medium text-muted-foreground hover:underline">
+                Später erledigen →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 7 && (
+          <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">E-Mail verbinden</h1>
             <p className="text-sm text-muted-foreground">
               Optional, aber empfohlen: Verbinden Sie Ihr Postfach, damit Anfragen von dort automatisch übernommen werden. Sie können das auch später in den Einstellungen nachholen.
@@ -262,7 +287,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
             <ArrowLeft className="size-4" /> Zurück
           </Button>
           {step < STEPS.length - 1 ? (
-            <Button onClick={next} loading={pending && step === STEPS.length - 2} disabled={step === 1 && !company.name.trim()}>
+            <Button onClick={next} loading={pending && step === STEPS.length - 2} disabled={(step === 1 && !company.name.trim()) || (step === 2 && (!profile.industry.trim() || profile.services.length === 0))}>
               Weiter <ArrowRight className="size-4" />
             </Button>
           ) : (

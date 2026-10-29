@@ -13,6 +13,7 @@ import {
   seedQuestions,
 } from "./seed";
 import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
+import { withAppliesTo } from "./types";
 import type { Appointment, AssistantSettings, CaseDocument, CaseEvent, CaseMessage, CaseRecord, Channel, Company, DocumentTemplate, Member, Question, ServiceMessage, TemplateDocument } from "./types";
 
 interface MemoryDb {
@@ -173,7 +174,7 @@ export function createMemoryStore(): Store {
     },
 
     async listQuestions() {
-      return [...db().questions].sort((a, b) => a.position - b.position);
+      return withAppliesTo([...db().questions].sort((a, b) => a.position - b.position), db().company.businessProfile ?? {});
     },
     async saveQuestion(q) {
       const d = db();

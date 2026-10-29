@@ -35,6 +35,7 @@ export async function loadSettingsData(session: Session, store: Store) {
       services: company.services,
       foerderEnergyCertificate: company.foerderEnergyCertificate,
       foerderFloorplan: company.foerderFloorplan,
+      industry: company.businessProfile.industry,
     },
     connections: {
       appUrl: siteConfig.appUrl,

@@ -38,8 +38,8 @@ export default function AvvPage() {
         <List
           items={[
             "Kontaktdaten (Name, E-Mail-Adresse, Telefonnummer, Anschrift)",
-            "Angaben zum Gebäude und zum Anliegen (z. B. Gebäudeart, Baujahr, Wohnfläche, Heizung, gewünschte Leistung)",
-            "Inhalte von E-Mails und Chat-Nachrichten, Anhänge und hochgeladene Dokumente (z. B. Grundriss, Energieausweis, ausgefüllte Formulare, Fotos)",
+            "Angaben zum Anliegen und zum Auftrag (z. B. gewünschte Leistung, Art und Größe des Objekts, Fahrzeugdaten, Adresse des Einsatzorts)",
+            "Inhalte von E-Mails und Chat-Nachrichten, Anhänge und hochgeladene Dokumente (z. B. ausgefüllte Formulare, Fotos, Pläne)",
             "Termindaten sowie Verlaufs- und Protokolldaten zur Bearbeitung",
           ]}
         />
@@ -90,6 +90,8 @@ export default function AvvPage() {
             "Vercel Inc. – Hosting und Auslieferung der Anwendung",
             "OpenAI, L.L.C. – KI-Auswertung von Texten (Erkennung von Angaben, Zusammenfassungen, Prüfung zurückgeschickter Vorlagen, Antworten im Website-Chat); nach den API-Bedingungen von OpenAI keine Nutzung zum Training, Speicherung höchstens 30 Tage zur Missbrauchserkennung",
             "Functional Software Inc. (Sentry) – Fehlerüberwachung; Verarbeitung in der EU (Frankfurt)",
+            "Twilio Inc. – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (nur wenn der Auftraggeber ihn nutzt); keine Aufzeichnung der Gespräche als Audiodatei",
+            "Meta Platforms Ireland Ltd. – WhatsApp Business Platform (nur wenn der Auftraggeber WhatsApp verbindet): Empfang und Versand der WhatsApp-Nachrichten",
           ]}
         />
         <Paragraphs

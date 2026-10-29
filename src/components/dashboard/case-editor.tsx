@@ -19,6 +19,8 @@ export function CaseEditor({
   canWrite,
   extra = [],
   requiredKeys = [],
+  customGroups,
+  serviceOptions,
 }: {
   caseId: string;
   fields: Record<string, string>;
@@ -26,8 +28,14 @@ export function CaseEditor({
   extra?: { key: string; label: string }[];
   /** Schlüssel der Pflichtangaben – nur diese werden als „Fehlt noch“ hervorgehoben */
   requiredKeys?: string[];
+  /** Betrieb mit Betriebsprofil: eigene Gruppen statt der Energieberatungs-Gruppen (Gebäude, Heizung …). */
+  customGroups?: { title: string; fields: { key: string; label: string }[] }[];
+  /** Leistungen des Betriebs für die Auswahl. */
+  serviceOptions?: string[];
 }) {
-  const groups = extra.length ? [...FIELD_GROUPS, { title: "Weitere Angaben", fields: extra }] : FIELD_GROUPS;
+  const base = customGroups ?? FIELD_GROUPS;
+  const groups = extra.length ? [...base, { title: "Weitere Angaben", fields: extra }] : base;
+  const options: Record<string, readonly string[]> = serviceOptions ? { ...OPTIONS, service: serviceOptions } : OPTIONS;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(fields);
   const { pending, error, run } = useMutation();
@@ -68,7 +76,7 @@ export function CaseEditor({
 
       <div className="grid gap-4 md:grid-cols-2">
         {groups.map((group) => (
-          <Card key={group.title} className={group.title === "Anliegen" || group.title === "Weitere Angaben" ? "md:col-span-2" : undefined}>
+          <Card key={group.title} className={group.title === "Anliegen" || group.title === "Weitere Angaben" || group.fields.length > 6 ? "md:col-span-2" : undefined}>
             <CardHeader title={group.title} />
             <dl className="divide-y divide-border px-5">
               {group.fields.map((f) => {
@@ -81,10 +89,10 @@ export function CaseEditor({
                       {editing ? (
                         f.key === "description" ? (
                           <Textarea value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} maxLength={1000} />
-                        ) : OPTIONS[f.key] ? (
+                        ) : options[f.key] ? (
                           <Select value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}>
                             <option value="">–</option>
-                            {OPTIONS[f.key].map((o) => (
+                            {options[f.key].map((o) => (
                               <option key={o}>{o}</option>
                             ))}
                           </Select>

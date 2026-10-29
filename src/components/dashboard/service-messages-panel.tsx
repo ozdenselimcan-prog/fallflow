@@ -8,6 +8,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox, Input, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
+import { profileDocumentsFor, type BusinessProfile } from "@/lib/data/types";
 import { defaultDocumentRequirements } from "@/lib/intake/checklist";
 import { apiFetch } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,7 @@ export function ServiceMessagesPanel({
   initialTemplates,
   canEdit,
   locked,
+  profile,
 }: {
   services: string[];
   initialMessages: ServiceMessageView[];
@@ -85,8 +87,13 @@ export function ServiceMessagesPanel({
   canEdit: boolean;
   /** true = Abo-Plan (Starter) hat keinen Zugriff auf PDF-Vorlagen/Nachrichtentexte. */
   locked?: boolean;
+  /** Betrieb mit Betriebsprofil: Unterlagen kommen aus dem Profil statt Grundriss/Energieausweis. */
+  profile?: Pick<BusinessProfile, "documents" | "documentsByService"> | null;
 }) {
   const rows = [...services.filter((s) => s !== FALLBACK_SERVICE), ALWAYS_ROW];
+  const [profileDocs, setProfileDocs] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(rows.filter((s) => s !== ALWAYS_ROW).map((s) => [s, profile ? profileDocumentsFor(profile, s) : []])),
+  );
   const [bodies, setBodies] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
     for (const s of rows) {
@@ -139,9 +146,11 @@ export function ServiceMessagesPanel({
         service,
         body: bodies[service] ?? "",
         appointmentNote: appointmentNotes[service] ?? "",
-        requiresFloorplan: docReqs[service]?.floorplan ?? true,
-        requiresEnergyCertificate: docReqs[service]?.energyCertificate ?? false,
+        // Betriebe mit Betriebsprofil verlangen nie Grundriss/Energieausweis (Energieberatungs-Standard).
+        requiresFloorplan: profile ? false : (docReqs[service]?.floorplan ?? true),
+        requiresEnergyCertificate: profile ? false : (docReqs[service]?.energyCertificate ?? false),
         subject: subjects[service] ?? "",
+        ...(profile ? { profileDocuments: profileDocs[service] ?? [] } : {}),
       });
       setSavedService(service);
       setTimeout(() => setSavedService((s) => (s === service ? null : s)), 2000);
@@ -268,7 +277,7 @@ export function ServiceMessagesPanel({
                   </div>
                   <div>
                     <p className="mb-1 text-xs font-medium text-muted-foreground">
-                      Nachricht – Tipp: Schreiben Sie hier, was Sie vom Kunden brauchen (z. B. „Bitte senden Sie uns Ihre Telefonnummer und E-Mail-Adresse“). Das zählt per E-Mail automatisch als benötigte Angabe. Den Hinweis auf angehängte Formulare und benötigte Unterlagen (Grundriss, Energieausweis) ergänzt FallFlow automatisch.
+                      Nachricht – Tipp: Schreiben Sie hier, was Sie vom Kunden brauchen (z. B. „Bitte senden Sie uns Ihre Telefonnummer und E-Mail-Adresse“). Das zählt per E-Mail automatisch als benötigte Angabe. Den Hinweis auf angehängte Formulare und benötigte Unterlagen ergänzt FallFlow automatisch.
                     </p>
                     <Textarea rows={3} disabled={!canEdit} placeholder={BODY_PLACEHOLDER(row)} value={bodies[row] ?? ""} onChange={(e) => setBodies({ ...bodies, [row]: e.target.value })} />
                   </div>
@@ -284,6 +293,27 @@ export function ServiceMessagesPanel({
                       onChange={(e) => setAppointmentNotes({ ...appointmentNotes, [row]: e.target.value })}
                     />
                   </div>
+                  {profile ? (
+                    profile.documents.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-xs font-medium text-muted-foreground">Welche Unterlagen soll der Kunde bei dieser Leistung schicken?</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {profile.documents.map((d) => (
+                            <Checkbox
+                              key={d}
+                              label={d}
+                              disabled={!canEdit}
+                              checked={(profileDocs[row] ?? []).includes(d)}
+                              onChange={(v) => {
+                                const current = profileDocs[row] ?? [];
+                                setProfileDocs({ ...profileDocs, [row]: v ? [...current, d] : current.filter((x) => x !== d) });
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  ) : (
                   <div>
                     <p className="mb-1 text-xs font-medium text-muted-foreground">Welche Angaben benötigen Sie bei dieser Leistung?</p>
                     <div className="grid gap-2 sm:grid-cols-2">
@@ -301,6 +331,7 @@ export function ServiceMessagesPanel({
                       />
                     </div>
                   </div>
+                  )}
                   {canEdit && (
                     <div className="mt-2 flex items-center gap-2">
                       <Button variant="secondary" size="sm" loading={busyRow === row} onClick={() => save(row)}>

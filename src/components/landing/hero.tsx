@@ -6,11 +6,11 @@ import { buttonStyles } from "@/components/ui/button";
 
 const checklist = [
   { label: "Kontaktdaten", ok: true },
-  { label: "Gebäudetyp, Baujahr, Fläche", ok: true },
-  { label: "Heizung", ok: true },
-  { label: "Eigentümerstatus", ok: true },
-  { label: "Energieausweis", ok: true },
-  { label: "Grundriss", ok: false },
+  { label: "Adresse", ok: true },
+  { label: "Dachform, Schadensfläche", ok: true },
+  { label: "Wassereintritt", ok: true },
+  { label: "Auftragsformular", ok: true },
+  { label: "Fotos vom Schaden", ok: false },
 ];
 
 /** Feste Zufallsfolge (gleich auf Server und im Browser, damit nichts springt). */
@@ -70,16 +70,16 @@ export function Hero() {
       <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
       <div className="flex flex-col items-center">
         <span className="hero-reveal mb-5 inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">
-          AI Intake &amp; Operations für Energieberater
+          KI für Kundenanfragen – für jeden Betrieb
         </span>
         <h1 className="hero-reveal text-balance text-[clamp(2rem,5vw+0.5rem,3.75rem)] font-black leading-[1.05] tracking-[-0.03em] text-zinc-900 [animation-delay:80ms]">
           Aus jeder Kundenanfrage
           <span className="mt-1 block text-zinc-400">
-            <TypedText text="einen fertigen Beratungsfall." />
+            <TypedText text="ein fertiger Auftrag." />
           </span>
         </h1>
         <p className="hero-reveal mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 [animation-delay:160ms] sm:text-lg">
-          Von der ersten E-Mail bis zur vollständigen Fallakte: FallFlow erledigt die Vorarbeit, damit Sie sich auf die Beratung konzentrieren können.
+          Per E-Mail, WhatsApp, Website-Chat und Telefon: Die KI beantwortet Ihre Kundenanfragen, fragt fehlende Angaben ab und bereitet den Auftrag vor – damit Sie sich auf Ihre eigentliche Arbeit konzentrieren können.
         </p>
         <div className="hero-reveal mt-8 flex w-full max-w-sm flex-col gap-3 [animation-delay:240ms] sm:max-w-none sm:flex-row sm:justify-center">
           <Link href="/signup" className={buttonStyles({ size: "lg" })}>
@@ -102,12 +102,12 @@ export function Hero() {
           </div>
           <div className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-muted-foreground">BERATUNGSFALL</span>
+              <span className="text-xs font-semibold tracking-wider text-muted-foreground">ANFRAGE</span>
               <Badge tone="success">Bereit zur Prüfung</Badge>
             </div>
             <p className="mt-3 text-xl font-semibold">Max Mustermann</p>
             <ul className="mt-3 flex flex-wrap gap-2 text-sm">
-              {["EFH", "Baujahr 1987", "160 m²", "Gasheizung", "iSFP"].map((t) => (
+              {["Dachreparatur", "Satteldach", "ca. 10 m²", "Sturmschaden", "82166"].map((t) => (
                 <li key={t} className="rounded-full bg-muted px-3 py-1">
                   {t}
                 </li>

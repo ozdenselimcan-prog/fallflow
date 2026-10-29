@@ -1,4 +1,5 @@
 import { apiError, json, parseBody, withSession } from "@/lib/api";
+import { AI_PAUSED_KEY } from "@/lib/intake/engine";
 import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { STATUS_LABELS } from "@/lib/cases/fields";
 import { saveCaseFields } from "@/lib/cases/service";
@@ -21,12 +22,13 @@ export const PATCH = withSession(
     if (!idSchema.safeParse(id).success) return apiError("Nicht gefunden", 404);
     const body = await parseBody(req, casePatchSchema);
     if (!body.ok) return body.res;
-    const { status, fields, assign, resolveAttention } = body.data;
+    const { status, fields, assign, resolveAttention, resumeAi } = body.data;
 
     let c = await store.getCase(id);
     if (!c) return apiError("Nicht gefunden", 404);
 
     if (fields && Object.keys(fields).length) c = await saveCaseFields(store, c, fields);
+    if (resumeAi) c = (await store.updateCase(id, { fields: { [AI_PAUSED_KEY]: "" }, keepTimestamp: true })) ?? c;
     if (resolveAttention && attentionOf(c.fields)) {
       c = (await store.updateCase(id, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true })) ?? c;
       await store.addEvent(id, "note", "„Aufmerksamkeit benötigt“ als erledigt markiert");

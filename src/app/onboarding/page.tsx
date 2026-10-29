@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ConversionPing } from "@/components/consent/consent-banner";
 import { OnboardingWizard } from "@/components/onboarding/wizard";
+import { CORE_FIELD_KEYS } from "@/lib/ai/business-profile";
 import { Logo } from "@/components/ui/logo";
 import { requireSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
@@ -14,13 +15,14 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
   const { integration } = await searchParams;
   const session = await requireSession();
   const store = await getStore(session);
-  const [company, channels, connections, documentTemplates, serviceMessages, assistant] = await Promise.all([
+  const [company, channels, connections, documentTemplates, serviceMessages, assistant, questions] = await Promise.all([
     store.getCompany(),
     store.listChannels(),
     listConnections(session.companyId),
     store.listDocumentTemplates(),
     store.listServiceMessages(),
     store.getAssistant(),
+    store.listQuestions(),
   ]);
 
   const byProvider = new Map(connections.map((c) => [c.provider, toStatus(c)]));
@@ -41,6 +43,15 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
         documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
         assistant={assistant}
+        initialProfile={
+          company.businessProfile.industry
+            ? {
+                ...company.businessProfile,
+                services: company.services,
+                fields: questions.filter((q) => !CORE_FIELD_KEYS.includes(q.key as (typeof CORE_FIELD_KEYS)[number]) && !q.whatsappOnly).map((q) => ({ key: q.key, label: q.label, prompt: q.prompt, required: q.required, services: q.appliesTo ?? [] })),
+              }
+            : undefined
+        }
       />
     </main>
   );

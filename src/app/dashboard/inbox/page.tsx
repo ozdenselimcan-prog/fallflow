@@ -28,7 +28,7 @@ export default async function InboxPage() {
     .filter(([id]) => caseById.has(id))
     .map(([id, msgs]) => {
       const c = caseById.get(id)!;
-      return { caseId: id, customerName: c.customerName, email: c.fields.email ?? "", status: c.status, hasEmail: Boolean(c.fields.email), attention: attentionOf(c.fields), messages: [...msgs].reverse() };
+      return { caseId: id, customerName: c.customerName, email: c.fields.email ?? "", status: c.status, hasEmail: Boolean(c.fields.email) || (c.source === "whatsapp" && Boolean(c.fields.phone)), attention: attentionOf(c.fields), messages: [...msgs].reverse() };
     })
     .sort((a, b) => (b.messages.at(-1)?.createdAt ?? "").localeCompare(a.messages.at(-1)?.createdAt ?? ""));
 

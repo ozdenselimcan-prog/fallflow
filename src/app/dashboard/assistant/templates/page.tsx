@@ -40,6 +40,7 @@ export default async function AssistantTemplatesPage() {
         }))}
         initialTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         canEdit={canEdit}
+        profile={company.businessProfile.industry ? company.businessProfile : null}
       />
       <div className="h-4" />
       <AppointmentConfirmationCard initial={assistant} canEdit={can(session.role, "assistant:manage")} />
@@ -47,7 +48,7 @@ export default async function AssistantTemplatesPage() {
       {can(session.role, "cases:write") && (
         <>
           <div className="h-4" />
-          <TestMailCard />
+          <TestMailCard service={company.businessProfile.industry ? company.services.find((s) => s !== "Sonstiges") : undefined} />
         </>
       )}
     </>

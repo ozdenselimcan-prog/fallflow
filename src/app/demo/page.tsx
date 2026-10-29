@@ -12,9 +12,9 @@ export default function DemoPage() {
     <>
       <Navbar />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Demo: von der Kundenanfrage zum fertigen Beratungsfall</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Demo: von der Kundenanfrage zum fertig vorbereiteten Auftrag</h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
-          So läuft eine Anfrage per E-Mail: Der Kunde schreibt, die KI antwortet mit Ihrer Nachricht und Ihren PDF-Vorlagen, fordert fehlende Unterlagen an und baut die Fallakte auf – bis zum fertigen Beratungsfall mit Terminvorschlag. Fragen von Kunden und Mails ohne Bezug (Rechnungen, Werbung) behandelt sie anders – probieren Sie die Beispiele aus.
+          So läuft eine Anfrage per E-Mail oder WhatsApp: Der Kunde schreibt, die KI antwortet mit Ihrer Nachricht und Ihren PDF-Vorlagen, fordert fehlende Unterlagen an und baut die Fallakte auf – bis zum fertig vorbereiteten Auftrag mit Terminvorschlag. Fragen von Kunden und Mails ohne Bezug (Rechnungen, Werbung) behandelt sie anders – probieren Sie die Beispiele aus.
         </p>
         <div className="mt-8">
           <MailDemo />

@@ -1,5 +1,6 @@
 import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
-import { extractFields } from "@/lib/ai/case-extractor";
+import { AI_PAUSED_KEY } from "./engine";
+import { extractFields, extractionContext } from "@/lib/ai/case-extractor";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { isAnswered } from "@/lib/cases/completeness";
 import { FIELD_GROUPS } from "@/lib/cases/fields";
@@ -20,12 +21,13 @@ export async function addPhoneNote(store: Store, caseId: string, text: string): 
   if (!c) throw new Error("Fall nicht gefunden");
   const message = await store.addMessage(caseId, "staff", text, { channel: "phone", delivery: "internal" });
 
-  const extracted = text.length > SHORT_TEXT ? (await extractFields(text)).fields : heuristicExtract(text);
+  const [company, allQuestions] = await Promise.all([store.getCompany(), store.listQuestions()]);
+  const extracted = text.length > SHORT_TEXT ? (await extractFields(text, extractionContext(company, allQuestions))).fields : heuristicExtract(text);
   const additions: Record<string, string> = {};
   for (const [k, v] of Object.entries(extracted)) if (v && k !== "description" && !isAnswered(c.fields, k)) additions[k] = v;
   Object.assign(additions, deriveFields({ ...c.fields, ...additions }));
 
-  const questions = await store.listQuestions();
+  const questions = allQuestions;
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? FIELD_GROUPS.flatMap((g) => g.fields).find((f) => f.key === k)?.label ?? k;
   const added = Object.keys(additions);
   if (added.length) await store.updateCase(caseId, { fields: additions });
@@ -34,7 +36,7 @@ export async function addPhoneNote(store: Store, caseId: string, text: string): 
   return { message, added };
 }
 
-/** Nachricht des Teams an den Kunden (E-Mail). Wird nur als „gesendet“ markiert, wenn der Kanal wirklich versendet hat. */
+/** Nachricht des Teams an den Kunden (E-Mail bzw. WhatsApp, wenn der Kunde darüber kam). Wird nur als „gesendet“ markiert, wenn der Kanal wirklich versendet hat. */
 export async function sendTeamMessage(
   store: Store,
   caseId: string,
@@ -42,9 +44,13 @@ export async function sendTeamMessage(
 ): Promise<{ message: CaseMessage; delivered: boolean; reason: string }> {
   const c = await store.getCase(caseId);
   if (!c) throw new Error("Fall nicht gefunden");
-  const result = await deliverToCustomer({ companyId: c.companyId, channel: input.channel, email: c.fields.email, phone: c.fields.phone, text: input.text, subject: input.subject });
-  const message = await store.addMessage(caseId, "staff", input.text, { channel: input.channel, delivery: result.delivered ? "delivered" : "not_sent" });
+  // Kam der Kunde per WhatsApp, geht die Antwort des Teams auch per WhatsApp raus.
+  const channel: MessageChannel = c.source === "whatsapp" ? "whatsapp" : input.channel;
+  const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text: input.text, subject: input.subject });
+  const message = await store.addMessage(caseId, "staff", input.text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
   await store.addEvent(caseId, "note", result.delivered ? "Nachricht an den Kunden gesendet" : "Nachricht gespeichert – nicht versendet (Kanal nicht verbunden)");
+  // Antwortet das Team selbst im WhatsApp-Chat, hält sich die KI dort zurück, bis sie wieder eingeschaltet wird.
+  if (result.delivered && channel === "whatsapp") await store.updateCase(caseId, { fields: { [AI_PAUSED_KEY]: "1" }, keepTimestamp: true });
   // Persönliche Antwort des Büros erledigt "Aufmerksamkeit benötigt".
   if (result.delivered && attentionOf(c.fields)) {
     await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true });

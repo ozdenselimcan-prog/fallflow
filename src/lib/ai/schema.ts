@@ -58,3 +58,45 @@ export function extractionToFields(ex: Extraction): Record<string, string> {
   set("description", clean(ex.request.description, 1000));
   return out;
 }
+
+/** Antwort im allgemeinen Format (Betriebe mit Betriebsprofil). */
+export const genericExtractionSchema = z.object({
+  customer: z.object({ name: z.string().default(""), email: z.string().default(""), phone: z.string().default("") }).default({ name: "", email: "", phone: "" }),
+  address: z.object({ street: z.string().default(""), postalCode: z.string().default("") }).default({ street: "", postalCode: "" }),
+  service: z.string().default(""),
+  description: z.string().default(""),
+  details: z.record(z.string(), z.union([z.string(), z.number(), z.null()])).default({}),
+});
+
+/** Leistung des Betriebs zu einer von der KI genannten Leistung – auch bei leicht abweichender Schreibweise
+ * ("Schadensmeldung" → "Schadensmeldungen aufnehmen", "Wallbox" → "Wallbox-Installation"). */
+export function matchService(value: string, services: string[]): string {
+  const direct = matchOption(value, [...services, "Sonstiges"]);
+  if (direct) return direct;
+  const v = value.trim().toLowerCase();
+  if (v.length < 5) return "";
+  const stem = (w: string) => w.slice(0, Math.max(5, w.length - 3));
+  const words = v.split(/[\s-]+/).filter((w) => w.length >= 5);
+  return (
+    services.find((s) => s.toLowerCase().includes(v)) ??
+    services.find((s) => s.toLowerCase().split(/[\s-]+/).some((w) => w.length >= 5 && words.some((x) => stem(w) === stem(x)))) ??
+    ""
+  );
+}
+
+export function genericExtractionToFields(ex: z.infer<typeof genericExtractionSchema>, services: string[], detailKeys: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const set = (k: string, v: string) => v && (out[k] = v);
+  set("name", clean(ex.customer.name, 100));
+  if (EMAIL.test(ex.customer.email.trim())) set("email", ex.customer.email.trim().toLowerCase());
+  if (/^[+\d][\d\s/()-]{5,24}$/.test(ex.customer.phone.trim())) set("phone", ex.customer.phone.trim());
+  set("street", clean(ex.address.street, 120));
+  if (/^\d{5}$/.test(ex.address.postalCode.trim())) set("postalCode", ex.address.postalCode.trim());
+  set("service", matchService(ex.service, services));
+  set("description", clean(ex.description, 1000));
+  for (const key of detailKeys) {
+    const v = ex.details[key];
+    if (v !== null && v !== undefined) set(key, clean(String(v), 200));
+  }
+  return out;
+}

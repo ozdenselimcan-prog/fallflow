@@ -30,7 +30,7 @@ export const POST = withSession(
     // Kopie übergeben: die PDF-Textextraktion übernimmt den Speicher des übergebenen Arrays (wie bei
     // pdf.js üblich), danach wäre "bytes" leer – der Upload unten braucht die unangetasteten Originaldaten.
     const text = await extractPdfText(bytes.slice());
-    const suggested = await suggestTemplateService(fileName, text);
+    const suggested = await suggestTemplateService(fileName, text, (await store.getCompany()).services);
 
     const storagePath = await saveFile({ companyId: session.companyId, caseId: "templates", bytes, mime });
     const template = await store.saveDocumentTemplate({ service: suggested ?? "", title: fileName.replace(/\.pdf$/i, ""), fileName, storagePath });

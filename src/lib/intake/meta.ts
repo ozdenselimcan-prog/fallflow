@@ -30,7 +30,7 @@ export function buildCaseMeta(
   return Object.fromEntries(
     cases.map((c) => {
       const docs = byCase.get(c.id) ?? [];
-      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides, serviceMessages, templateSends: templateSendsByCase.get(c.id), includeFields: c.source !== "email" });
+      const checklist = buildChecklist({ questions, fields: c.fields, documents: docs, foerderOverrides, serviceMessages, templateSends: templateSendsByCase.get(c.id), includeFields: c.source !== "email" || Boolean(foerderOverrides?.profiled) });
       return [
         c.id,
         {

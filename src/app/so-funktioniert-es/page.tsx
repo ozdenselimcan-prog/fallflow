@@ -7,7 +7,7 @@ import { DemoSection, FinalCta, FlowSection, MailFlowSection, SolutionSection } 
 /** Eigene Seite (z. B. als Ziel für Google-Ads-Sitelinks), mit denselben Abschnitten wie auf der Startseite. */
 export const metadata: Metadata = {
   title: "So funktioniert es",
-  description: "So funktioniert FallFlow: Von der ersten Kundenanfrage per E-Mail bis zum fertig vorbereiteten Beratungsfall.",
+  description: "So funktioniert FallFlow: Von der ersten Kundenanfrage per E-Mail bis zum fertig vorbereiteten Auftrag.",
   alternates: { canonical: "/so-funktioniert-es" },
 };
 

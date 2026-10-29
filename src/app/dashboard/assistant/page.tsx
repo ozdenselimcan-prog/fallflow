@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { Building2, FileText, MessageCircle } from "lucide-react";
 import { AssistantForm } from "@/components/dashboard/assistant-form";
 import { AssistantPreview } from "@/components/dashboard/assistant-preview";
 import { buttonStyles } from "@/components/ui/button";
@@ -23,6 +23,12 @@ export default async function AssistantPage() {
         description="Legen Sie fest, wie der Assistent E-Mail-Anfragen bearbeitet und Fragen im Website-Chat beantwortet."
         action={
           <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/assistant/profile" className={buttonStyles({ variant: "secondary" })}>
+              <Building2 className="size-4" /> Ihr Betrieb
+            </Link>
+            <Link href="/dashboard/assistant/whatsapp" className={buttonStyles({ variant: "secondary" })}>
+              <MessageCircle className="size-4" /> WhatsApp-Fragen
+            </Link>
             <Link href="/dashboard/assistant/templates" className={buttonStyles({ variant: "secondary" })}>
               <FileText className="size-4" /> Vorlagen & Nachrichten
             </Link>

@@ -51,7 +51,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
     store.listDocumentTemplates(),
     store.listServiceMessages(),
   ]);
-  const meta = buildCaseMeta(cases, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, templateDocs, templates, serviceMessages);
+  const meta = buildCaseMeta(cases, questions, documents, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) }, templateDocs, templates, serviceMessages);
   const nameOf = new Map(cases.map((c) => [c.id, c]));
 
   const counts = Object.fromEntries(CASE_STATUSES.map((s) => [s, cases.filter((c) => c.status === s).length])) as Record<CaseStatus, number>;
@@ -167,7 +167,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
             </Panel>
           </div>
 
-          <Panel title="Abgeschlossene Qualifizierungen" description="Fallakte vorbereitet – bereit für den Berater" count={finished.length} empty="Noch keine abgeschlossenen Qualifizierungen.">
+          <Panel title="Abgeschlossene Qualifizierungen" description="Fallakte vorbereitet – bereit für Sie" count={finished.length} empty="Noch keine abgeschlossenen Qualifizierungen.">
             {finished.slice(0, 6).map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <div className="min-w-0">

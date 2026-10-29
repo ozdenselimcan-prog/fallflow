@@ -31,6 +31,18 @@ const SERVICE_GOALS: Record<string, string> = {
 export function buildSummary(fields: Record<string, string>) {
   const known = (k: string) => (fields[k] && fields[k] !== SKIPPED ? fields[k] : "");
   const who = known("name") ? "Der Kunde" : "Der Interessent";
+  // Ohne Gebäudeangaben (Betriebe anderer Branchen): Anliegen statt "meldet ein Gebäude an".
+  if (!["yearBuilt", "livingArea", "heating", "ownerStatus"].some((k) => known(k))) {
+    const where = known("postalCode") ? ` aus ${known("postalCode")}` : "";
+    const service = known("service");
+    const description = known("description");
+    return [
+      service && service !== "Sonstiges" ? `${who}${where} fragt an: ${service}.` : `${who}${where} hat eine Anfrage gestellt.`,
+      description ? description.replace(/[.!]?$/, ".") : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
   const type = known("buildingType");
   const short = BUILDING_SHORT[type] && type !== "Sonstiges" ? BUILDING_SHORT[type] : "";
   const building = [

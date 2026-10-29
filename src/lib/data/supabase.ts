@@ -1,3 +1,4 @@
+import { EMPTY_BUSINESS_PROFILE, withAppliesTo, type BusinessProfile } from "@/lib/data/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildSummary, computeCompleteness } from "@/lib/cases/completeness";
 import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
@@ -38,6 +39,7 @@ const mapCompany = (r: Row): Company => ({
   onboardingCompleted: r.onboarding_completed,
   foerderEnergyCertificate: r.foerder_energy_certificate ?? false,
   foerderFloorplan: r.foerder_floorplan ?? false,
+  businessProfile: { ...EMPTY_BUSINESS_PROFILE, ...(r.business_profile ?? {}) },
   createdAt: r.created_at ?? new Date(0).toISOString(),
 });
 
@@ -176,6 +178,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       if (patch.onboardingCompleted !== undefined) row.onboarding_completed = patch.onboardingCompleted;
       if (patch.foerderEnergyCertificate !== undefined) row.foerder_energy_certificate = patch.foerderEnergyCertificate;
       if (patch.foerderFloorplan !== undefined) row.foerder_floorplan = patch.foerderFloorplan;
+      if (patch.businessProfile !== undefined) row.business_profile = patch.businessProfile;
       const { data, error } = await db.from("companies").update(row).eq("id", companyId).select("*").single();
       fail(error, "company update");
       return mapCompany(data!);
@@ -327,9 +330,12 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
     },
 
     async listQuestions() {
-      const { data, error } = await db.from("assistant_questions").select("*").eq("company_id", companyId).order("position");
+      const [{ data, error }, { data: company }] = await Promise.all([
+        db.from("assistant_questions").select("*").eq("company_id", companyId).order("position"),
+        db.from("companies").select("business_profile").eq("id", companyId).maybeSingle(),
+      ]);
       fail(error, "questions");
-      return (data ?? []).map(mapQuestion);
+      return withAppliesTo((data ?? []).map(mapQuestion), (company?.business_profile ?? {}) as Partial<BusinessProfile>);
     },
     async saveQuestion(q) {
       const row: Row = {

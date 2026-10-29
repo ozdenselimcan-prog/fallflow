@@ -83,14 +83,14 @@ export function DocumentsPanel({ caseId, documents, requirements, customerName, 
 
   return (
     <Card>
-      <CardHeader title="Dokumente" description="Grundriss, Energieausweis, Fotos und sonstige Unterlagen" />
+      <CardHeader title="Dokumente" description="Fotos, Formulare und sonstige Unterlagen" />
       <div className="space-y-4 px-5 py-4">
         {missing.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warning-soft px-4 py-3">
             <p className="flex items-start gap-2 text-sm text-warning">
               <FileWarning className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
-                Für diesen Beratungsfall fehlt noch {missing.map((m) => WITH_ARTICLE[m.kind]).join(" und ")}.
+                Für diesen Fall fehlt noch {missing.map((m) => WITH_ARTICLE[m.kind]).join(" und ")}.
               </span>
             </p>
             {canWrite && (

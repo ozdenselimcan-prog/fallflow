@@ -58,10 +58,13 @@ interface CompanyInitial {
   services: string[];
   foerderEnergyCertificate: boolean;
   foerderFloorplan: boolean;
+  /** Branche aus dem Betriebsprofil – gesetzt = Leistungen kommen aus dem Profil, nicht aus der Energieberatungs-Liste. */
+  industry?: string;
 }
 
 export function CompanyForm({ initial, canEdit }: { initial: CompanyInitial; canEdit: boolean }) {
   const [v, setV] = useState(initial);
+  const profiled = Boolean(initial.industry);
   const [saved, setSaved] = useState(false);
   const { pending, error, run } = useMutation();
   const set = (k: "name" | "website" | "phone" | "address") => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +78,7 @@ export function CompanyForm({ initial, canEdit }: { initial: CompanyInitial; can
   const offersFoerderung = v.services.includes(FOERDER_SERVICE);
 
   return (
-    <FormCard pending={pending} error={error} saved={saved} canEdit={canEdit} onSubmit={async () => setSaved(Boolean(await run(() => apiFetch("PUT", "/api/company", v))))}>
+    <FormCard pending={pending} error={error} saved={saved} canEdit={canEdit} onSubmit={async () => setSaved(Boolean(await run(() => apiFetch("PUT", "/api/company", { name: v.name, website: v.website, phone: v.phone, address: v.address, ...(profiled ? {} : { services: v.services, foerderEnergyCertificate: v.foerderEnergyCertificate, foerderFloorplan: v.foerderFloorplan }) }))))}>
       <Field label="Firmenname">
         <Input value={v.name} onChange={set("name")} required maxLength={120} />
       </Field>
@@ -88,14 +91,26 @@ export function CompanyForm({ initial, canEdit }: { initial: CompanyInitial; can
       <Field label="Adresse">
         <Input value={v.address} onChange={set("address")} maxLength={300} />
       </Field>
-      <Field label="Leistungen" hint="Nur ausgewählte Leistungen kann der Assistent Kunden anbieten.">
-        <div className="grid gap-2 sm:grid-cols-2">
-          {SERVICES.map((s) => (
-            <Checkbox key={s} label={s} checked={v.services.includes(s)} onChange={(on) => toggleService(s, on)} />
-          ))}
-        </div>
-      </Field>
-      {offersFoerderung && (
+      {profiled ? (
+        <Field label="Leistungen" hint="Leistungen, Angaben und Unterlagen ändern Sie unter KI-Assistent → Ihr Betrieb.">
+          <ul className="flex flex-wrap gap-2">
+            {v.services.map((s) => (
+              <li key={s} className="rounded-full border border-border bg-card px-3 py-1 text-sm">
+                {s}
+              </li>
+            ))}
+          </ul>
+        </Field>
+      ) : (
+        <Field label="Leistungen" hint="Nur ausgewählte Leistungen kann der Assistent Kunden anbieten.">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {SERVICES.map((s) => (
+              <Checkbox key={s} label={s} checked={v.services.includes(s)} onChange={(on) => toggleService(s, on)} />
+            ))}
+          </div>
+        </Field>
+      )}
+      {offersFoerderung && !profiled && (
         <Field label="Bei Fördermittelberatung zusätzlich verlangen" hint="Standardmäßig verlangt der Assistent bei reiner Fördermittelberatung weder Energieausweis noch Grundriss.">
           <div className="grid gap-2 sm:grid-cols-2">
             <Checkbox

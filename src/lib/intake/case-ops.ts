@@ -11,15 +11,17 @@ import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
 import { siteConfig } from "@/lib/config/site";
+import { outlookBusy, pushAppointment } from "@/lib/integrations/outlook-calendar";
 import type { Store } from "@/lib/data/store";
-import type { Appointment, CaseDocument, CaseRecord, DocumentKind, DocumentTemplate, MessageChannel, ServiceMessage, TemplateDocument } from "@/lib/data/types";
+import { profileDocumentsFor, type Appointment, type CaseDocument, type CaseRecord, type DocumentKind, type DocumentTemplate, type MessageChannel, type ServiceMessage, type TemplateDocument } from "@/lib/data/types";
 import { extractPdfText } from "@/lib/documents/pdf-text";
 import { readFile, saveFile, sniffMime, type AllowedMime } from "@/lib/documents/storage";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { officeAlreadyRequests } from "./document-mentions";
 import { notifyOffice } from "./notify";
-import { AWAITING_REPLY_KEY, buildChecklist, deriveFields, deriveStatus, documentRequirements, type Checklist, type StatusHint } from "./checklist";
+import { AWAITING_REPLY_KEY, buildChecklist, deriveFields, deriveStatus, documentRequirements, isRelevant, type Checklist, type StatusHint } from "./checklist";
+import { isAnswered } from "@/lib/cases/completeness";
 import { requestsUntrackedItems } from "./request-signals";
 import { appointmentAddonText, appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
 
@@ -66,7 +68,7 @@ export async function matchServiceMaterials(
   const sentIds = uniqueTemplates.length ? new Set((await store.listTemplateDocuments(c.id)).map((td) => td.templateId)) : new Set<string>();
   const pending = uniqueTemplates.filter((t) => !sentIds.has(t.id));
 
-  if (channel !== "email") return matchServiceMaterialsLink(store, c, pending, serviceMessages, service);
+  if (channel !== "email") return matchServiceMaterialsLink(store, c, pending, serviceMessages, service, channel);
 
   // E-Mail: alles in EINER Nachricht – eigene Nachricht des Büros zur Leistung (sonst ein kurzer Standardtext),
   // Hinweis auf die angehängten Formulare und die benötigten Unterlagen (Grundriss/Energieausweis), damit der
@@ -116,12 +118,22 @@ export async function matchServiceMaterials(
   if (introDue) {
     const company = await store.getCompany();
     const documents = await store.listDocuments(c.id);
-    const needed = documentRequirements(c.fields, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan }, serviceMessages)
+    const needed = documentRequirements(c.fields, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) }, serviceMessages)
       .filter((r) => r.required && !documents.some((d) => d.kind === r.kind && d.status === "received"));
     // Was das Büro in seiner eigenen Nachricht schon selbst anfordert (auch als "Baupläne", "Energiepass" …), nicht
     // noch einmal aufzählen.
     const unmentioned = needed.filter((r) => !officeAlreadyRequests(own, r.kind)).map((r) => DOCUMENT_LABELS[r.kind]);
     if (unmentioned.length) parts.push(`Damit wir Ihre Anfrage bearbeiten können, schicken Sie uns bitte außerdem: ${unmentioned.join(", ")} – gern als PDF oder Foto, einfach als Antwort auf diese E-Mail.`);
+    // Betrieb mit Betriebsprofil: fehlende Pflichtangaben und die typischen Unterlagen aus dem Profil erfragen.
+    if (company.businessProfile?.industry) {
+      const missing = (await store.listQuestions())
+        .filter((q) => q.active && q.required && !["name", "email", "service", "description"].includes(q.key) && isRelevant(q, c.fields) && !isAnswered(c.fields, q.key))
+        .filter((q) => !own.toLowerCase().includes(q.label.toLowerCase()))
+        .map((q) => q.label);
+      if (missing.length) parts.push(`Damit wir Ihre Anfrage vorbereiten können, nennen Sie uns bitte noch: ${missing.join(", ")}.`);
+      const docs = profileDocumentsFor(company.businessProfile, service).filter((d) => !own.toLowerCase().includes(d.toLowerCase()));
+      if (docs.length) parts.push(`Sehr hilfreich sind außerdem: ${docs.join(", ")} – gern einfach als Antwort auf diese E-Mail.`);
+    }
     await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
     await store.addEvent(c.id, "document", `Nachricht automatisch an Kunden gesendet (${service})`);
   }
@@ -135,22 +147,30 @@ async function matchServiceMaterialsLink(
   pending: DocumentTemplate[],
   serviceMessages: ServiceMessage[],
   service: string,
+  channel: MessageChannel,
 ): Promise<{ texts: string[]; attachments: InboundAttachment[] } | null> {
+  // WhatsApp: kurze Chat-Nachrichten statt des (für E-Mails geschriebenen) Nachrichtentexts des Büros.
+  const whatsapp = channel === "whatsapp";
   const texts: string[] = [];
   for (const tpl of pending) {
-    const customMessage = serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
+    const customMessage = whatsapp ? "" : serviceMessages.find((m) => m.service === tpl.service)?.body.trim();
     await store.saveTemplateDocument({ caseId: c.id, templateId: tpl.id, status: tpl.requiresReturn === false ? "info" : "sent", storagePath: "", aiNote: "", receivedAt: null });
     const token = await ensureUploadToken(store, c);
     const downloadUrl = `${siteConfig.appUrl}/api/upload/${token}/template/${tpl.id}`;
     texts.push(
-      customMessage
+      whatsapp
+        ? tpl.requiresReturn === false
+          ? `Zu Ihrer Information: „${tpl.title}“ – ${downloadUrl}`
+          : `Bitte füllen Sie dieses Formular aus: „${tpl.title}“ – ${downloadUrl}
+Schicken Sie es uns danach einfach als Foto oder PDF hier im Chat zurück.`
+        : customMessage
         ? `${customMessage}\n\nDokument herunterladen: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`
         : `Für Ihr Anliegen („${tpl.title}“) laden Sie sich bitte das Dokument herunter: ${downloadUrl}. Bitte ausgefüllt per E-Mail an uns zurücksenden.`,
     );
     await store.addEvent(c.id, "document", `Vorlage automatisch an Kunden gesendet: ${tpl.title}`);
   }
   if (texts.length) return { texts, attachments: [] };
-  if (service && c.fields.serviceMessageSentFor !== service) {
+  if (service && c.fields.serviceMessageSentFor !== service && !whatsapp) {
     const standaloneMessage = serviceMessages.find((m) => m.service === service)?.body.trim();
     if (standaloneMessage) {
       await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
@@ -184,11 +204,13 @@ export async function autoBookNextSlot(store: Store, c: CaseRecord): Promise<boo
     maxAppointmentsPerDay: settings.maxAppointmentsPerDay,
     vacation: settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null,
     existing,
+    // Belegte Zeiten im verbundenen Outlook-Kalender auslassen (ohne Verbindung: leer).
+    blocked: await outlookBusy(c.companyId),
   });
   if (!slot) return false;
   await store.saveAppointment({
     caseId: c.id,
-    title: `Beratung ${c.customerName}`,
+    title: `Termin ${c.customerName}`,
     startsAt: slot.toISOString(),
     durationMin: settings.slotMinutes,
     notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team",
@@ -673,12 +695,13 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
     if ((c.fields[AWAITING_REPLY_KEY] ?? "") !== flag) derived[AWAITING_REPLY_KEY] = flag;
   }
   const fields = { ...c.fields, ...derived };
-  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan };
+  const foerderOverrides = { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) };
   const templateTitleById = new Map(templates.map((t) => [t.id, t.title]));
   const templateSends = templateDocs.map((td) => ({ id: td.id, title: templateTitleById.get(td.templateId) ?? "Vorlage", status: td.status, filled: td.filled }));
   // Frage-Flow ist eine reine Website-Chat-Funktion: Bei E-Mail-Fällen fragt die KI nichts davon aktiv ab
   // (siehe engine.ts), deshalb dürfen diese Felder dort auch nicht als "fehlend" die Vollständigkeit blockieren.
-  const includeFields = c.source !== "email";
+  // FallFlow (Betriebsprofil): Die Pflichtangaben aus dem Profil werden auch per E-Mail erfragt und zählen deshalb mit.
+  const includeFields = c.source !== "email" || foerderOverrides.profiled;
   let checklist = buildChecklist({ questions, fields, documents, foerderOverrides, serviceMessages, templateSends, includeFields });
 
   let requestedNow: DocumentKind[] = [];
@@ -758,10 +781,21 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
     overrideStartsAt ? `Vorschlag abgelehnt, Team hat stattdessen bestätigt: ${formatSlot(new Date(saved.startsAt))}` : `Termin vom Team bestätigt: ${formatSlot(new Date(saved.startsAt))}`,
   );
 
+  // In den verbundenen Outlook-Kalender eintragen (ohne Verbindung passiert nichts).
+  const address = [c.fields.street, c.fields.postalCode].filter(Boolean).join(", ");
+  await pushAppointment(c.companyId, saved, {
+    customer: c.customerName,
+    phone: c.fields.phone,
+    email: c.fields.email,
+    address,
+    service: c.fields.service,
+    caseUrl: `${siteConfig.appUrl}/dashboard/cases/${c.id}`,
+  });
+
   const settings = await store.getAssistant();
   const text = appointmentConfirmedText(new Date(saved.startsAt), settings.appointmentConfirmedTemplate);
   const channel = "email" as const;
-  const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Beratungstermin" });
+  const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Termin" });
   await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
 
   return { ok: true, appointment: saved, delivered: result.delivered, reason: result.reason };

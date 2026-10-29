@@ -2,6 +2,8 @@
 
 import { AlertCircle, Bell, CalendarCheck, Check, CheckCircle2, Circle, FileText, Inbox, Mail, Pause, Play, RotateCcw, Send, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { siteConfig } from "@/lib/config/site";
+import { DEFAULT_FILM, type FilmScenario } from "./film-scenario";
 import { cn } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------------------------------
@@ -12,9 +14,9 @@ import { cn } from "@/lib/utils";
 
 const SCENES = [
   { start: 0, title: "Kundenmail kommt rein", text: "Eine ganz normale Anfrage landet in Ihrem Postfach." },
-  { start: 4200, title: "KI erkennt die Angaben", text: "Leistung, Gebäude, Baujahr & Co. wandern automatisch in die Fallakte." },
+  { start: 4200, title: "KI erkennt die Angaben", text: "Leistung, Dach, Schadensfläche & Co. wandern automatisch in die Fallakte." },
   { start: 8200, title: "Antwort mit Ihrer Vorlage", text: "Ihre eigene Nachricht samt PDF-Formular – und was noch fehlt." },
-  { start: 12600, title: "Unterlagen kommen zurück", text: "Formular, Grundriss, Energieausweis: geprüft, ausgelesen, abgelegt." },
+  { start: 12600, title: "Unterlagen kommen zurück", text: "Formular und Fotos: geprüft, ausgelesen, abgelegt." },
   { start: 16800, title: "Fall fertig – Termin steht", text: "Sie bekommen Bescheid und bestätigen nur noch den Termin." },
   { start: 21600, title: "Fragen beantworten Sie", text: "Fragt ein Kunde nach dem Preis, antwortet nicht die KI – sondern Sie." },
 ] as const;
@@ -45,41 +47,13 @@ function Chip({ children, tone = "neutral", className }: { children: ReactNode; 
 
 /* ------------------------------------ Inhalte des Films ------------------------------------ */
 
-const CUSTOMER = "Erika Beispiel";
-const MAIL_PARTS: { text: string; mark?: number }[] = [
-  { text: "Guten Tag, wir möchten für unser " },
-  { text: "Einfamilienhaus", mark: 1 },
-  { text: " von " },
-  { text: "1975", mark: 2 },
-  { text: " (ca. " },
-  { text: "145 m²", mark: 3 },
-  { text: ", " },
-  { text: "Gasheizung", mark: 4 },
-  { text: ") einen " },
-  { text: "individuellen Sanierungsfahrplan", mark: 0 },
-  { text: " erstellen lassen. Viele Grüße, Erika Beispiel" },
-];
-const MAIL_TEXT = MAIL_PARTS.map((p) => p.text).join("");
-/** Startposition jedes Textstücks im Gesamttext (für den Schreibmaschinen-Effekt mit Markierungen). */
-const MAIL_OFFSETS = MAIL_PARTS.map((_, i) => MAIL_PARTS.slice(0, i).reduce((n, p) => n + p.text.length, 0));
-const REPLY =
-  "Vielen Dank für Ihre Anfrage zum individuellen Sanierungsfahrplan! Im Anhang finden Sie unser Datenerfassungsblatt – bitte ausgefüllt zurückschicken. Außerdem benötigen wir noch: Grundriss, Energieausweis.";
-const FIELDS: [string, string][] = [
-  ["Leistung", "iSFP"],
-  ["Gebäude", "Einfamilienhaus"],
-  ["Baujahr", "1975"],
-  ["Wohnfläche", "145 m²"],
-  ["Heizung", "Gas"],
-];
-const FORM_FIELDS: [string, string][] = [
-  ["Adresse", "Lindenweg 7, 82166 Gräfelfing"],
-  ["Aus dem Formular", "Satteldach · 4 Bewohner"],
-];
-const DOCS = ["Datenerfassungsblatt", "Grundriss", "Energieausweis"];
-
 /* ------------------------------------------ Film ------------------------------------------ */
 
-export function CaseFilm() {
+export function CaseFilm({ scenario = DEFAULT_FILM }: { scenario?: FilmScenario } = {}) {
+  const sc = scenario;
+  const MAIL_TEXT = sc.mailParts.map((p) => p.text).join("");
+  /** Startposition jedes Textstücks im Gesamttext (für den Schreibmaschinen-Effekt mit Markierungen). */
+  const MAIL_OFFSETS = sc.mailParts.map((_, i) => sc.mailParts.slice(0, i).reduce((n, p) => n + p.text.length, 0));
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [inView, setInView] = useState(false);
@@ -121,17 +95,17 @@ export function CaseFilm() {
   const mailText = typed(MAIL_TEXT, t, 900, 2800);
   const marksVisible = (i: number) => t >= s2 + 400 + i * 550;
   const fieldsVisible = (i: number) => t >= s2 + 700 + i * 550;
-  const replyText = typed(REPLY, t, s3 + 700, 2600);
+  const replyText = typed(sc.reply, t, s3 + 700, 2600);
   const replySent = t >= s3 + 3700;
   const docDone = (i: number) => t >= s4 + 1500 + i * 700;
   const formVisible = (i: number) => t >= s4 + 2200 + i * 600;
   const ready = t >= s5;
   const confirmed = t >= s5 + 3000;
 
-  const fieldsShown = FIELDS.filter((_, i) => fieldsVisible(i)).length;
+  const fieldsShown = sc.fields.filter((_, i) => fieldsVisible(i)).length;
   const docsShown = t >= s3 + 2000;
-  const docsDone = DOCS.filter((_, i) => docDone(i)).length;
-  const percent = !docsShown ? (fieldsShown ? 20 : 0) : Math.round(((docsDone + 1) / (DOCS.length + 1)) * 100);
+  const docsDone = sc.docs.filter((_, i) => docDone(i)).length;
+  const percent = !docsShown ? (fieldsShown ? 20 : 0) : Math.round(((docsDone + 1) / (sc.docs.length + 1)) * 100);
   const status = ready
     ? { label: "Bereit zur Prüfung", tone: "success" as const }
     : t >= s3 + 3700
@@ -165,7 +139,7 @@ export function CaseFilm() {
             <span className="size-2.5 rounded-full bg-border" />
             <span className="size-2.5 rounded-full bg-border" />
           </span>
-          <span className="ml-2 truncate text-xs font-medium text-muted-foreground">FallFlow · Muster Energieberatung</span>
+          <span className="ml-2 truncate text-xs font-medium text-muted-foreground">{siteConfig.name} · {sc.office}</span>
           <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className={cn("size-1.5 rounded-full", playing && inView ? "animate-pulse bg-danger" : "bg-muted-foreground/40")} aria-hidden />
             {playing && inView ? "live" : "pausiert"}
@@ -179,7 +153,7 @@ export function CaseFilm() {
               <Mail className="mt-0.5 size-4 shrink-0" aria-hidden />
               <div>
                 <p className="font-semibold">Neue E-Mail</p>
-                <p className="text-muted-foreground">{CUSTOMER} · Anfrage iSFP</p>
+                <p className="text-muted-foreground">{sc.customer} · {sc.subject}</p>
               </div>
             </div>
           </Reveal>
@@ -188,7 +162,7 @@ export function CaseFilm() {
               <Bell className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
               <div>
                 <p className="font-semibold">FallFlow: Fall bereit zur Prüfung</p>
-                <p className="text-muted-foreground">{CUSTOMER} (iSFP) – Termin bitte bestätigen</p>
+                <p className="text-muted-foreground">{sc.customer} ({sc.service}) – Termin bitte bestätigen</p>
               </div>
             </div>
           </Reveal>
@@ -196,7 +170,7 @@ export function CaseFilm() {
             <div className="flex items-start gap-2.5 rounded-2xl border border-warning/40 bg-card/95 p-3 text-xs shadow-lg backdrop-blur">
               <Bell className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
               <div>
-                <p className="font-semibold">FallFlow: Max Muster wartet auf Ihre Antwort</p>
+                <p className="font-semibold">{siteConfig.name}: {sc.question.from} wartet auf Ihre Antwort</p>
                 <p className="text-muted-foreground">Frage zum Preis – die KI antwortet nicht selbst.</p>
               </div>
             </div>
@@ -219,9 +193,9 @@ export function CaseFilm() {
 
             {/* Szene 1+2: Kundenmail */}
             <div className={cn("absolute inset-x-4 top-11 transition-all duration-500 sm:inset-x-5", leftView === "mail" ? "opacity-100" : "pointer-events-none -translate-x-4 opacity-0")}>
-              <MailCard from={`${CUSTOMER} <erika@beispiel.de>`} subject="Anfrage iSFP" show={t >= 600}>
+              <MailCard from={`${sc.customer} <${sc.email}>`} subject={sc.subject} show={t >= 600}>
                 <p className="relative leading-relaxed">
-                  {MAIL_PARTS.map((part, i) => {
+                  {sc.mailParts.map((part, i) => {
                       const piece = part.text.slice(0, Math.max(0, mailText.length - MAIL_OFFSETS[i]));
                       if (!piece) return null;
                       return part.mark === undefined ? (
@@ -254,14 +228,14 @@ export function CaseFilm() {
                 <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold">
                   <Sparkles className="size-3.5" aria-hidden /> Antwort von FallFlow · in Ihrem Namen
                 </p>
-                <p className="mb-2 text-xs text-muted-foreground">An: erika@beispiel.de · Betreff: Ihre iSFP-Anfrage</p>
+                <p className="mb-2 text-xs text-muted-foreground">An: {sc.email} · Betreff: Ihre Anfrage zur {sc.service}</p>
                 <p className="min-h-[5.5rem] leading-relaxed">
                   {replyText}
                   {!replySent && t >= s3 + 700 && <span className="ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse bg-foreground" aria-hidden />}
                 </p>
                 <Reveal show={t >= s3 + 2900} from="scale" className="mt-2 inline-block">
                   <Chip tone="neutral" className="bg-card ring-1 ring-border">
-                    <FileText className="size-3" aria-hidden /> Datenerfassungsblatt.pdf
+                    <FileText className="size-3" aria-hidden /> {sc.template}.pdf
                   </Chip>
                 </Reveal>
                 <div className="mt-3 flex items-center justify-end">
@@ -275,10 +249,10 @@ export function CaseFilm() {
 
             {/* Szene 4+5: Kundin antwortet mit Unterlagen */}
             <div className={cn("absolute inset-x-4 top-11 transition-all duration-500 sm:inset-x-5", leftView === "answer" ? "opacity-100" : leftView === "question" ? "pointer-events-none -translate-x-4 opacity-0" : "pointer-events-none translate-x-4 opacity-0")}>
-              <MailCard from={`${CUSTOMER} <erika@beispiel.de>`} subject="Re: Ihre iSFP-Anfrage" show={t >= s4 + 200}>
+              <MailCard from={`${sc.customer} <${sc.email}>`} subject={`Re: Ihre Anfrage zur ${sc.service}`} show={t >= s4 + 200}>
                 <p className="leading-relaxed">{typed("Hallo, anbei alles Gewünschte. Viele Grüße!", t, s4 + 400, 900)}</p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {["Datenerfassungsblatt_ausgefuellt.pdf", "Grundriss.pdf", "Energieausweis.pdf"].map((f, i) => (
+                  {sc.attachments.map((f, i) => (
                     <Reveal key={f} show={t >= s4 + 900 + i * 250} from="scale" className="inline-block">
                       <Chip tone={docDone(i) ? "success" : "neutral"} className={cn(!docDone(i) && "bg-card ring-1 ring-border")}>
                         {docDone(i) ? <Check className="size-3" aria-hidden /> : <FileText className="size-3" aria-hidden />} {f}
@@ -301,11 +275,11 @@ export function CaseFilm() {
 
             {/* Szene 6: Frage eines anderen Kunden */}
             <div className={cn("absolute inset-x-4 top-11 transition-all duration-500 sm:inset-x-5", leftView === "question" ? "opacity-100" : "pointer-events-none translate-x-4 opacity-0")}>
-              <MailCard from="Max Muster <max@beispiel.de>" subject="Energieausweis" show={inSceneSix}>
+              <MailCard from={`${sc.question.from} <kunde@beispiel.de>`} subject={sc.question.subject} show={inSceneSix}>
                 <p className="leading-relaxed">
-                  {typed("Hallo, ich brauche einen Energieausweis für mein Haus. ", t, s6 + 300, 900)}
+                  {typed(sc.question.text, t, s6 + 300, 900)}
                   <mark className={cn("-mx-0.5 rounded px-0.5 transition-colors duration-500", t >= s6 + 1800 ? "bg-warning-soft text-warning" : "bg-transparent text-inherit")}>
-                    {typed("Was kostet das bei Ihnen?", t, s6 + 1200, 600)}
+                    {typed(sc.question.ask, t, s6 + 1200, 600)}
                   </mark>
                 </p>
               </MailCard>
@@ -327,10 +301,10 @@ export function CaseFilm() {
                 <p className="text-xs font-semibold tracking-wider text-muted-foreground">FALLAKTE</p>
                 <Chip tone={status.tone}>{status.label}</Chip>
               </div>
-              <p className={cn("mt-2 text-lg font-semibold transition-opacity duration-500", t >= 1500 ? "opacity-100" : "opacity-0")}>{CUSTOMER}</p>
+              <p className={cn("mt-2 text-lg font-semibold transition-opacity duration-500", t >= 1500 ? "opacity-100" : "opacity-0")}>{sc.customer}</p>
 
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {FIELDS.map(([k, v], i) => (
+                {sc.fields.map(([k, v], i) => (
                   <Reveal key={k} show={fieldsVisible(i)} from="left" className="inline-block">
                     <Chip tone="neutral" className="bg-card ring-1 ring-border">
                       <span className="text-muted-foreground">{k}:</span> <span className="text-foreground">{v}</span>
@@ -339,7 +313,7 @@ export function CaseFilm() {
                 ))}
               </div>
               <div className="mt-2 space-y-1">
-                {FORM_FIELDS.map(([k, v], i) => (
+                {sc.formFields.map(([k, v], i) => (
                   <Reveal key={k} show={formVisible(i)} from="left">
                     <p className="text-xs">
                       <span className="text-muted-foreground">{k}: </span>
@@ -360,7 +334,7 @@ export function CaseFilm() {
               </div>
 
               <ul className="mt-3 space-y-1.5 text-[13px]">
-                {DOCS.map((d, i) => (
+                {sc.docs.map((d, i) => (
                   <Reveal key={d} show={docsShown} className="block" from="up">
                     <li className="flex items-center gap-2">
                       {docDone(i) ? <CheckCircle2 className="size-4 text-success" aria-hidden /> : <Circle className="size-4 text-muted-foreground/40" aria-hidden />}
@@ -398,10 +372,10 @@ export function CaseFilm() {
               <Reveal show={t >= s6 + 2100} className="mt-3">
                 <div className="rounded-2xl border border-border bg-card p-3 text-[13px] shadow-sm">
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold">Max Muster</p>
-                    <Chip tone="warning">Antwort durch Büro nötig</Chip>
+                    <p className="font-semibold">{sc.question.from}</p>
+                    <Chip tone="warning">Ihre Antwort nötig</Chip>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Frage des Kunden: Was kostet das bei Ihnen?</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Frage des Kunden: {sc.question.ask}</p>
                 </div>
               </Reveal>
               <Reveal show={t >= s6 + 3400} className="mt-3">
@@ -427,7 +401,7 @@ export function CaseFilm() {
                 <span className="text-muted-foreground tabular-nums">{scene + 1}/6 · </span>
                 {SCENES[scene].title}
               </p>
-              <p className="line-clamp-2 text-xs text-muted-foreground sm:truncate">{SCENES[scene].text}</p>
+              <p className="line-clamp-2 text-xs text-muted-foreground sm:truncate">{scene === 1 ? sc.recognizes : SCENES[scene].text}</p>
             </div>
             <button type="button" onClick={() => jump(0)} className="hidden shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted sm:flex">
               <RotateCcw className="size-3.5" aria-hidden /> Von vorn

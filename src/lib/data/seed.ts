@@ -37,6 +37,7 @@ export function seedCompany(): Company {
     onboardingCompleted: true,
     foerderEnergyCertificate: false,
     foerderFloorplan: false,
+    businessProfile: { industry: "", description: "", documents: [], humanTopics: [] },
     createdAt: "2026-01-01T00:00:00.000Z",
   };
 }

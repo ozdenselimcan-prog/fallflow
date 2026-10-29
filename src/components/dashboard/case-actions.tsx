@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarPlus, Mail, UserCheck } from "lucide-react";
+import { CalendarPlus, Mail, Trash2, UserCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -27,13 +28,15 @@ const defaultStart = () => {
 
 export function CaseActions({ caseId, customerName, email, status, canWrite }: Props) {
   const { pending, error, run } = useMutation();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [title, setTitle] = useState(`Erstgespräch ${customerName}`);
   const [startsAt, setStartsAt] = useState(defaultStart);
   const [notes, setNotes] = useState("");
 
   const patch = (body: object) => run(() => apiFetch("PATCH", `/api/cases/${caseId}`, body));
-  const mailto = email ? `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Ihre Anfrage zur Energieberatung")}` : undefined;
+  const mailto = email ? `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Ihre Anfrage")}` : undefined;
   const ready = status === "READY_FOR_REVIEW" || status === "COMPLETE";
 
   return (
@@ -54,7 +57,32 @@ export function CaseActions({ caseId, customerName, email, status, canWrite }: P
             <Mail className="size-4" /> E-Mail
           </Button>
         )}
+        {canWrite && (
+          <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-danger">
+            <Trash2 className="size-4" /> Löschen
+          </Button>
+        )}
       </div>
+      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Fall löschen?">
+        <p className="text-sm text-muted-foreground">
+          Der Fall wird mit allen Nachrichten, Dokumenten und Terminen endgültig gelöscht. Schreibt der Kunde danach wieder, beginnt ein neuer Fall.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+            Abbrechen
+          </Button>
+          <Button
+            loading={pending}
+            className="bg-danger text-white hover:bg-danger/90"
+            onClick={async () => {
+              const ok = await run(() => apiFetch("DELETE", `/api/cases/${caseId}`), { refresh: false });
+              if (ok) router.push("/dashboard/cases");
+            }}
+          >
+            Endgültig löschen
+          </Button>
+        </div>
+      </Dialog>
       {error && <Notice tone="error">{error}</Notice>}
 
       <Dialog open={open} onClose={() => setOpen(false)} title="Termin vorschlagen">

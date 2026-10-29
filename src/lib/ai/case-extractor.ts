@@ -1,7 +1,22 @@
 import { heuristicExtract } from "./heuristic";
-import { buildExtractionUserPrompt, EXTRACTION_SYSTEM_PROMPT } from "./prompts";
+import { buildExtractionUserPrompt, EXTRACTION_SYSTEM_PROMPT, genericExtractionPrompt, type ExtractionContext } from "./prompts";
 import { getAiProvider } from "./provider";
-import { extractionSchema, extractionToFields, type Extraction } from "./schema";
+import { extractionSchema, extractionToFields, genericExtractionSchema, genericExtractionToFields, type Extraction } from "./schema";
+import { CORE_FIELD_KEYS } from "./business-profile";
+import type { Company, Question } from "@/lib/data/types";
+
+export type { ExtractionContext };
+
+/** Kontext aus dem Betriebsprofil – null, solange der Betrieb kein Profil eingerichtet hat (dann Energieberatungs-Erkennung). */
+export function extractionContext(company: Pick<Company, "services" | "businessProfile">, questions: Pick<Question, "key" | "label" | "prompt" | "active">[]): ExtractionContext | null {
+  if (!company.businessProfile?.industry) return null;
+  const core = new Set<string>(CORE_FIELD_KEYS);
+  return {
+    industry: company.businessProfile.industry,
+    services: company.services,
+    fields: questions.filter((q) => q.active && !core.has(q.key)).map((q) => ({ key: q.key, label: q.label, prompt: q.prompt })),
+  };
+}
 
 export interface ExtractionResult {
   fields: Record<string, string>;
@@ -15,9 +30,23 @@ export interface ExtractionResult {
  * Extrahiert Fallfelder aus Freitext. Modellausgaben werden nie blind übernommen:
  * ungültiges JSON → Fehler-Log (ohne Nutzertext) und Fallback auf den Regel-Extraktor.
  */
-export async function extractFields(text: string): Promise<ExtractionResult> {
+export async function extractFields(text: string, ctx: ExtractionContext | null = null): Promise<ExtractionResult> {
   const provider = getAiProvider();
   if (!provider) return { fields: heuristicExtract(text), source: "mock", degraded: false };
+
+  if (ctx) {
+    try {
+      const raw = await provider.completeJson(genericExtractionPrompt(ctx), buildExtractionUserPrompt(text));
+      const parsed = genericExtractionSchema.safeParse(raw);
+      if (!parsed.success) return { fields: heuristicExtract(text), source: "mock", degraded: true };
+      const fields = genericExtractionToFields(parsed.data, ctx.services, ctx.fields.map((f) => f.key));
+      fields.description ||= text.trim().slice(0, 1000);
+      return { fields, source: "ai", degraded: false };
+    } catch (err) {
+      console.error("[ai] Extraktion fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
+      return { fields: heuristicExtract(text), source: "mock", degraded: true };
+    }
+  }
 
   try {
     const raw = await provider.completeJson(EXTRACTION_SYSTEM_PROMPT, buildExtractionUserPrompt(text));
