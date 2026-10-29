@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-export const SETUP_VIDEO = { src: "/videos/flowdesk-einrichtung.mp4", poster: "/videos/flowdesk-einrichtung.jpg", length: "1:45 Min." };
+export const SETUP_VIDEO = { src: "/videos/fallflow-einrichtung.mp4", poster: "/videos/fallflow-einrichtung.jpg", length: "1:48 Min." };
 
 /** Das Einrichtungs-Video selbst (liegt auf der eigenen Website – kein YouTube, keine Cookies). */
 export function SetupVideoPlayer({ autoPlay = false, className }: { autoPlay?: boolean; className?: string }) {
