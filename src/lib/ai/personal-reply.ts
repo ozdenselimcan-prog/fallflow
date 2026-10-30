@@ -102,6 +102,14 @@ export function withoutProcessQuestions(text: string): string {
  */
 const SERVICE_REQUEST =
   /^(können|könnten|würden|wären) sie\b.{0,60}\b(an(zu)?sehen|an(zu)?schauen|an(zu)?gucken|ansehen|anschauen|vorbei(zu)?kommen|vorbei(zu)?schauen|reparieren|beheben|erledigen|übernehmen|kümmern|helfen|machen|abdichten|austauschen|tauschen|installieren|einbauen|prüfen|überprüfen)\b[^?]{0,30}\??$/i;
+/**
+ * Die KI stufte normale Schadensmeldungen gern als "Notfall" ein (undichte Dachrinne, fehlende Ziegel) – dann bekam der
+ * Kunde keine Antwort. Ein Notfall zählt nur, wenn der Text selbst akute Gefahr oder Dringlichkeit nennt.
+ */
+const ACUTE =
+  /notfall|dringend|sofort|so schnell wie|bitte schnell|schnell melden|asap|eilig|läuft (gerade |jetzt |schon )?(das )?(wasser )?(ins|in die|in den|durch die decke)|ins haus|in die wohnung|ins (schlaf|wohn|kinder|bade)zimmer|von der decke|durch die decke|überschwemm|unter wasser|wasserschaden|rohrbruch|gasgeruch|riecht nach gas|\bgas\b|brand|feuer|rauch|qualm|funken|stromschlag|kein strom|stromausfall|strom (ist )?weg|(heizung|warmwasser) (ist )?(komplett |ganz )?ausgefallen|verletzt|bewusstlos|atmet schwer|erbricht|gefahr|gefährlich|einsturz|stürzt ein|offen(es)? dach|loch im dach|abgedeckt/i;
+export const unfoundedEmergency = (summary: string, text: string) => /^notfall/i.test(summary) && !ACUTE.test(text);
+
 const isServiceRequest = (s: string) => s.length <= 120 && SERVICE_REQUEST.test(s.trim()) && !HUMAN_TOPIC.test(s);
 
 /**
@@ -198,7 +206,10 @@ export async function customerQuestion(fullText: string, business: QuestionBusin
   try {
     const parsed = schema.safeParse(await provider.completeJson(business ? genericSystem(business) : SYSTEM, `<mail>\n${text.slice(0, 3000)}\n</mail>`));
     if (!parsed.success) return heuristicQuestion(text);
-    return parsed.data.question ? parsed.data.summary.trim() || "Kunde stellt eine Frage" : null;
+    if (!parsed.data.question) return null;
+    const summary = parsed.data.summary.trim();
+    if (unfoundedEmergency(summary, text)) return null;
+    return summary || "Kunde stellt eine Frage";
   } catch (err) {
     console.error("[ai] Frage-Erkennung fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
     return heuristicQuestion(text);

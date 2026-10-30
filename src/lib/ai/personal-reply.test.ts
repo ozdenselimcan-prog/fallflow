@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { customerQuestion, obviousHumanQuestion, withoutProcessQuestions } from "./personal-reply";
+import { customerQuestion, obviousHumanQuestion, unfoundedEmergency, withoutProcessQuestions } from "./personal-reply";
+
+describe("unfoundedEmergency", () => {
+  it("normale Schadensmeldung ist kein Notfall", () => {
+    expect(unfoundedEmergency("Notfall: Dachrinne undicht", "Unsere Dachrinne ist undicht und tropft bei Regen an der Hauswand runter.")).toBe(true);
+    expect(unfoundedEmergency("Notfall: Ziegel fehlen nach Sturm", "Nach dem Sturm fehlen bei uns einige Ziegel auf dem Dach.")).toBe(true);
+  });
+  it("akute Gefahr bleibt ein Notfall", () => {
+    expect(unfoundedEmergency("Notfall: Wasser im Schlafzimmer", "Durch das Dach läuft gerade Wasser ins Schlafzimmer, bitte schnell melden!")).toBe(false);
+    expect(unfoundedEmergency("Notfall: Rohrbruch", "Wir haben einen Rohrbruch im Keller.")).toBe(false);
+    expect(unfoundedEmergency("Notfall: Stromausfall", "Seit heute früh haben wir keinen Strom, kein Strom im ganzen Haus.")).toBe(false);
+  });
+  it("andere Gründe bleiben unberührt", () => {
+    expect(unfoundedEmergency("Frage nach dem Preis", "Was kostet das?")).toBe(false);
+  });
+});
 
 describe("withoutProcessQuestions", () => {
   it("entfernt Fragen zum Ablauf – die beantwortet die KI mit Nachricht und Formular", () => {
