@@ -4,7 +4,6 @@ import { Phone, PhoneForwarded } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { apiFetch } from "@/lib/use-api";
 import { formatDateTime } from "@/lib/utils";
@@ -13,8 +12,7 @@ interface PhoneInfo {
   number: string | null;
   minutesUsed: number;
   includedMinutes: number;
-  extraMinuteEur: number;
-  stopAtLimit: boolean;
+  plan: "starter" | "pro" | "business";
   calls: { id: string; from: string; startedAt: string; durationSec: number; caseId: string | null; status: string }[];
 }
 
@@ -22,7 +20,7 @@ const pretty = (n: string) => n.replace(/^\+49(\d{2,4})(\d+)$/, "0$1 $2");
 const duration = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")} Min.` : `${s} Sek.`);
 
 /** Telefon-Assistent: FallFlow-Nummer, Anleitung zur Rufumleitung, verbrauchte Minuten und letzte Anrufe. */
-export function PhoneCard({ canEdit }: { canEdit: boolean }) {
+export function PhoneCard() {
   const [info, setInfo] = useState<PhoneInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,13 +30,7 @@ export function PhoneCard({ canEdit }: { canEdit: boolean }) {
       .catch((e) => setError(e instanceof Error ? e.message : "Konnte nicht geladen werden"));
   }, []);
 
-  const toggle = async (stopAtLimit: boolean) => {
-    if (!info) return;
-    setInfo({ ...info, stopAtLimit });
-    await apiFetch("PUT", "/api/phone/settings", { stopAtLimit }).catch(() => setInfo({ ...info }));
-  };
-
-  const over = info ? Math.max(0, info.minutesUsed - info.includedMinutes) : 0;
+  const usedUp = info ? info.includedMinutes > 0 && info.minutesUsed >= info.includedMinutes : false;
 
   return (
     <Card className="mt-4">
@@ -97,15 +89,22 @@ export function PhoneCard({ canEdit }: { canEdit: boolean }) {
               </span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-              <div className={over ? "h-full bg-warning" : "h-full bg-accent"} style={{ width: `${Math.min(100, (info.minutesUsed / info.includedMinutes) * 100)}%` }} />
+              <div className={usedUp ? "h-full bg-warning" : "h-full bg-accent"} style={{ width: `${Math.min(100, (info.minutesUsed / info.includedMinutes) * 100)}%` }} />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {info.includedMinutes} Minuten pro Monat inklusive, jede weitere Minute {info.extraMinuteEur.toFixed(2).replace(".", ",")} €. Angefangene Minuten zählen als volle Minute.
-              {over > 0 && ` Diesen Monat ${over} Zusatzminuten.`}
+              {info.includedMinutes} Minuten pro Monat inklusive, ohne Zusatzkosten. Sind sie verbraucht, nimmt die KI bis zum Monatsende keine Anrufe mehr an – Anrufe
+              klingeln dann wie gewohnt bei Ihnen bzw. gehen auf Ihre Mailbox. Angefangene Minuten zählen als volle Minute.
             </p>
-            <div className="mt-3">
-              <Checkbox label="Nach den Inklusivminuten keine Anrufe mehr annehmen (keine Zusatzkosten)" checked={info.stopAtLimit} disabled={!canEdit} onChange={toggle} />
-            </div>
+            {usedUp && (
+              <Notice tone="info" className="mt-3">
+                Die Minuten für diesen Monat sind verbraucht.{" "}
+                {info.plan === "pro" && (
+                  <Link href="/dashboard/settings/billing" className="font-medium underline">
+                    Mehr Minuten im Tarif Business
+                  </Link>
+                )}
+              </Notice>
+            )}
           </div>
         )}
         {info && info.calls.length > 0 && (

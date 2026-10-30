@@ -51,7 +51,7 @@ export interface BusinessProfile {
   needsAddress?: boolean;
   /** Je Angabe (Schlüssel der Frage), bei welchen Leistungen sie gebraucht wird. Fehlt/leer = bei allen. */
   fieldServices?: Record<string, string[]>;
-  /** Telefon-Assistent: nach Verbrauch der Inklusivminuten keine Anrufe mehr annehmen (statt Zusatzminuten). */
+  /** Veraltet: früher Schalter für Zusatzminuten – heute endet der Telefon-Assistent immer bei den Inklusivminuten. */
   phoneStopAtLimit?: boolean;
   /** Je PDF-Vorlage die darin abgefragten Angaben – im Chat (WhatsApp, Telefon) werden sie einzeln gefragt statt das PDF zu schicken. */
   templateQuestions?: Record<string, { key: string; label: string; prompt: string }[]>;

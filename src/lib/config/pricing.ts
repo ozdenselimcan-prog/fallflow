@@ -52,7 +52,5 @@ export const VAT_NOTE = "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.";
 
 export const getPlan = (id: string) => plans.find((p) => p.id === id) ?? plans[0];
 
-/** Telefon-Assistent: Preis je Minute über dem Inklusivkontingent des Plans. */
-export const PHONE_EXTRA_MINUTE_EUR = 0.39;
-/** Inklusivminuten des Plans (Telefon-Assistent); 0 = im Plan nicht enthalten (Starter). */
+/** Inklusivminuten des Plans (Telefon-Assistent); 0 = im Plan nicht enthalten (Starter). Danach nimmt die KI keine Anrufe mehr an – es gibt keine Zusatzminuten. */
 export const phoneMinutesFor = (planId: string) => getPlan(planId).phoneMinutes;

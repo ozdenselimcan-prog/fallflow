@@ -216,7 +216,7 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
             <ConnectionsPanel {...data.connections} />
             <WhatsAppCard canEdit={data.connections.canManage} />
             <CalendarCard canEdit={data.connections.canManage} />
-            <PhoneCard canEdit={data.connections.canManage} />
+            <PhoneCard />
           </>
         )}
 
