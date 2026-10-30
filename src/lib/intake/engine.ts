@@ -298,7 +298,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
       await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
       await store.addEvent(caseId, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
-      replies.push(pendingText);
+      replies.push(withoutRepeatedThanks(replies, pendingText));
     };
 
     /** Versucht zuerst ein konkretes Datum, sonst einen Wochentag-Bereich aus dem Kundentext zu lesen und vorzuschlagen. Gibt zurück, ob etwas erkannt wurde. */
@@ -369,7 +369,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       if (await autoBookNextSlot(store, refreshed.caseRecord)) {
         // Abschluss-Nachricht und Terminhinweis in einem Satz statt doppeltem "Vielen Dank … ein Mitarbeiter …".
         if (completionIndex >= 0) replies[completionIndex] = await completionTextFor(store, refreshed.caseRecord.fields.service, { appointmentProposed: true });
-        else replies.push(appointmentPendingReviewText);
+        else replies.push(withoutRepeatedThanks(replies, appointmentPendingReviewText));
       }
     }
     // stage "proposed"/"confirmed"/"failed": liegt beim Team bzw. ist bereits final – die KI sagt dazu nichts Neues mehr.
@@ -424,6 +424,10 @@ function eventForSource(source: CaseSource, simulated?: boolean) {
 
 /** Feld: "1" = KI antwortet in diesem Chat nicht automatisch (Team hat übernommen). */
 export const AI_PAUSED_KEY = "aiPaused";
+
+/** Kein zweites "Vielen Dank!" direkt hinter einer Nachricht, die schon dankt ("Vielen Dank für Ihre Anfrage …"). */
+export const withoutRepeatedThanks = (previous: string[], text: string) =>
+  previous.some((r) => /vielen dank/i.test(r)) ? text.replace(/^Vielen Dank!\s*/, "") : text;
 
 /** Nachricht bei pausierter KI nur speichern und dem Team zeigen ("Aufmerksamkeit benötigt"). */
 async function recordWhilePaused(store: Store, existing: CaseRecord, input: IntakeInput): Promise<IntakeTurn> {
