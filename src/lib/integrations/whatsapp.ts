@@ -150,7 +150,7 @@ export const embeddedSignupConfig = () =>
  * dann mit den möglichen Adressen. Ein abgelehnter Versuch verbraucht den Code nicht.
  */
 export async function exchangeSignupCode(code: string, pageUrl?: string): Promise<string> {
-  const candidates: (string | undefined)[] = [undefined];
+  const candidates: (string | undefined)[] = [undefined, ""];
   if (pageUrl) {
     const u = new URL(pageUrl);
     candidates.push(`${u.origin}${u.pathname}`, `${u.origin}/`, u.origin);
