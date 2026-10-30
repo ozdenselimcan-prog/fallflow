@@ -72,6 +72,8 @@ export function normalizeWhatsAppQuestions(list: { key?: string; label?: string;
 
 /** Füllfragen, die im Chat nur nerven – das Modell schlug sie trotz Anweisung gern vor. */
 const FILLER = /wünsche|anmerkung|besonder|dringend|dringlich|kontakt|erreich|zeitrahmen|zeitraum|wie viel zeit|dauer|terminwunsch|wunschtermin|wann (passt|hätten|möchten)|vorherig|erfahrung|schon einmal|erste[rn]? besuch|zugang|kennzeichen/i;
+/** Frage nach der Leistung selbst ("Welche Behandlung möchten Sie?", "Art der Anfrage") – erkennt der Assistent selbst. */
+const ASKS_SERVICE = /welche (behandlung|leistung|dienstleistung|reinigung|arbeiten)|art der (anfrage|arbeiten|reinigung|behandlung|leistung|dienstleistung)|^behandlung$|worum geht es/i;
 
 /**
  * Vorschlag absichern: bekannte Angaben des Betriebs bleiben (fehlende werden ergänzt), neue Fragen nur ohne Füllfragen
@@ -80,7 +82,7 @@ const FILLER = /wünsche|anmerkung|besonder|dringend|dringlich|kontakt|erreich|z
 export function tightenSuggestion(list: WhatsAppQuestion[], src: Pick<WhatsAppQuestionSource, "known" | "needsAddress">): WhatsAppQuestion[] {
   const knownKeys = new Set(src.known.map((k) => k.key));
   const known = list.filter((q) => knownKeys.has(q.key));
-  const fresh = list.filter((q) => !knownKeys.has(q.key) && !FILLER.test(`${q.label} ${q.prompt}`)).slice(0, 2);
+  const fresh = list.filter((q) => !knownKeys.has(q.key) && !FILLER.test(`${q.label} ${q.prompt}`) && !ASKS_SERVICE.test(q.label) && !ASKS_SERVICE.test(q.prompt)).slice(0, 2);
   // Bekannte Angaben, die das Modell weggelassen hat, ergänzen (die PLZ steckt in der Adressfrage).
   for (const k of src.known) {
     if (known.some((q) => q.key === k.key) || k.key === "postalCode" || (k.key === "street" && !src.needsAddress)) continue;

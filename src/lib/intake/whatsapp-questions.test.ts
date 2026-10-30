@@ -24,6 +24,16 @@ describe("WhatsApp-Vorschlag absichern", () => {
     expect(list.map((q) => q.key)).toEqual(["street", "roofType", "roofArea", "waEtagen"]);
     expect(list.find((q) => q.key === "roofArea")?.services).toEqual(["Sturmschaden"]);
   });
+  it("fragt nicht nach der Leistung selbst", () => {
+    const list = tightenSuggestion(
+      [
+        { key: "waBehandlung", label: "Behandlung", prompt: "Welche Behandlung möchten Sie gerne buchen?", services: [] },
+        { key: "waArtDerAnfrage", label: "Art der Anfrage", prompt: "Um welche Art von Anfrage handelt es sich?", services: [] },
+      ],
+      { known: [], needsAddress: false },
+    );
+    expect(list).toEqual([]);
+  });
   it("ohne Einsatz vor Ort keine Adresse ergänzen", () => {
     expect(tightenSuggestion([], { known, needsAddress: false }).map((q) => q.key)).toEqual(["roofType", "roofArea"]);
   });
