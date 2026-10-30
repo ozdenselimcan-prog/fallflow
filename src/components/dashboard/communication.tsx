@@ -66,11 +66,13 @@ interface Props {
   messages: CaseMessage[];
   canWrite: boolean;
   hasEmail: boolean;
+  /** Kunde kam per WhatsApp: Nachrichten des Teams gehen per WhatsApp raus (ohne Betreff). */
+  whatsapp?: boolean;
   title?: string;
 }
 
 /** Kommunikation eines Falls: Verlauf, Telefonnotiz (Angaben werden übernommen) und Nachricht an den Kunden. */
-export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title = "Kommunikation" }: Props) {
+export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whatsapp = false, title = "Kommunikation" }: Props) {
   const { pending, error, run } = useMutation();
   const [mode, setMode] = useState<"phone_note" | "email">("phone_note");
   const [text, setText] = useState("");
@@ -85,7 +87,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
         caseId,
         content: text,
         kind: mode,
-        ...(mode === "email" && subject.trim() ? { subject: subject.trim() } : {}),
+        ...(mode === "email" && !whatsapp && subject.trim() ? { subject: subject.trim() } : {}),
       }),
     );
     if (!res) return;
@@ -99,7 +101,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
 
   return (
     <Card>
-      <CardHeader title={title} description="E-Mails und Telefonnotizen in einem Verlauf" />
+      <CardHeader title={title} description={whatsapp ? "WhatsApp-Nachrichten und Telefonnotizen in einem Verlauf" : "E-Mails und Telefonnotizen in einem Verlauf"} />
       <div className="space-y-4 px-5 py-4">
         <MessageThread messages={messages} className="max-h-96" resendCaseId={canWrite && hasEmail ? caseId : undefined} />
         {canWrite && (
@@ -110,11 +112,11 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, title
               </label>
               <Select id={`mode-${caseId}`} value={mode} onChange={(e) => setMode(e.target.value as typeof mode)} className="h-9 w-auto">
                 <option value="phone_note">Telefonnotiz</option>
-                <option value="email">Nachricht per E-Mail</option>
+                <option value="email">{whatsapp ? "Nachricht per WhatsApp" : "Nachricht per E-Mail"}</option>
               </Select>
-              {!channelReady && <span className="text-xs text-warning">Dafür fehlt eine E-Mail-Adresse im Fall.</span>}
+              {!channelReady && <span className="text-xs text-warning">{whatsapp ? "Dafür fehlt die WhatsApp-Nummer im Fall." : "Dafür fehlt eine E-Mail-Adresse im Fall."}</span>}
             </div>
-            {mode === "email" && (
+            {mode === "email" && !whatsapp && (
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}

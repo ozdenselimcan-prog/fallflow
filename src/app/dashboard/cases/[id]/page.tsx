@@ -210,7 +210,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             canWrite={canWrite}
           />
           {!profiled && <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} locked={!hasAiTools(subscription.plan)} />}
-          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email) || (c.source === "whatsapp" && Boolean(c.fields.phone))} />
+          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email) || (c.source === "whatsapp" && Boolean(c.fields.phone))} whatsapp={c.source === "whatsapp"} />
         </div>
       </div>
     </div>
