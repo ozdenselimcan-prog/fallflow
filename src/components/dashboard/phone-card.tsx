@@ -52,7 +52,7 @@ export function PhoneCard({ canEdit }: { canEdit: boolean }) {
         {!info && !error && <p className="text-muted-foreground">Wird geladen …</p>}
         {info && info.includedMinutes === 0 && (
           <p className="text-muted-foreground">
-            Der Telefon-Assistent ist ab dem Tarif Pro enthalten (200 Minuten pro Monat).{" "}
+            Der Telefon-Assistent ist ab dem Tarif Pro enthalten (120 Minuten pro Monat).{" "}
             <Link href="/dashboard/settings/billing" className="font-medium text-accent hover:underline">
               Tarif ändern
             </Link>
