@@ -35,7 +35,7 @@ export const plans: Plan[] = [
     caseLimit: 500,
     phoneMinutes: 120,
     highlighted: true,
-    extras: ["500 Kundenanfragen/Monat", "Telefon-Assistent mit 120 Minuten/Monat"],
+    extras: ["500 Kundenanfragen/Monat", "Telefon-Assistent mit 120 Minuten/Monat (bald verfügbar)"],
   }),
   plan({
     id: "business",
@@ -43,7 +43,7 @@ export const plans: Plan[] = [
     priceEur: 149,
     caseLimit: null,
     phoneMinutes: 260,
-    extras: ["Unbegrenzte Kundenanfragen", "Telefon-Assistent mit 240 Minuten/Monat + 20 Minuten geschenkt", "Prioritätssupport"],
+    extras: ["Unbegrenzte Kundenanfragen", "Telefon-Assistent mit 240 Minuten/Monat + 20 Minuten geschenkt (bald verfügbar)", "Prioritätssupport"],
   }),
 ];
 

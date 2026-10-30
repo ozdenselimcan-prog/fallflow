@@ -37,7 +37,7 @@ export function PhoneCard() {
       <CardHeader
         title="Telefon-Assistent"
         description="Die KI nimmt Anrufe an, fragt die nötigen Angaben ab und legt den Fall an – wie bei E-Mails."
-        action={info?.number ? <Badge tone="success">Aktiv</Badge> : <Badge>Noch nicht eingerichtet</Badge>}
+        action={info?.number ? <Badge tone="success">Aktiv</Badge> : <Badge>Bald verfügbar</Badge>}
       />
       <div className="space-y-4 p-5 text-sm">
         {error && <Notice tone="error">{error}</Notice>}
@@ -52,7 +52,7 @@ export function PhoneCard() {
         )}
         {info && info.includedMinutes > 0 && !info.number && (
           <p className="text-muted-foreground">
-            Für Ihren Betrieb ist noch keine FallFlow-Telefonnummer eingerichtet. Schreiben Sie uns, dann richten wir Ihnen eine Nummer ein.
+            Der Telefon-Assistent ist bald verfügbar. Sobald es losgeht, richten wir Ihnen eine eigene FallFlow-Nummer ein und melden uns bei Ihnen.
           </p>
         )}
         {info?.number && (
