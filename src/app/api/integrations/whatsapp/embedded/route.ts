@@ -24,7 +24,8 @@ export const POST = withSession(
     if (!body.ok) return body.res;
     let token: string;
     try {
-      token = await exchangeSignupCode(body.data.code);
+      // Seite, auf der das Anmeldefenster geöffnet wurde (gleiche Herkunft → vollständiger Referer), für die redirect_uri.
+      token = await exchangeSignupCode(body.data.code, req.headers.get("referer") ?? undefined);
     } catch (err) {
       console.error("[whatsapp] Anmeldung fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
       return apiError("Die Anmeldung bei Meta ist fehlgeschlagen. Bitte noch einmal versuchen.", 400);

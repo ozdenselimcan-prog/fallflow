@@ -144,13 +144,28 @@ export async function findSignupNumber(token: string, wabaId?: string): Promise<
 export const embeddedSignupConfig = () =>
   process.env.META_APP_ID && process.env.WHATSAPP_CONFIG_ID && process.env.WHATSAPP_APP_SECRET ? { appId: process.env.META_APP_ID, configId: process.env.WHATSAPP_CONFIG_ID } : null;
 
-/** Code aus der Facebook-Anmeldung gegen einen dauerhaften Zugangstoken des Betriebs tauschen. */
-export async function exchangeSignupCode(code: string): Promise<string> {
-  const q = new URLSearchParams({ client_id: process.env.META_APP_ID ?? "", client_secret: process.env.WHATSAPP_APP_SECRET ?? "", code });
-  const res = await fetch(`${GRAPH}/oauth/access_token?${q}`, { signal: AbortSignal.timeout(10_000) });
-  const body = (await res.json().catch(() => ({}))) as { access_token?: string; error?: { message?: string } };
-  if (!res.ok || !body.access_token) throw new Error(body.error?.message ?? `HTTP ${res.status}`);
-  return body.access_token;
+/**
+ * Code aus der Facebook-Anmeldung gegen einen dauerhaften Zugangstoken des Betriebs tauschen. Je nach App-Einstellung
+ * verlangt Meta dabei dieselbe redirect_uri wie im Anmeldefenster (beim JS-SDK die aufrufende Seite) – daher erst ohne,
+ * dann mit den möglichen Adressen. Ein abgelehnter Versuch verbraucht den Code nicht.
+ */
+export async function exchangeSignupCode(code: string, pageUrl?: string): Promise<string> {
+  const candidates: (string | undefined)[] = [undefined];
+  if (pageUrl) {
+    const u = new URL(pageUrl);
+    candidates.push(`${u.origin}${u.pathname}`, `${u.origin}/`, u.origin);
+  }
+  let lastError = "";
+  for (const redirect of [...new Set(candidates)]) {
+    const q = new URLSearchParams({ client_id: process.env.META_APP_ID ?? "", client_secret: process.env.WHATSAPP_APP_SECRET ?? "", code });
+    if (redirect !== undefined) q.set("redirect_uri", redirect);
+    const res = await fetch(`${GRAPH}/oauth/access_token?${q}`, { signal: AbortSignal.timeout(10_000) });
+    const body = (await res.json().catch(() => ({}))) as { access_token?: string; error?: { message?: string } };
+    if (res.ok && body.access_token) return body.access_token;
+    lastError = body.error?.message ?? `HTTP ${res.status}`;
+    if (!/redirect_uri/i.test(lastError)) break;
+  }
+  throw new Error(lastError);
 }
 
 /** Neue Nummer für die Cloud API freischalten (bei bereits registrierten Nummern meldet Meta einen harmlosen Fehler). */
