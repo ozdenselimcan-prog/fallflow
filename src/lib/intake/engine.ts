@@ -170,7 +170,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   }
   if (!attention && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
-    const several = existing ? [] : mentionedServices(input.text, company.services);
+    // Termin-Betriebe ohne Einsatz vor Ort (Friseur, Werkstatt …): mehrere Leistungen sind ein Termin ("Schneiden und
+    // Färben", "Inspektion und Reifenwechsel") – dann normal antworten. Bei Handwerkern sind es zwei Aufträge.
+    const several = existing || company.businessProfile?.needsAddress === false ? [] : mentionedServices(input.text, company.services);
     if (turn.handoff) attention = "Kunde wünscht persönlichen Kontakt";
     // Mehrere angebotene Leistungen in einer Anfrage: nicht nur eine davon beantworten und die andere still übergehen.
     else if (several.length > 1) attention = `Kunde fragt nach mehreren Leistungen (${several.join(" und ")})`;

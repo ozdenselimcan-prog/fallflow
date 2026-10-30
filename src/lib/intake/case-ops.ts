@@ -130,7 +130,7 @@ export async function matchServiceMaterials(
         .filter((q) => q.active && q.required && !["name", "email", "service", "description"].includes(q.key) && isRelevant(q, c.fields) && !isAnswered(c.fields, q.key))
         .filter((q) => !own.toLowerCase().includes(q.label.toLowerCase()))
         .map((q) => q.label);
-      if (missing.length) parts.push(`Damit wir Ihre Anfrage vorbereiten können, nennen Sie uns bitte noch: ${missing.join(", ")}.`);
+      if (missing.length) parts.push(`Damit wir Ihre Anfrage vorbereiten können, nennen Sie uns bitte noch: ${missing.join(", ").replace(/\.$/, "")}.`);
       const docs = profileDocumentsFor(company.businessProfile, service).filter((d) => !own.toLowerCase().includes(d.toLowerCase()));
       if (docs.length) parts.push(`Sehr hilfreich sind außerdem: ${docs.join(", ")} – gern einfach als Antwort auf diese E-Mail.`);
     }
