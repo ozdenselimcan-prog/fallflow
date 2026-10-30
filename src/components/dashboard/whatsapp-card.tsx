@@ -81,7 +81,7 @@ export function WhatsAppCard({ canEdit }: { canEdit: boolean }) {
         </a>
         {connected && s?.connection?.number && <WhatsAppShare number={s.connection.number} />}
         {s && !s.available && <p className="text-muted-foreground">WhatsApp ist für diese Installation noch nicht eingerichtet.</p>}
-        {s?.available && !connected && canEdit && s.embedded && <WhatsAppSignup appId={s.embedded.appId} configId={s.embedded.configId} onDone={load} />}
+        {s?.available && !connected && canEdit && s.embedded && <WhatsAppSignup />}
         {s?.available && !connected && canEdit && (
           <details className="space-y-3" open={!s.embedded}>
             <summary className={s.embedded ? "cursor-pointer text-xs text-muted-foreground" : "hidden"}>Manuell verbinden (Telefonnummer-ID und Zugangstoken)</summary>

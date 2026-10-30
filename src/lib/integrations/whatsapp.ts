@@ -149,23 +149,26 @@ export const embeddedSignupConfig = () =>
  * verlangt Meta dabei dieselbe redirect_uri wie im Anmeldefenster (beim JS-SDK die aufrufende Seite) – daher erst ohne,
  * dann mit den möglichen Adressen. Ein abgelehnter Versuch verbraucht den Code nicht.
  */
-export async function exchangeSignupCode(code: string, pageUrl?: string): Promise<string> {
-  const candidates: (string | undefined)[] = [undefined, ""];
-  if (pageUrl) {
-    const u = new URL(pageUrl);
-    candidates.push(`${u.origin}${u.pathname}`, `${u.origin}/`, u.origin);
-  }
-  let lastError = "";
-  for (const redirect of [...new Set(candidates)]) {
-    const q = new URLSearchParams({ client_id: process.env.META_APP_ID ?? "", client_secret: process.env.WHATSAPP_APP_SECRET ?? "", code });
-    if (redirect !== undefined) q.set("redirect_uri", redirect);
-    const res = await fetch(`${GRAPH}/oauth/access_token?${q}`, { signal: AbortSignal.timeout(10_000) });
-    const body = (await res.json().catch(() => ({}))) as { access_token?: string; error?: { message?: string } };
-    if (res.ok && body.access_token) return body.access_token;
-    lastError = body.error?.message ?? `HTTP ${res.status}`;
-    if (!/redirect_uri/i.test(lastError)) break;
-  }
-  throw new Error(lastError);
+export async function exchangeSignupCode(code: string, redirectUri: string): Promise<string> {
+  const q = new URLSearchParams({ client_id: process.env.META_APP_ID ?? "", client_secret: process.env.WHATSAPP_APP_SECRET ?? "", code, redirect_uri: redirectUri });
+  const res = await fetch(`${GRAPH}/oauth/access_token?${q}`, { signal: AbortSignal.timeout(10_000) });
+  const body = (await res.json().catch(() => ({}))) as { access_token?: string; error?: { message?: string } };
+  if (!res.ok || !body.access_token) throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+  return body.access_token;
+}
+
+/** Meta-Anmeldeseite für die WhatsApp-Einrichtung (Embedded Signup per Weiterleitung, ohne JS-SDK). */
+export function signupDialogUrl(config: { appId: string; configId: string }, redirectUri: string, state: string): string {
+  const q = new URLSearchParams({
+    client_id: config.appId,
+    config_id: config.configId,
+    redirect_uri: redirectUri,
+    state,
+    response_type: "code",
+    override_default_response_type: "true",
+    extras: JSON.stringify({ setup: {}, featureType: "", sessionInfoVersion: "3" }),
+  });
+  return `https://www.facebook.com/v25.0/dialog/oauth?${q}`;
 }
 
 /** Neue Nummer für die Cloud API freischalten (bei bereits registrierten Nummern meldet Meta einen harmlosen Fehler). */

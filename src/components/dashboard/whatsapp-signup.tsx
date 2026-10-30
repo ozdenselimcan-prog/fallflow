@@ -1,89 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/states";
 import { apiFetch } from "@/lib/use-api";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-declare global {
-  interface Window {
-    FB?: any;
-    fbAsyncInit?: () => void;
-  }
-}
-
-let sdkPromise: Promise<void> | null = null;
-/** Facebook-SDK einmalig laden (erst beim Klick – keine Facebook-Skripte beim normalen Seitenaufruf). */
-function loadSdk(appId: string): Promise<void> {
-  sdkPromise ??= new Promise((resolve, reject) => {
-    window.fbAsyncInit = () => {
-      window.FB.init({ appId, autoLogAppEvents: false, xfbml: false, version: "v25.0" });
-      resolve();
-    };
-    const s = document.createElement("script");
-    s.src = "https://connect.facebook.net/de_DE/sdk.js";
-    s.async = true;
-    s.defer = true;
-    s.crossOrigin = "anonymous";
-    s.onerror = () => {
-      sdkPromise = null;
-      reject(new Error("Facebook konnte nicht geladen werden"));
-    };
-    document.body.appendChild(s);
-  });
-  return sdkPromise;
-}
+const RESULTS: Record<string, { tone: "success" | "error"; text: string }> = {
+  "whatsapp-connected": { tone: "success", text: "WhatsApp ist verbunden." },
+  "whatsapp-denied": { tone: "error", text: "Die Anmeldung bei Meta wurde abgebrochen." },
+  "whatsapp-error": { tone: "error", text: "Die Anmeldung bei Meta hat nicht geklappt. Bitte noch einmal versuchen." },
+  "whatsapp-failed": { tone: "error", text: "Die Verbindung zu WhatsApp konnte nicht hergestellt werden. Bitte noch einmal versuchen." },
+  "whatsapp-no-number": { tone: "error", text: "In Ihrem WhatsApp-Konto wurde keine Nummer gefunden. Bitte die Einrichtung noch einmal durchklicken und eine Nummer auswählen." },
+};
 
 /**
- * WhatsApp per Facebook verbinden (Meta Embedded Signup): Der Betrieb meldet sich an, wählt bzw. bestätigt seine Nummer –
- * FallFlow bekommt Telefonnummer-ID, Konto-ID und einen Code, der serverseitig gegen den Zugangstoken getauscht wird.
+ * WhatsApp per Facebook verbinden (Meta Embedded Signup per Weiterleitung): Der Betrieb meldet sich bei Meta an, wählt
+ * bzw. bestätigt seine Nummer und kommt zurück – den Rest (Token, Nummer, Freischaltung) erledigt der Server.
  */
-export function WhatsAppSignup({ appId, configId, onDone }: { appId: string; configId: string; onDone: () => void }) {
+export function WhatsAppSignup() {
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+
+  // Rückmeldung nach der Anmeldung (?integration=whatsapp-…) anzeigen.
+  useEffect(() => {
+    const result = RESULTS[new URLSearchParams(window.location.search).get("integration") ?? ""];
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- einmalig nach der Rückleitung
+    if (result) setNotice(result);
+  }, []);
 
   const start = async () => {
     setPending(true);
-    setError(null);
+    setNotice(null);
     try {
-      await loadSdk(appId);
-      const session: { phoneNumberId?: string; wabaId?: string } = {};
-      const onMessage = (event: MessageEvent) => {
-        if (!/facebook\.com$/.test(new URL(event.origin).hostname)) return;
-        try {
-          const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-          if (data?.type === "WA_EMBEDDED_SIGNUP") {
-            session.phoneNumberId ||= data.data?.phone_number_id;
-            session.wabaId ||= data.data?.waba_id;
-          }
-        } catch {
-          // andere Nachrichten von Facebook ignorieren
-        }
-      };
-      window.addEventListener("message", onMessage);
-      const code = await new Promise<string | null>((resolve) =>
-        window.FB.login((res: any) => resolve(res?.authResponse?.code ?? null), {
-          config_id: configId,
-          response_type: "code",
-          override_default_response_type: true,
-          extras: { setup: {}, featureType: "", sessionInfoVersion: "3" },
-        }),
-      );
-      // Die Sitzungsdaten kommen manchmal kurz nach dem Code an.
-      for (let i = 0; i < 20 && code && !session.phoneNumberId; i++) await new Promise((r) => setTimeout(r, 150));
-      window.removeEventListener("message", onMessage);
-      if (!code) throw new Error("Die Anmeldung wurde abgebrochen.");
-      // Fehlen Nummer oder Konto-ID (z. B. bestehendes Konto gewählt), ermittelt der Server sie mit dem Token selbst.
-      await apiFetch("POST", "/api/integrations/whatsapp/embedded", {
-        code,
-        ...(session.phoneNumberId ? { phoneNumberId: session.phoneNumberId } : {}),
-        ...(session.wabaId ? { wabaId: session.wabaId } : {}),
-      });
-      onDone();
+      const res = await apiFetch<{ authUrl: string }>("POST", "/api/integrations/whatsapp/embedded", { returnTo: window.location.pathname });
+      window.location.href = res.authUrl;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Verbindung fehlgeschlagen");
-    } finally {
+      setNotice({ tone: "error", text: e instanceof Error ? e.message : "Anmeldung konnte nicht gestartet werden." });
       setPending(false);
     }
   };
@@ -94,7 +46,7 @@ export function WhatsAppSignup({ appId, configId, onDone }: { appId: string; con
         Mit Facebook verbinden
       </Button>
       <p className="text-xs text-muted-foreground">Sie melden sich bei Meta an und wählen bzw. bestätigen Ihre WhatsApp-Nummer – dauert etwa 2 Minuten.</p>
-      {error && <Notice tone="error">{error}</Notice>}
+      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
     </div>
   );
 }
