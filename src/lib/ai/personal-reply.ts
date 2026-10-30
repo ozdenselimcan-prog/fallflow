@@ -44,8 +44,9 @@ question=true, wenn
 - es um eines dieser Themen geht, die der Betrieb immer selbst beantwortet: ${b.humanTopics.join(", ") || "Preise und Kosten"}
   (z. B. ein dringender Notfall, eine Reklamation, eine Beschwerde) – auch ohne Fragezeichen, oder
   Ein Notfall ist nur akute Gefahr oder ein Schaden, der sofort schlimmer wird (Wasser läuft ins Haus, Rohrbruch,
-  Heizung/Strom komplett ausgefallen, Gasgeruch, Sturmschaden mit offenem Dach). Eine normale Reparatur- oder
-  Schadensmeldung (tropfender Wasserhahn, klemmende Tür, defekte Lampe) ist KEIN Notfall, sondern eine Anfrage (false).
+  Heizung/Strom komplett ausgefallen, Gasgeruch, Sturmschaden mit offenem Dach und Wasser im Haus). Eine normale
+  Reparatur- oder Schadensmeldung (tropfender Wasserhahn, klemmende Tür, defekte Lampe, fehlende oder verrutschte
+  Dachziegel ohne Wassereintritt) ist KEIN Notfall, sondern eine Anfrage (false).
 - der Kunde ausdrücklich einen Rückruf, ein Telefonat oder ein persönliches Gespräch wünscht.
 summary: kurz, worum es geht (z. B. "Notfall: Wasser tropft ins Haus", "Frage nach dem Preis").
 
@@ -53,6 +54,8 @@ question=false bei:
 - reiner Anfrage/Beauftragung ohne eigene Frage – auch wenn der Kunde viele Details nennt ("Wir möchten eine Wallbox
   installieren lassen, 11 kW", "Ich hätte gern ein Angebot für …", "Wir brauchen …"). Der Wunsch nach einer Leistung ist
   KEINE Frage – darauf antwortet der Betrieb mit seiner Standard-Nachricht. Erfinde keine Frage, die nicht im Text steht.
+  Auch eine als Frage formulierte Bitte um die Leistung ist keine Frage ("Können Sie sich das ansehen?", "Können Sie
+  das reparieren?", "Könnten Sie vorbeikommen?", "Hätten Sie Zeit, sich das anzuschauen?").
 - Höflichkeitsfloskeln ohne konkreten Inhalt, Fragen danach, welche Angaben oder Unterlagen gebraucht werden,
   reinen Angaben, Fotos, Bestätigungen oder Dank.
 - Terminwünschen ("am liebsten nächste Woche", "vormittags passt es besser") – einen Termin schlägt der Betrieb ohnehin vor.
