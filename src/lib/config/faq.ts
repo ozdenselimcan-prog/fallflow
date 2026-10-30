@@ -21,7 +21,7 @@ export const faqs = [
   },
   {
     q: "Funktioniert das auch mit WhatsApp und Telefon?",
-    a: "Ja. Verbinden Sie Ihre WhatsApp-Business-Nummer, beantwortet die KI auch WhatsApp-Nachrichten – Schritt für Schritt, mit den Fragen, die Sie auf der Seite „WhatsApp-Fragen“ festlegen; Fotos landen direkt in der Fallakte. Antworten Sie selbst im Chat, hält sich die KI dort zurück. Der Telefon-Assistent nimmt Anrufe an, wenn Sie nicht rangehen (per Rufumleitung auf Ihre Assistenten-Nummer), weist darauf hin, dass eine KI spricht, und legt den Fall an. Gespräche werden nicht aufgezeichnet.",
+    a: "Ja. Verbinden Sie Ihre WhatsApp-Business-Nummer, beantwortet die KI auch WhatsApp-Nachrichten – Schritt für Schritt, mit den Fragen, die Sie auf der Seite „WhatsApp-Fragen“ festlegen; Fotos landen direkt in der Fallakte. Antworten Sie selbst im Chat, hält sich die KI dort zurück. Der Telefon-Assistent (ab Tarif Pro) nimmt Anrufe an, wenn Sie nicht rangehen (per Rufumleitung auf Ihre Assistenten-Nummer), weist darauf hin, dass eine KI spricht, und legt den Fall an. Gespräche werden nicht aufgezeichnet.",
   },
   {
     q: "Kann ich meine bestehende Website weiterverwenden?",

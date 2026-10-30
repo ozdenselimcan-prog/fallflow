@@ -50,7 +50,15 @@ export function PhoneCard({ canEdit }: { canEdit: boolean }) {
       <div className="space-y-4 p-5 text-sm">
         {error && <Notice tone="error">{error}</Notice>}
         {!info && !error && <p className="text-muted-foreground">Wird geladen …</p>}
-        {info && !info.number && (
+        {info && info.includedMinutes === 0 && (
+          <p className="text-muted-foreground">
+            Der Telefon-Assistent ist ab dem Tarif Pro enthalten (200 Minuten pro Monat).{" "}
+            <Link href="/dashboard/settings/billing" className="font-medium text-accent hover:underline">
+              Tarif ändern
+            </Link>
+          </p>
+        )}
+        {info && info.includedMinutes > 0 && !info.number && (
           <p className="text-muted-foreground">
             Für Ihren Betrieb ist noch keine FallFlow-Telefonnummer eingerichtet. Schreiben Sie uns, dann richten wir Ihnen eine Nummer ein.
           </p>
@@ -80,7 +88,7 @@ export function PhoneCard({ canEdit }: { canEdit: boolean }) {
             </div>
           </>
         )}
-        {info && (
+        {info && info.includedMinutes > 0 && (
           <div className="rounded-xl bg-muted/50 p-4">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Minuten in diesem Monat</span>

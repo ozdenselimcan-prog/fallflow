@@ -49,7 +49,9 @@ export async function incomingCall(p: CallParams): Promise<string> {
   const { companyId, store } = ctx;
   const [company, subscription, assistant] = await Promise.all([store.getCompany(), store.getSubscription(), store.getAssistant()]);
   if (subscription.status === "canceled" || needsPaymentSetup(company, subscription)) return twiml([{ say: UNAVAILABLE }, { hangup: true }]);
-  if (company.businessProfile.phoneStopAtLimit && (await repo.minutesThisMonth(companyId)) >= phoneMinutesFor(subscription.plan)) {
+  const included = phoneMinutesFor(subscription.plan);
+  // Telefon-Assistent erst ab Pro (Starter: 0 Minuten) – keine Zusatzminuten ohne Kontingent.
+  if (included === 0 || (company.businessProfile.phoneStopAtLimit && (await repo.minutesThisMonth(companyId)) >= included)) {
     return twiml([{ say: UNAVAILABLE }, { hangup: true }]);
   }
   await repo.startCall({ callSid: p.callSid, companyId, fromNumber: callerNumber(p.from) });

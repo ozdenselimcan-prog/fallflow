@@ -163,7 +163,7 @@ export function DemoSection() {
 const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = [
   { icon: Workflow, title: "AI Intake", text: "Alle laufenden Anfragen mit klarem Status – von „Neu“ bis „Bereit zur Prüfung“." },
   { icon: MessageCircle, title: "WhatsApp", text: "Kunden schreiben Ihnen per WhatsApp – die KI fragt Schritt für Schritt nach, Fotos landen in der Fallakte. Was gefragt wird, legen Sie selbst fest." },
-  { icon: Phone, title: "Telefon-Assistent", text: "Geht niemand ran, nimmt die KI den Anruf an, fragt das Nötige ab und legt den Fall an – mit KI-Hinweis, ohne Aufzeichnung." },
+  { icon: Phone, title: "Telefon-Assistent", text: "Geht niemand ran, nimmt die KI den Anruf an, fragt das Nötige ab und legt den Fall an – mit KI-Hinweis, ohne Aufzeichnung. Ab Tarif Pro." },
   { icon: MessageCircleQuestion, title: "Aufmerksamkeit benötigt", text: "Stellt ein Kunde eine Frage oder ist die Leistung unklar, antwortet nicht die KI, sondern Sie – FallFlow sagt Ihnen Bescheid." },
   { icon: ClipboardCheck, title: "Vollständigkeit in %", text: "Jeder Fall zeigt auf einen Blick, was vorliegt und was noch fehlt." },
   { icon: FileText, title: "Fallakte", text: "Kunde, Angaben zum Auftrag, Unterlagen, Kommunikation und Zusammenfassung an einem Ort." },
