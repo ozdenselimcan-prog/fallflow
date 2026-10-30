@@ -46,7 +46,8 @@ export async function saveBusinessProfile(store: Store, input: BusinessProfileIn
   };
   for (const q of existing) {
     if (!(q.key in ADDRESS_PROMPTS)) continue;
-    await store.saveQuestion({ ...q, prompt: ADDRESS_PROMPTS[q.key], required: needsAddress });
+    // Ältere Konten hatten die Straßen-Frage teils abgeschaltet – dann fragte der Assistent nur die PLZ.
+    await store.saveQuestion({ ...q, prompt: ADDRESS_PROMPTS[q.key], required: needsAddress, active: needsAddress || q.active });
   }
   // Ältere bzw. neu angelegte Konten haben teils keine Straßen-Frage – dann fragte der Assistent nur die PLZ.
   const postal = existing.find((q) => q.key === "postalCode");
