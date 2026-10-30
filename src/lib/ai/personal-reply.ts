@@ -91,9 +91,18 @@ export function withoutProcessQuestions(text: string): string {
   // entfernen – die Preisfrage dahinter bleibt eine echte Frage.
   return sentencesOf(text)
     .flatMap((s) => (PROCESS_QUESTION.test(s) ? s.split(/,|;|\s+(?:und|oder|sowie)\s+/i).map((p) => p.trim()) : [s]))
-    .filter((s) => s && !PROCESS_QUESTION.test(s))
+    .filter((s) => s && !PROCESS_QUESTION.test(s) && !isServiceRequest(s))
     .join("\n");
 }
+
+/**
+ * Höflich als Frage formulierte Bitte um die Leistung ("Können Sie sich das ansehen?", "Könnten Sie das reparieren?") –
+ * das ist eine Anfrage, keine Frage an das Büro. Die KI hielt so etwas samt Schadensbeschreibung sonst teils für einen
+ * Notfall. Mit Preis, Dauer o. Ä. ("Können Sie das bis Freitag reparieren, und was kostet das?") bleibt es eine Frage.
+ */
+const SERVICE_REQUEST =
+  /^(können|könnten|würden|wären) sie\b.{0,60}\b(an(zu)?sehen|an(zu)?schauen|an(zu)?gucken|ansehen|anschauen|vorbei(zu)?kommen|vorbei(zu)?schauen|reparieren|beheben|erledigen|übernehmen|kümmern|helfen|machen|abdichten|austauschen|tauschen|installieren|einbauen|prüfen|überprüfen)\b[^?]{0,30}\??$/i;
+const isServiceRequest = (s: string) => s.length <= 120 && SERVICE_REQUEST.test(s.trim()) && !HUMAN_TOPIC.test(s);
 
 /**
  * Fragen, die IMMER ein Mensch beantworten soll – Preis, Dauer, Förderung, Verfügbarkeit. Werden fest erkannt (ohne KI),

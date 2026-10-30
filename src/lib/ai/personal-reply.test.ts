@@ -10,6 +10,17 @@ describe("withoutProcessQuestions", () => {
   it("lässt echte Fragen stehen", () => {
     expect(withoutProcessQuestions("Was kostet ein iSFP?")).toContain("kostet");
   });
+  it("entfernt als Frage formulierte Bitten um die Leistung – das ist eine Anfrage", () => {
+    for (const q of ["Können Sie sich das ansehen?", "Könnten Sie das bitte reparieren?", "Können Sie vorbeikommen und den Schaden beheben?", "Können Sie uns helfen?"]) {
+      expect(withoutProcessQuestions(q).trim()).toBe("");
+    }
+    const mail = "Nach dem Sturm fehlen einige Ziegel auf dem Dach. Können Sie sich das ansehen?";
+    expect(withoutProcessQuestions(mail)).not.toContain("?");
+  });
+  it("Bitte mit Preis- oder Zeitfrage bleibt eine Frage", () => {
+    expect(withoutProcessQuestions("Können Sie das reparieren und was kostet das?")).toContain("kostet");
+    expect(withoutProcessQuestions("Können Sie das bis Freitag reparieren? Wie lange dauert das?")).toContain("Wie lange");
+  });
 });
 
 describe("obviousHumanQuestion", () => {
