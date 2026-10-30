@@ -1,6 +1,33 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { splitAddress } from "@/lib/ai/conversation";
-import { normalizeWhatsAppQuestions } from "@/lib/ai/whatsapp-questions";
+import { normalizeWhatsAppQuestions, tightenSuggestion } from "@/lib/ai/whatsapp-questions";
+
+describe("WhatsApp-Vorschlag absichern", () => {
+  const known = [
+    { key: "street", label: "Straße", prompt: "Adresse?" },
+    { key: "postalCode", label: "PLZ", prompt: "PLZ?" },
+    { key: "roofType", label: "Art des Daches", prompt: "Welche Dachart?" },
+    { key: "roofArea", label: "Fläche", prompt: "Wie groß?", services: ["Sturmschaden"] },
+  ];
+  it("entfernt Füllfragen, ergänzt fehlende bekannte Angaben, Adresse zuerst", () => {
+    const list = tightenSuggestion(
+      [
+        { key: "roofType", label: "Dachart", prompt: "Was für ein Dach haben Sie?", services: [] },
+        { key: "waWuensche", label: "Besondere Wünsche", prompt: "Haben Sie besondere Wünsche?", services: [] },
+        { key: "waDringlichkeit", label: "Dringlichkeit", prompt: "Wie dringend ist es?", services: [] },
+        { key: "waKontakt", label: "Kontaktweg", prompt: "Wie dürfen wir Sie kontaktieren?", services: [] },
+        { key: "waEtagen", label: "Etagen", prompt: "Wie viele Etagen hat das Haus?", services: [] },
+        { key: "street", label: "Adresse", prompt: "Wie lautet die Adresse?", services: [] },
+      ],
+      { known, needsAddress: true },
+    );
+    expect(list.map((q) => q.key)).toEqual(["street", "roofType", "roofArea", "waEtagen"]);
+    expect(list.find((q) => q.key === "roofArea")?.services).toEqual(["Sturmschaden"]);
+  });
+  it("ohne Einsatz vor Ort keine Adresse ergänzen", () => {
+    expect(tightenSuggestion([], { known, needsAddress: false }).map((q) => q.key)).toEqual(["roofType", "roofArea"]);
+  });
+});
 import { createMemoryStore } from "@/lib/data/memory";
 import { routeInbound } from "./router";
 
