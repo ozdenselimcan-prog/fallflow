@@ -122,6 +122,24 @@ export async function subscribeApp(token: string): Promise<string[]> {
   }
 }
 
+/**
+ * Nummer nach der Anmeldung per Facebook selbst ermitteln, wenn Meta im Anmeldefenster keine (oder nur die Konto-ID)
+ * übermittelt hat – z. B. wenn ein bestehendes WhatsApp-Konto gewählt wurde. Nimmt die erste Nummer des Kontos.
+ */
+export async function findSignupNumber(token: string, wabaId?: string): Promise<{ phoneNumberId: string; wabaId: string } | null> {
+  let ids = wabaId ? [wabaId] : [];
+  if (!ids.length) {
+    const debug = await graph<{ data?: { granular_scopes?: { scope: string; target_ids?: string[] }[] } }>(token, `/debug_token?input_token=${encodeURIComponent(token)}`);
+    ids = [...new Set((debug.data?.granular_scopes ?? []).filter((s) => s.scope.startsWith("whatsapp_business")).flatMap((s) => s.target_ids ?? []))];
+  }
+  for (const id of ids) {
+    const r = await graph<{ data?: { id: string }[] }>(token, `/${id}/phone_numbers?fields=id`).catch(() => ({ data: [] }));
+    const first = r.data?.[0]?.id;
+    if (first) return { phoneNumberId: first, wabaId: id };
+  }
+  return null;
+}
+
 /** Meta-App-Daten für die Anmeldung per Facebook (Embedded Signup) – ohne sie gibt es nur die manuelle Verbindung. */
 export const embeddedSignupConfig = () =>
   process.env.META_APP_ID && process.env.WHATSAPP_CONFIG_ID && process.env.WHATSAPP_APP_SECRET ? { appId: process.env.META_APP_ID, configId: process.env.WHATSAPP_CONFIG_ID } : null;

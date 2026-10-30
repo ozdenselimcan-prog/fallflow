@@ -53,9 +53,9 @@ export function WhatsAppSignup({ appId, configId, onDone }: { appId: string; con
         if (!/facebook\.com$/.test(new URL(event.origin).hostname)) return;
         try {
           const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-          if (data?.type === "WA_EMBEDDED_SIGNUP" && data.event?.startsWith("FINISH")) {
-            session.phoneNumberId = data.data?.phone_number_id;
-            session.wabaId = data.data?.waba_id;
+          if (data?.type === "WA_EMBEDDED_SIGNUP") {
+            session.phoneNumberId ||= data.data?.phone_number_id;
+            session.wabaId ||= data.data?.waba_id;
           }
         } catch {
           // andere Nachrichten von Facebook ignorieren
@@ -74,8 +74,12 @@ export function WhatsAppSignup({ appId, configId, onDone }: { appId: string; con
       for (let i = 0; i < 20 && code && !session.phoneNumberId; i++) await new Promise((r) => setTimeout(r, 150));
       window.removeEventListener("message", onMessage);
       if (!code) throw new Error("Die Anmeldung wurde abgebrochen.");
-      if (!session.phoneNumberId || !session.wabaId) throw new Error("Meta hat keine Nummer übermittelt. Bitte die Einrichtung bis zum Ende durchklicken.");
-      await apiFetch("POST", "/api/integrations/whatsapp/embedded", { code, phoneNumberId: session.phoneNumberId, wabaId: session.wabaId });
+      // Fehlen Nummer oder Konto-ID (z. B. bestehendes Konto gewählt), ermittelt der Server sie mit dem Token selbst.
+      await apiFetch("POST", "/api/integrations/whatsapp/embedded", {
+        code,
+        ...(session.phoneNumberId ? { phoneNumberId: session.phoneNumberId } : {}),
+        ...(session.wabaId ? { wabaId: session.wabaId } : {}),
+      });
       onDone();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Verbindung fehlgeschlagen");
