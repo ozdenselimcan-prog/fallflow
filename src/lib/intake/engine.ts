@@ -362,7 +362,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       // Website-Chat-Funktion. Per E-Mail fragt die KI nicht zusätzlich nach Terminwünschen, bucht aber
       // trotzdem automatisch den nächsten freien Termin, sobald der Fall (laut Vorlagen & Nachrichten
       // bzw. Dokumenten) komplett ist – der Berater braucht den Kalendereintrag unabhängig vom Kanal.
-    } else if (stage === "" && isInteractive(input.channel) && (turn.appointmentRequested || turn.complete)) {
+      // Nicht im selben Zug wie eine andere offene Frage (z. B. eine optionale Angabe): Sonst beantwortet der Kunde nur
+      // die Terminfrage, und seine Antwort landet als Wert der anderen Angabe in der Fallakte.
+    } else if (stage === "" && isInteractive(input.channel) && (turn.appointmentRequested || turn.complete) && !replies.some((r) => r.trim().endsWith("?"))) {
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       replies.push(availabilityQuestion(settings.workingDays));
     } else if (stage === "" && !isInteractive(input.channel) && (turn.appointmentRequested || checklist.missing.length === 0)) {
