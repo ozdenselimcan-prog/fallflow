@@ -66,6 +66,8 @@ export interface BusinessProfile {
   automation?: { reminders?: boolean; autoConfirm?: boolean; bookingLink?: boolean; reviews?: boolean; reviewLink?: string; multilingual?: boolean; apptReminders?: boolean };
   /** Für Push-Benachrichtigungen angemeldete Geräte (siehe lib/push.ts). */
   push?: { endpoint: string; keys: { p256dh: string; auth: string }; userId: string; createdAt: string }[];
+  /** Antworten im Einrichtungs-Fragebogen (config/setup-questions.ts), je Frage. */
+  setupAnswers?: Record<string, { choice: "yes" | "no" | "other"; text?: string; extra?: string }>;
 }
 
 export interface WhatsAppQuestion {

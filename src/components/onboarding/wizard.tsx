@@ -1,16 +1,16 @@
 "use client";
 
+import { SetupQuestionnaire } from "@/components/dashboard/setup-questionnaire";
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleDashed } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
-import { AppointmentConfirmationCard } from "@/components/dashboard/appointment-confirmation-card";
 import { BusinessProfileEditor, EMPTY_DRAFT, type ProfileDraft } from "@/components/onboarding/business-profile-editor";
 import { SetupVideoButton } from "@/components/ui/setup-video";
 import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
-import { ServiceMessagesPanel, type ServiceMessageView, type ServiceTemplateView } from "@/components/dashboard/service-messages-panel";
+import type { ServiceMessageView, ServiceTemplateView } from "@/components/dashboard/service-messages-panel";
 import { WhatsAppCard } from "@/components/dashboard/whatsapp-card";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
 import { WEEKDAY_LABELS } from "@/lib/cases/fields";
@@ -46,9 +46,9 @@ const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotS
 /** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const STEPS = ["Willkommen", "Unternehmen", "Ihr Betrieb", "Vorlagen & Nachrichten", "Terminvergabe", "Website verbinden", "WhatsApp", "E-Mail verbinden"];
+const STEPS = ["Willkommen", "Unternehmen", "Ihr Betrieb", "Kurze Fragen", "Terminvergabe", "Website verbinden", "WhatsApp", "E-Mail verbinden"];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, documentTemplates, serviceMessages, assistant, integrationResult, initialProfile }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, integrationResult, initialProfile }: Props) {
   // Zurück von der Microsoft-Anmeldung: Angaben davor sind schon gespeichert, weiter beim letzten Schritt.
   const [step, setStep] = useState(integrationResult ? STEPS.length - 1 : 0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
@@ -148,29 +148,12 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
 
         {step === 3 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-semibold tracking-tight">Eigene Formulare & Texte (optional)</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Ein paar kurze Fragen</h1>
             <p className="text-sm text-muted-foreground">
-              FallFlow antwortet Ihren Kunden bereits mit passenden Standardtexten und fragt die nötigen Angaben und Unterlagen ab. Hier können Sie zusätzlich pro Leistung ein
-              eigenes PDF-Formular (z. B. eine Vollmacht) mitschicken oder den Text selbst formulieren.
+              Antworten Sie einfach mit Ja oder Nein – FallFlow stellt danach alles automatisch ein. Passt keins von beiden, wählen Sie „Sonstiges“ und schreiben Sie es mit
+              eigenen Worten. Jede Antwort wird sofort übernommen und lässt sich später unter KI-Assistent → Fragebogen ändern.
             </p>
-            <p className="rounded-xl bg-muted px-4 py-3 text-sm">
-              <strong>Die meisten Betriebe überspringen diesen Schritt</strong> und passen die Texte später unter KI-Assistent → Vorlagen &amp; Nachrichten an. Klicken Sie dafür
-              einfach auf „Weiter“.
-            </p>
-            <details className="group rounded-xl border border-border">
-              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-                <span className="group-open:hidden">+ Jetzt eigene Formulare oder Texte festlegen</span>
-                <span className="hidden group-open:inline">− Eigene Formulare & Texte</span>
-              </summary>
-              <div className="space-y-4 border-t border-border p-4">
-                <p className="text-xs text-muted-foreground">
-                  Mit einem Klick auf die PDF legen Sie fest, ob sie „ausgefüllt zurück“ kommen soll oder „nur zur Info“ dabei ist (z. B. eine Preisliste). Bitte nach jeder Änderung
-                  bei der jeweiligen Leistung auf „Speichern“ klicken.
-                </p>
-                <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit profile={{ documents: profile.documents, documentsByService: profile.documentsByService }} />
-                <AppointmentConfirmationCard initial={assistant} canEdit />
-              </div>
-            </details>
+            <SetupQuestionnaire />
           </div>
         )}
 

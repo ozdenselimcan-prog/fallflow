@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, Building2, FileText, MessageCircle, MessageSquareText } from "lucide-react";
+import { BookOpen, Building2, FileText, MessageCircle, MessageSquareText, ListChecks } from "lucide-react";
 import { AssistantForm } from "@/components/dashboard/assistant-form";
 import { AssistantPreview } from "@/components/dashboard/assistant-preview";
 import { AutomationCard } from "@/components/dashboard/automation-card";
@@ -24,6 +24,9 @@ export default async function AssistantPage() {
         description="Legen Sie fest, wie der Assistent E-Mail-Anfragen bearbeitet und Fragen im Website-Chat beantwortet."
         action={
           <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/assistant/fragebogen" className={buttonStyles({ variant: "secondary" })}>
+              <ListChecks className="size-4" /> Fragebogen
+            </Link>
             <Link href="/dashboard/assistant/profile" className={buttonStyles({ variant: "secondary" })}>
               <Building2 className="size-4" /> Ihr Betrieb
             </Link>
