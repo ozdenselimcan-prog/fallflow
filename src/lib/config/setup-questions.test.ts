@@ -15,6 +15,7 @@ describe("Einrichtungs-Fragebogen", () => {
     expect(setupQuestion("onSite")!.apply("no", "")).toEqual({ needsAddress: false });
     expect(setupQuestion("emergency")!.apply("no", "")).toEqual({ texts: { "email.urgentPhone": "-" } });
     expect(setupQuestion("emergency")!.apply("yes", "In dringenden Fällen erreichen Sie uns werktags bis 20 Uhr unter {telefon}.").texts!["email.urgentPhone"]).toContain("20 Uhr");
+    expect(setupQuestion("emergency")!.apply("yes", "In dringenden Fällen erreichen Sie uns werktags bis 20 Uhr telefonisch.").texts!["email.urgentPhone"]).toBe("In dringenden Fällen erreichen Sie uns werktags bis 20 Uhr telefonisch unter {telefon}.");
     expect(setupQuestion("signoff")!.apply("no", "")).toEqual({ texts: { "email.signoff": "Mit freundlichen Grüßen\n{firma}" } });
     expect(setupQuestion("greeting")!.apply("no", "")).toEqual({ texts: { "email.greeting": "Hallo {name}," } });
     expect(setupQuestion("notifyReady")!.apply("yes", "buero@firma.de")).toEqual({ assistant: { notifyReady: true, notifyEmail: "buero@firma.de" } });

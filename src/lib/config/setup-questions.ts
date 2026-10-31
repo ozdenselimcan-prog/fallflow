@@ -47,6 +47,12 @@ export interface SetupQuestion {
 const a = (s: State) => s.profile.automation ?? {};
 const yn = (v: boolean): Decision => (v ? "yes" : "no");
 const isUrl = (v: string) => /^https:\/\/\S+$/.test(v.trim());
+/** Satz mit Telefonnummer: fehlt der Platzhalter, wird „unter {telefon}“ angehängt. */
+const withPhone = (v: string) => {
+  const t = v.trim();
+  if (!t || t.includes("{telefon}")) return t;
+  return `${t.replace(/[.!]+$/, "")} unter {telefon}.`;
+};
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 export const SETUP_QUESTIONS: SetupQuestion[] = [
@@ -150,7 +156,7 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
     valueHint:
       "Ein kurzer, höflicher Satz an Kunden, wann bzw. wie sie den Betrieb in dringenden Fällen telefonisch erreichen, mit dem Platzhalter {telefon} für die Telefonnummer (z. B. „In dringenden Fällen erreichen Sie uns werktags bis 20 Uhr unter {telefon}.“). Leer, wenn die Antwort keine Zeiten o. Ä. nennt.",
     current: (s) => yn(s.profile.texts?.["email.urgentPhone"] !== "-"),
-    apply: (d, v) => ({ texts: { "email.urgentPhone": d === "no" ? "-" : v.includes("{telefon}") ? v : "" } }),
+    apply: (d, v) => ({ texts: { "email.urgentPhone": d === "no" ? "-" : withPhone(v) } }),
   },
   {
     id: "notifyAttention",

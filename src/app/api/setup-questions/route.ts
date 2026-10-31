@@ -57,6 +57,12 @@ export const POST = withSession(
         setupAnswers: { ...(profile.setupAnswers ?? {}), [q.id]: answer },
       },
     });
+    // Vor Ort ja/nein: Adressfragen ein- bzw. ausschalten (wie beim Speichern des Betriebsprofils).
+    if (patch.needsAddress !== undefined) {
+      for (const qq of await store.listQuestions()) {
+        if (qq.key === "street" || qq.key === "postalCode") await store.saveQuestion({ ...qq, required: patch.needsAddress, active: patch.needsAddress });
+      }
+    }
     return json({ ok: true, decision, applied: patch });
   },
   { permission: "assistant:manage", limit: 120 },
