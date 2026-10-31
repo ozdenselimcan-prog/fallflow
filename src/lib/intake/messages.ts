@@ -9,6 +9,9 @@ const ACCUSATIVE: Record<DocumentKind, string> = {
   other: "weitere Unterlagen",
 };
 
+/** Aufzählung der Unterlagen für Kundentexte ("den Grundriss und Fotos"). */
+export const documentList = (kinds: DocumentKind[]) => join(kinds.map((k) => ACCUSATIVE[k]));
+
 const join = (parts: string[]) => (parts.length <= 1 ? (parts[0] ?? "") : `${parts.slice(0, -1).join(", ")} und ${parts[parts.length - 1]}`);
 
 const greeting = (name?: string) => (name?.trim() ? `Guten Tag ${name.trim()},` : "Guten Tag,");

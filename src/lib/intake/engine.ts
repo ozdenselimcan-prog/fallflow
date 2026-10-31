@@ -12,28 +12,22 @@ import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
 import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calendar";
-import { refreshCase, ensureUploadToken, autoBookNextSlot, completionTextFor, matchServiceMaterials, uploadUrl } from "./case-ops";
+import { refreshCase, ensureUploadToken, autoBookNextSlot, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { CONTACT_CHANNEL_KEY } from "./checklist";
+import { customerText } from "@/lib/config/customer-texts";
 import { templateQuestionsFor } from "./template-questions";
 import { answerWebsiteChat } from "./website-chat";
-import { chatDocumentPrompt } from "./messages";
+import { documentList } from "./messages";
 import {
-  appointmentCancelledText,
-  appointmentPendingReviewText,
-  appointmentRescheduleQueuedText,
-  availabilityNotUnderstoodText,
-  availabilityQuestion,
+  availabilityExample,
   findNextSlot,
   findSlotOnDate,
   formatSlot,
-  fullyBookedText,
+  formatYmd,
   looksLikeCancellation,
   looksLikeReschedule,
-  noOverlapText,
-  noSlotFoundText,
-  notAWorkingDayText,
-  onVacationText,
   parseAvailability,
+  workingDayNames,
   parseSpecificDate,
   ymdToDate,
 } from "./scheduling";
@@ -112,6 +106,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // "Automatische Antworten" aus: FallFlow schreibt dem Kunden per E-Mail nichts, bereitet den Fall aber trotzdem vor
   // (Angaben auslesen, Unterlagen ablegen, Vollständigkeit) – das Büro antwortet selbst.
   const silent = (input.channel === "email" || input.channel === "whatsapp") && !settings.autoReply;
+  const T = (key: string, vars: Record<string, string> = {}) => customerText(company.businessProfile?.texts, key, vars);
   const extracted = await extractForText(input.text, extractionContext(company, baseQuestions));
   // WhatsApp und Telefon: statt PDF-Formulare zu schicken, deren Angaben einzeln abfragen (optionale Zusatzfragen).
   const formChannel = input.channel === "whatsapp" || input.channel === "phone";
@@ -140,7 +135,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   const turnSettings = settings.autoReply ? settings : { ...settings, autoFollowUp: false };
   const pendingBefore = nextPending(questions, startFields)?.key ?? null;
-  const turn: TurnResult = applyTurn({ questions, settings: turnSettings, fields: startFields, text: input.text, first, extracted, documents, channel: input.channel, foerderOverrides });
+  const turn: TurnResult = applyTurn({ questions, settings: turnSettings, texts: company.businessProfile?.texts, fields: startFields, text: input.text, first, extracted, documents, channel: input.channel, foerderOverrides });
 
   // Eigener Termin-Hinweis je Leistung ersetzt die sonst feste, tonabhängige Standardformulierung
   // ("Ein Mitarbeiter meldet sich..."), sobald der Fall für diese Leistung fertig ist.
@@ -236,7 +231,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const firstCompleteEmail = input.channel === "email" && first && turn.done && Boolean(turn.fields.service);
   const replies = silent || attention || inAppointmentFlow || firstCompleteEmail || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
   // WhatsApp: Auch wenn das Team selbst antwortet, bekommt der Kunde sofort eine kurze Bestätigung (kein Schweigen im Chat).
-  if (input.channel === "whatsapp" && attention && !silent) replies.push(WHATSAPP_HANDOFF_TEXT);
+  if (input.channel === "whatsapp" && attention && !silent) replies.push(T("whatsapp.handoff"));
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? FIELD_GROUPS.flatMap((g) => g.fields).find((f) => f.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
@@ -279,7 +274,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       items: checklist.items.filter((i) => i.kind === "document" && i.key.startsWith("doc:")).map((i) => ({ kind: i.key.replace("doc:", "") as DocumentKind, label: i.label, done: i.done, required: i.required })),
     };
     // Auch hier: die Textaufforderung ("Bitte senden Sie uns...") nur im Website-Chat, nicht per Mail (siehe oben).
-    if (refreshed.requestedNow.length && (input.channel === "website" || input.channel === "whatsapp")) replies.push(chatDocumentPrompt(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)));
+    if (refreshed.requestedNow.length && (input.channel === "website" || input.channel === "whatsapp")) replies.push(T("forms.chatUpload", { liste: documentList(openDocs.map((i) => i.key.replace("doc:", "") as DocumentKind)) }));
   }
 
   // Terminvorschlag: Sobald der Fall vollständig ist (oder der Kunde ausdrücklich einen Termin wünscht),
@@ -294,7 +289,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     const vacation = settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null;
     const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay, vacation };
 
-    const bookSlot = async (slot: Date, pendingText: string = appointmentPendingReviewText) => {
+    const pendingDefault = T("appointment.pending");
+    const noSlot = T("appointment.noSlot");
+    const bookSlot = async (slot: Date, pendingText: string = pendingDefault) => {
       await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
       await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
       await store.addEvent(caseId, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
@@ -302,7 +299,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     };
 
     /** Versucht zuerst ein konkretes Datum, sonst einen Wochentag-Bereich aus dem Kundentext zu lesen und vorzuschlagen. Gibt zurück, ob etwas erkannt wurde. */
-    const resolveAndPropose = async (text: string, pendingText: string = appointmentPendingReviewText): Promise<boolean> => {
+    const resolveAndPropose = async (text: string, pendingText: string = pendingDefault): Promise<boolean> => {
       const existingAppts = await store.listAppointments();
       // Belegte Zeiten im verbundenen Outlook-Kalender auslassen (ohne Verbindung: leer).
       const blocked = await outlookBusy(companyId);
@@ -314,7 +311,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
           return true;
         }
         const info =
-          exact.reason === "not_a_working_day" ? notAWorkingDayText(specificDate) : exact.reason === "on_vacation" ? onVacationText(specificDate) : fullyBookedText(specificDate);
+          T(exact.reason === "not_a_working_day" ? "appointment.notWorkingDay" : exact.reason === "on_vacation" ? "appointment.vacation" : "appointment.fullyBooked", { datum: formatYmd(specificDate) });
         const alt = findNextSlot({ ...slotBase, customerDays: settings.workingDays, existing: existingAppts, blocked, from: ymdToDate(specificDate) });
         if (alt) {
           await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
@@ -323,7 +320,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
           replies.push(`${info} ${pendingText}`);
         } else {
           await store.updateCase(caseId, { fields: { apptStage: "failed" } });
-          replies.push(`${info} ${noSlotFoundText}`);
+          replies.push(`${info} ${noSlot}`);
         }
         return true;
       }
@@ -332,14 +329,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       if (!days.some((d) => settings.workingDays.includes(d))) {
         // Keiner der genannten Tage ist überhaupt ein Bürotag – klar sagen, statt "nichts gefunden".
         await store.updateCase(caseId, { fields: { apptStage: "ask" } });
-        replies.push(noOverlapText(settings.workingDays));
+        replies.push(T("appointment.noOverlap", { tage: workingDayNames(settings.workingDays).join(", ") }));
         return true;
       }
       const slot = findNextSlot({ ...slotBase, customerDays: days, existing: existingAppts, blocked });
       if (slot) await bookSlot(slot, pendingText);
       else {
         await store.updateCase(caseId, { fields: { apptStage: "failed" } });
-        replies.push(noSlotFoundText);
+        replies.push(noSlot);
       }
       return true;
     };
@@ -355,9 +352,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       // Schlägt der Kunde in derselben Nachricht gleich einen neuen Termin vor, direkt weitersuchen
       // (wieder nur "vorgeschlagen", wartet erneut auf Freigabe durchs Team) statt extra nachzufragen.
-      if (!(await resolveAndPropose(input.text, appointmentRescheduleQueuedText))) replies.push(appointmentCancelledText);
+      if (!(await resolveAndPropose(input.text, T("appointment.rescheduled")))) replies.push(T("appointment.cancelled"));
     } else if (stage === "ask") {
-      if (!(await resolveAndPropose(input.text))) replies.push(availabilityNotUnderstoodText);
+      if (!(await resolveAndPropose(input.text))) replies.push(T("appointment.notUnderstood"));
       // Die aktive "Welche Tage passen Ihnen?"-Rückfrage ist wie der Frage-Flow eine reine
       // Website-Chat-Funktion. Per E-Mail fragt die KI nicht zusätzlich nach Terminwünschen, bucht aber
       // trotzdem automatisch den nächsten freien Termin, sobald der Fall (laut Vorlagen & Nachrichten
@@ -366,12 +363,12 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       // die Terminfrage, und seine Antwort landet als Wert der anderen Angabe in der Fallakte.
     } else if (stage === "" && isInteractive(input.channel) && (turn.appointmentRequested || turn.complete) && !replies.some((r) => r.trim().endsWith("?"))) {
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
-      replies.push(availabilityQuestion(settings.workingDays));
+      replies.push(T("appointment.ask", { beispiel: availabilityExample(settings.workingDays) }));
     } else if (stage === "" && !isInteractive(input.channel) && (turn.appointmentRequested || checklist.missing.length === 0)) {
       if (await autoBookNextSlot(store, refreshed.caseRecord)) {
         // Abschluss-Nachricht und Terminhinweis in einem Satz statt doppeltem "Vielen Dank … ein Mitarbeiter …".
         if (completionIndex >= 0) replies[completionIndex] = await completionTextFor(store, refreshed.caseRecord.fields.service, { appointmentProposed: true });
-        else replies.push(withoutRepeatedThanks(replies, appointmentPendingReviewText));
+        else replies.push(withoutRepeatedThanks(replies, pendingDefault));
       }
     }
     // stage "proposed"/"confirmed"/"failed": liegt beim Team bzw. ist bereits final – die KI sagt dazu nichts Neues mehr.
@@ -386,13 +383,16 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     const svc = turn.fields.service ?? "";
     const docs = profileDocumentsFor(company.businessProfile, svc);
     if (docs.length && refreshed.caseRecord.fields.docsRequestedFor !== svc) {
-      replies.push(`Wenn Sie haben, schicken Sie uns gern noch: ${docs.join(", ")} – einfach als Foto oder PDF hier im Chat.`);
+      replies.push(T("whatsapp.documents", { liste: docs.join(", ") }));
       await store.updateCase(caseId, { fields: { docsRequestedFor: svc }, keepTimestamp: true });
     }
   }
-  if (input.channel === "whatsapp") replies.splice(0, replies.length, ...polishWhatsAppReplies(replies));
+  if (input.channel === "whatsapp") replies.splice(0, replies.length, ...polishWhatsAppReplies(replies, T("chat.done"), T("appointment.ask", { beispiel: availabilityExample(settings.workingDays) })));
   // WhatsApp: eine Nachricht pro Gesprächszug (wie E-Mail), statt mehrerer kurzer Nachrichten hintereinander.
-  const outgoing = isInteractive(input.channel) && input.channel !== "whatsapp" ? replies : replies.length ? [replies.join("\n\n")] : [];
+  const joined = replies.length ? [replies.join("\n\n")] : [];
+  // E-Mail mit Anrede und Gruß (bearbeitbar unter „Texte“); im Chat nicht.
+  if (input.channel === "email" && joined.length) joined[0] = await frameEmail(store, joined[0], turn.fields.name);
+  const outgoing = isInteractive(input.channel) && input.channel !== "whatsapp" ? replies : joined;
   for (const reply of outgoing) {
     const subject = serviceMessages.find((m) => m.service === turn.fields.service)?.subject?.trim() || undefined;
     const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated, attachments, subject });
@@ -432,13 +432,12 @@ export const AI_PAUSED_KEY = "aiPaused";
  * Letzte WhatsApp-Nachricht entwirren: Folgt noch die Terminfrage, nicht "Ein Mitarbeiter meldet sich" sagen und die
  * Frage ans Ende stellen (nach der Bitte um Fotos) – so gibt es genau eine offene Frage zum Schluss.
  */
-export function polishWhatsAppReplies(replies: string[]): string[] {
-  const ask = replies.find((r) => r.startsWith("An welchen Wochentagen"));
+export function polishWhatsAppReplies(replies: string[], doneText = "Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.", askText?: string): string[] {
+  const ask = replies.find((r) => r === askText || r.startsWith("An welchen Wochentagen"));
   if (!ask) return replies;
-  return [
-    ...replies.filter((r) => r !== ask).map((r) => r.replace("Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.", "Vielen Dank, damit habe ich alle Angaben!")),
-    ask,
-  ];
+  // Nur den Standard-Abschluss kürzen – eine eigene Fassung des Betriebs bleibt, wie sie ist.
+  const short = doneText === "Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen." ? "Vielen Dank, damit habe ich alle Angaben!" : doneText;
+  return [...replies.filter((r) => r !== ask).map((r) => (r === doneText ? short : r)), ask];
 }
 
 /** Kein zweites "Vielen Dank!" direkt hinter einer Nachricht, die schon dankt ("Vielen Dank für Ihre Anfrage …"). */
@@ -456,7 +455,6 @@ async function recordWhilePaused(store: Store, existing: CaseRecord, input: Inta
   return { sessionId: existing.id, replies: [], quickReplies: [], done: false, completeness: current.completeness, status: current.status, fields: current.fields, delivered: true, deliveryNote: "", upload: null, created: false };
 }
 
-const WHATSAPP_HANDOFF_TEXT = "Vielen Dank für Ihre Nachricht! Dazu meldet sich unser Team persönlich bei Ihnen.";
 
 /** Zwischenfrage im WhatsApp-Chat beantworten (siehe processIntakeMessage) und mit der offenen Frage weitermachen. */
 async function answerSideQuestion(store: Store, existing: CaseRecord, input: IntakeInput, pendingPrompt: string): Promise<IntakeTurn> {
@@ -467,9 +465,10 @@ async function answerSideQuestion(store: Store, existing: CaseRecord, input: Int
     .map((m) => ({ role: m.role as "user" | "assistant", text: m.content.slice(0, 500) }));
   await store.addMessage(existing.id, "user", input.text.slice(0, 2000), { ...meta, delivery: "delivered" });
   const human = obviousHumanQuestion(input.text);
+  const texts = (await store.getCompany()).businessProfile?.texts;
   let answer: string;
   if (human) {
-    answer = "Das klärt unser Team gern persönlich mit Ihnen – Sie bekommen dazu eine Antwort.";
+    answer = customerText(texts, "whatsapp.sideQuestion");
     await store.updateCase(existing.id, { fields: { [ATTENTION_KEY]: `Frage des Kunden: ${human}` } });
     await store.addEvent(existing.id, "handoff", `Aufmerksamkeit benötigt (Frage des Kunden per WhatsApp: ${human}).`);
   } else {
@@ -477,7 +476,7 @@ async function answerSideQuestion(store: Store, existing: CaseRecord, input: Int
   }
   const text = pendingPrompt ? `${answer}
 
-Zurück zu Ihrer Anfrage: ${pendingPrompt}` : answer;
+${customerText(texts, "whatsapp.backToRequest", { frage: pendingPrompt })}` : answer;
   const result = await deliverToCustomer({ companyId: input.companyId, channel: input.channel, email: existing.fields.email, phone: existing.fields.phone, text, simulated: input.simulated });
   await store.addMessage(existing.id, "assistant", text, { ...meta, delivery: result.delivered ? "delivered" : "not_sent" });
   const current = (await store.getCase(existing.id)) ?? existing;

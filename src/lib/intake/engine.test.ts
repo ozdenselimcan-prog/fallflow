@@ -189,7 +189,7 @@ describe("processIntakeMessage – PDF-Vorlagen (z. B. Vollmachten)", () => {
   it("per E-Mail ohne eigene Nachricht/Vorlage: kurze Standard-Antwort mit den benötigten Unterlagen statt Schweigen", async () => {
     const first = await processIntakeMessage(store, { companyId: "demo", sessionId: null, text: "Hallo, ich hätte gerne eine Wärmebrückenberechnung für unser Haus.", source: "email", channel: "email" });
     expect(first.replies).toHaveLength(1);
-    expect(first.replies[0]).toContain("Vielen Dank für Ihre Anfrage zur Leistung „Wärmebrückenberechnung“.");
+    expect(first.replies[0]).toContain("vielen Dank für Ihre Anfrage zu „Wärmebrückenberechnung“.");
     expect(first.replies[0]).toContain("Grundriss");
     // Keine automatisch generierte Rückfrage-Liste ("Welche Art Gebäude …", "Baujahr …").
     expect(first.replies[0]).not.toMatch(/Baujahr|Gebäudeart/);
@@ -393,7 +393,8 @@ describe("confirmAppointment", () => {
     if (!result.ok) return;
     const messages = await store.listMessages(sessionId);
     const text = messages.find((m) => m.role === "staff")?.content ?? "";
-    expect(text).toBe("Vielen Dank, ein Mitarbeiter ruft Sie in Kürze an, um den Termin zu besprechen.");
+    expect(text).toContain("ein Mitarbeiter ruft Sie in Kürze an, um den Termin zu besprechen.");
+    expect(text).not.toMatch(/d{1,2}.d{1,2}./);
     expect(text).not.toMatch(/\d{1,2}:\d{2}|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag/i);
   });
 });

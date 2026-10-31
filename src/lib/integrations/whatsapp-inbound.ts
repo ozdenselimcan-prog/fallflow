@@ -1,4 +1,4 @@
-import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
+import { customerText } from "@/lib/config/customer-texts";
 import { getPublicStore } from "@/lib/data";
 import type { Store } from "@/lib/data/store";
 import { sniffMime } from "@/lib/documents/storage";
@@ -39,9 +39,9 @@ async function reply(conn: Connection, phoneNumberId: string, to: string, text: 
 
 async function handleMessage(store: Store, conn: Connection, phoneNumberId: string, m: WhatsAppInbound): Promise<void> {
   const phone = `+${m.from.replace(/\D/g, "")}`;
+  const texts = (await store.getCompany()).businessProfile?.texts;
   if (m.unsupported) {
-    const what = m.unsupported === "audio" ? "Sprachnachrichten kann ich leider nicht anhören" : "Diese Art Nachricht kann ich leider nicht lesen";
-    await reply(conn, phoneNumberId, phone, `${what} – schreiben Sie mir bitte kurz, worum es geht. Fotos und PDFs können Sie gern schicken.`);
+    await reply(conn, phoneNumberId, phone, customerText(texts, m.unsupported === "audio" ? "whatsapp.audio" : "whatsapp.unsupported"));
     return;
   }
 
@@ -50,7 +50,7 @@ async function handleMessage(store: Store, conn: Connection, phoneNumberId: stri
       return (await routeInbound(store, { companyId: conn.companyId, channel: "whatsapp", text: text.slice(0, 1500), sender: { phone, name: m.name || undefined } })).turn;
     } catch (err) {
       if (err instanceof CaseLimitReachedError) {
-        await reply(conn, phoneNumberId, phone, CASE_LIMIT_REACHED_TEXT);
+        await reply(conn, phoneNumberId, phone, customerText(texts, "other.caseLimit"));
         return null;
       }
       throw err;
@@ -73,7 +73,7 @@ async function handleMessage(store: Store, conn: Connection, phoneNumberId: stri
   const mime = file ? sniffMime(file.bytes) : null;
   if (!file || !mime) {
     await store.addEvent(caseId, "note", `Kunde hat per WhatsApp eine Datei geschickt (${m.media.filename}), die nicht übernommen werden konnte – bitte in WhatsApp nachsehen.`);
-    await reply(conn, phoneNumberId, phone, "Vielen Dank! Diese Datei konnte ich leider nicht öffnen – bitte schicken Sie sie als Foto oder PDF.");
+    await reply(conn, phoneNumberId, phone, customerText(texts, "whatsapp.fileError"));
     return;
   }
   await receiveCaseDocument(store, caseId, file.bytes, m.media.filename);

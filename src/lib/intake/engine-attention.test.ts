@@ -115,7 +115,7 @@ describe("E-Mail: kein doppelter Anhang-Hinweis", () => {
     await store.saveServiceMessage({ service: "iSFP", body: "Vielen Dank! Anbei unser Datenerfassungsblatt.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false });
     const turn = await email(store, "Hallo, wir möchten einen iSFP für unser Haus.");
     expect(turn.replies[0]).not.toContain("Im Anhang finden Sie");
-    expect(turn.replies[0]).toContain("Bitte senden Sie das ausgefüllte Formular einfach als Antwort auf diese E-Mail zurück.");
+    expect(turn.replies[0]).toContain("Bitte senden Sie die ausgefüllten Unterlagen einfach als Antwort auf diese E-Mail zurück.");
 
     const store2 = freshStore();
     const path2 = await saveFile({ companyId: "demo", caseId: "demo", bytes: new TextEncoder().encode("%PDF-1.4\n"), mime: "application/pdf" });
@@ -134,7 +134,7 @@ describe("Nur-Info-PDFs und Status 'Antwort durch Büro nötig'", () => {
     await store.saveDocumentTemplate({ service: "Fördermittelberatung", title: "Preisliste", fileName: "preise.pdf", storagePath: path, requiresReturn: false });
     await store.saveServiceMessage({ service: "Fördermittelberatung", body: "Danke für Ihre Anfrage.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false });
     const turn = await email(store, "Hallo, ich möchte eine Fördermittelberatung für mein Haus.");
-    expect(turn.replies[0]).toContain("Zu Ihrer Information finden Sie außerdem das Dokument „Preisliste“ im Anhang");
+    expect(turn.replies[0]).toContain("Zu Ihrer Information finden Sie außerdem im Anhang: „Preisliste“");
     expect(turn.replies[0]).not.toContain("bitte ausfüllen");
     const [td] = await store.listTemplateDocuments(turn.sessionId);
     expect(td.status).toBe("info");
@@ -191,6 +191,6 @@ describe("Rücksende-Hinweis bei anderer Wortstellung", () => {
     await store.saveDocumentTemplate({ service: "iSFP", title: "Datenerfassung", fileName: "daten.pdf", storagePath: path });
     await store.saveServiceMessage({ service: "iSFP", body: "Anbei unser Datenerfassungsblatt – bitte füllen Sie es aus und schicken es uns zurück.", appointmentNote: "", requiresFloorplan: false, requiresEnergyCertificate: false });
     const turn = await email(store, "Hallo, wir möchten einen iSFP für unser Haus.");
-    expect(turn.replies[0]).not.toContain("Bitte senden Sie das ausgefüllte Formular");
+    expect(turn.replies[0]).not.toContain("Bitte senden Sie die ausgefüllten Unterlagen");
   });
 });

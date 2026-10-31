@@ -17,6 +17,8 @@ import { matchOption } from "./schema";
 export interface TurnInput {
   questions: Question[];
   settings: AssistantSettings;
+  /** Eigene Fassungen der Kundentexte (chat.intro, chat.done …) – überschreiben die Standards des Tonfalls. */
+  texts?: Record<string, string>;
   fields: Record<string, string>;
   /** Nutzertext dieses Zuges */
   text: string;
@@ -99,6 +101,27 @@ const PHRASES: Record<Tone, Phrases> = {
     noFollowUp: "Danke. Wir melden uns.",
   },
 };
+
+/** Bearbeitbare Chat-Texte (Seite „Texte“) → Felder der Tonfall-Texte. */
+const CHAT_TEXT_KEYS: Record<string, keyof Phrases> = {
+  "chat.intro": "intro",
+  "chat.done": "done",
+  "chat.handoff": "handoff",
+  "chat.noFollowUp": "noFollowUp",
+  "chat.retry": "retry",
+  "chat.question": "question",
+};
+/** Standard je Tonfall, mit eigenen Fassungen des Betriebs überschrieben. */
+export function phrasesFor(tone: Tone, texts?: Record<string, string>): Phrases {
+  const p = { ...PHRASES[tone] };
+  for (const [key, field] of Object.entries(CHAT_TEXT_KEYS)) {
+    const own = texts?.[key]?.trim();
+    if (own) p[field] = own;
+  }
+  return p;
+}
+/** Standard-Chat-Texte zum gewählten Tonfall (für die Seite „Texte“). */
+export const chatTextDefaults = (tone: Tone) => Object.fromEntries(Object.entries(CHAT_TEXT_KEYS).map(([key, field]) => [key, PHRASES[tone][field]]));
 
 const NUMBER_FILLER = /baujahr|gebaut|jahr|ca\.?|circa|etwa|ungefähr|rund|m²|m2|qm|quadratmeter|wohnfläche|etagen?|stockwerke?|geschosse?|vollgeschosse?|von|aus|im|es|sind|ist|hat|haben|wir|und|mit|das|haus/gi;
 /** Ausdrücke, mit denen Kunden eine zuvor erkannte Angabe berichtigen. */
@@ -260,7 +283,7 @@ export function mergeExtracted(fields: Record<string, string>, extracted: Record
 /** Ein Gesprächszug: Nutzertext verarbeiten und die nächste Antwort samt Schnellantworten bestimmen. */
 export function applyTurn(input: TurnInput): TurnResult {
   const { questions, settings, text } = input;
-  const p = PHRASES[settings.tone];
+  const p = phrasesFor(settings.tone, input.texts);
   const fields = { ...input.fields };
   const replies: string[] = [];
   let recognized: string[] = [];

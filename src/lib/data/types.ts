@@ -58,6 +58,8 @@ export interface BusinessProfile {
   /** Was im WhatsApp-Chat gefragt wird (eigene Seite, von der KI vorgeschlagen, vom Betrieb bearbeitet). Gesetzt = NUR diese
    * Fragen (plus die Leistung, falls noch unklar); fehlt = wie im Website-Chat. */
   whatsappQuestions?: WhatsAppQuestion[];
+  /** Eigene Fassungen der automatischen Kundentexte (Schlüssel siehe config/customer-texts.ts); fehlt = Standard. */
+  texts?: Record<string, string>;
 }
 
 export interface WhatsAppQuestion {

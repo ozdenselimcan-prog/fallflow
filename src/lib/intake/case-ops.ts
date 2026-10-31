@@ -10,6 +10,7 @@ import { customerFacingNote } from "@/lib/ai/customer-note";
 import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
+import { customerText, hasGreeting, hasSignoff } from "@/lib/config/customer-texts";
 import { siteConfig } from "@/lib/config/site";
 import { outlookBusy, pushAppointment } from "@/lib/integrations/outlook-calendar";
 import type { Store } from "@/lib/data/store";
@@ -23,7 +24,7 @@ import { notifyOffice } from "./notify";
 import { AWAITING_REPLY_KEY, buildChecklist, deriveFields, deriveStatus, documentRequirements, isRelevant, type Checklist, type StatusHint } from "./checklist";
 import { isAnswered } from "@/lib/cases/completeness";
 import { requestsUntrackedItems } from "./request-signals";
-import { appointmentAddonText, appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
+import { appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
 
@@ -98,41 +99,41 @@ export async function matchServiceMaterials(
   }
   if (!introDue && !titles.length && !infoTitles.length) return null;
 
+  const company = await store.getCompany();
+  const T = (key: string, vars: Record<string, string> = {}) => customerText(company.businessProfile?.texts, key, vars);
+  const quoted = (list: string[]) => list.map((t) => `„${t}“`).join(", ");
   const parts: string[] = [];
-  if (introDue) parts.push(own || `Vielen Dank für Ihre Anfrage zur Leistung „${service}“.`);
+  if (introDue) parts.push(own || T("email.intro", { leistung: service }));
   // Erwähnt das Büro den Anhang schon selbst ("Anbei unser Formular …"), den eigenen Hinweis nicht doppelt anhängen:
   // nur noch kurz sagen, wie es zurückgeschickt wird – bzw. gar nichts, wenn auch das schon drinsteht.
   const ownMentionsAttachment = introDue && /\banbei\b|im anhang|beigefügt|angehängt|anhängend/i.test(own);
   const ownMentionsReturn = introDue && /zurück(zu)?(senden|schicken)|(senden|schicken|mailen)\b[^.!?]{0,40}\bzurück|antwort auf diese/i.test(own);
   if (titles.length && ownMentionsAttachment) {
-    if (!ownMentionsReturn) parts.push(`Bitte senden Sie ${titles.length === 1 ? "das ausgefüllte Formular" : "die ausgefüllten Formulare"} einfach als Antwort auf diese E-Mail zurück.`);
+    if (!ownMentionsReturn) parts.push(T("forms.returnHint"));
   } else if (titles.length === 1) {
-    parts.push(`Im Anhang finden Sie das Formular „${titles[0]}“ – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurücksenden.`);
+    parts.push(T("forms.attachedOne", { dokument: titles[0] }));
   } else if (titles.length > 1) {
-    parts.push(`Im Anhang finden Sie folgende Formulare: ${titles.map((t) => `„${t}“`).join(", ")} – bitte ausfüllen und einfach als Antwort auf diese E-Mail mit den ausgefüllten Dokumenten als Anhang zurücksenden.`);
+    parts.push(T("forms.attachedMany", { liste: quoted(titles) }));
   }
-  if (infoTitles.length && !(ownMentionsAttachment && !titles.length)) {
-    const list = infoTitles.map((t) => `„${t}“`).join(", ");
-    parts.push(`Zu Ihrer Information finden Sie außerdem ${infoTitles.length === 1 ? `das Dokument ${list}` : `die Dokumente ${list}`} im Anhang – ${infoTitles.length === 1 ? "es muss" : "sie müssen"} nicht zurückgeschickt werden.`);
-  }
+  if (infoTitles.length && !(ownMentionsAttachment && !titles.length)) parts.push(T("forms.info", { liste: quoted(infoTitles) }));
   if (introDue) {
-    const company = await store.getCompany();
     const documents = await store.listDocuments(c.id);
     const needed = documentRequirements(c.fields, { energyCertificate: company.foerderEnergyCertificate, floorplan: company.foerderFloorplan, profiled: Boolean(company.businessProfile?.industry) }, serviceMessages)
       .filter((r) => r.required && !documents.some((d) => d.kind === r.kind && d.status === "received"));
     // Was das Büro in seiner eigenen Nachricht schon selbst anfordert (auch als "Baupläne", "Energiepass" …), nicht
     // noch einmal aufzählen.
     const unmentioned = needed.filter((r) => !officeAlreadyRequests(own, r.kind)).map((r) => DOCUMENT_LABELS[r.kind]);
-    if (unmentioned.length) parts.push(`Damit wir Ihre Anfrage bearbeiten können, schicken Sie uns bitte außerdem: ${unmentioned.join(", ")} – gern als PDF oder Foto, einfach als Antwort auf diese E-Mail.`);
+    if (unmentioned.length) parts.push(T("forms.required", { liste: unmentioned.join(", ") }));
     // Betrieb mit Betriebsprofil: fehlende Pflichtangaben und die typischen Unterlagen aus dem Profil erfragen.
     if (company.businessProfile?.industry) {
       const missing = (await store.listQuestions())
         .filter((q) => q.active && q.required && !["name", "email", "service", "description"].includes(q.key) && isRelevant(q, c.fields) && !isAnswered(c.fields, q.key))
         .filter((q) => !own.toLowerCase().includes(q.label.toLowerCase()))
         .map((q) => q.label);
-      if (missing.length) parts.push(`Damit wir Ihre Anfrage vorbereiten können, nennen Sie uns bitte noch: ${missing.join(", ").replace(/\.$/, "")}.`);
+      // "Straße, Nr." am Ende + Punkt im Text ergäbe "Nr.." – den Punkt der Liste weglassen.
+      if (missing.length) parts.push(T("email.missing", { liste: missing.join(", ").replace(/\.$/, "") }).replace(/\.\.$/, "."));
       const docs = profileDocumentsFor(company.businessProfile, service).filter((d) => !own.toLowerCase().includes(d.toLowerCase()));
-      if (docs.length) parts.push(`Sehr hilfreich sind außerdem: ${docs.join(", ")} – gern einfach als Antwort auf diese E-Mail.`);
+      if (docs.length) parts.push(T("email.helpful", { liste: docs.join(", ") }));
     }
     await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
     await store.addEvent(c.id, "document", `Nachricht automatisch an Kunden gesendet (${service})`);
@@ -437,8 +438,8 @@ export async function receiveFilledTemplate(
   const textVerdict = text ? await verifyFilledTemplate(title, text, newText, sameTemplate) : null;
   // Steckt (fast) kein auslesbarer Text des Kunden im PDF (Scan, Foto, Handschrift, Stift auf dem Tablet) oder hält
   // die Text-Prüfung das Formular für leer/falsch, sieht sich die KI die Seiten selbst an – wie ein Mensch.
-  const customerText = newText.replace(/\[Unterschrift\/Handzeichen vorhanden\]/g, "").trim();
-  const needsVisual = !text || customerText.length < 25 || textVerdict?.filled === false || Boolean(textVerdict?.wrongDocument && !sameTemplate);
+  const writtenText = newText.replace(/\[Unterschrift\/Handzeichen vorhanden\]/g, "").trim();
+  const needsVisual = !text || writtenText.length < 25 || textVerdict?.filled === false || Boolean(textVerdict?.wrongDocument && !sameTemplate);
   const visual = opts.visual ?? (needsVisual ? await inspectFilledPdf(title, bytes, fileName, mime) : null);
   let filled: boolean | null;
   let wrongDocument: boolean;
@@ -504,11 +505,14 @@ export async function receiveFilledTemplate(
     return true;
   }
   if (wrongDocument || filled === false) {
-    const requestText = wrongDocument
-      ? `Vielen Dank für Ihre Rückmeldung. ${note || "Das zurückgeschickte Dokument scheint nicht die erwartete Vorlage zu sein."} Bitte schicken Sie uns stattdessen das Formular „${title}“ (im Anhang) ausgefüllt als Antwort auf diese E-Mail zurück.`
-      : note
-        ? `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Beim Prüfen ist uns aufgefallen: ${note} Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`
-        : `Vielen Dank für die zurückgeschickte Vorlage „${title}“. Sie wirkt noch nicht vollständig ausgefüllt. Bitte füllen Sie das Formular (im Anhang) vollständig aus und schicken Sie es uns erneut als Antwort auf diese E-Mail mit dem ausgefüllten Dokument als Anhang zurück.`;
+    const texts = (await store.getCompany()).businessProfile?.texts;
+    const requestText = await frameEmail(
+      store,
+      wrongDocument
+        ? customerText(texts, "forms.wrongDocument", { hinweis: note || "Das zurückgeschickte Dokument scheint nicht die erwartete Vorlage zu sein.", dokument: title })
+        : customerText(texts, "forms.incomplete", { dokument: title, hinweis: note ? `Beim Prüfen ist uns aufgefallen: ${note}` : "Sie wirkt noch nicht vollständig ausgefüllt." }),
+      c.fields.name,
+    );
     const attachments: InboundAttachment[] = [];
     if (template) {
       const blank = await readFile(template.storagePath);
@@ -538,8 +542,23 @@ export async function emailSubjectFor(store: Store, service: string | undefined)
 export async function completionTextFor(store: Store, service: string | undefined, opts: { appointmentProposed?: boolean } = {}): Promise<string> {
   const serviceMessages = await store.listServiceMessages();
   const own = serviceMessages.find((m) => m.service === service)?.appointmentNote?.trim();
-  if (opts.appointmentProposed) return own ? `${own} ${appointmentAddonText}` : `Vielen Dank, damit haben wir alle Angaben. ${appointmentAddonText}`;
-  return own || "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.";
+  const texts = (await store.getCompany()).businessProfile?.texts;
+  if (opts.appointmentProposed) return own ? `${own} ${customerText(texts, "appointment.pending")}` : customerText(texts, "email.completeAppointment");
+  return own || customerText(texts, "email.complete");
+}
+
+/**
+ * Automatische E-Mail mit Anrede und Gruß einrahmen (Texte unter „KI-Assistent → Texte“). Beginnt der Text schon mit
+ * einer Anrede bzw. endet er mit einem Gruß (eigener Text des Betriebs), wird nichts doppelt ergänzt.
+ */
+export async function frameEmail(store: Store, text: string, name?: string): Promise<string> {
+  const company = await store.getCompany();
+  const texts = company.businessProfile?.texts;
+  const greeting = hasGreeting(text) ? "" : customerText(texts, "email.greeting", { name: name?.trim() });
+  const signoff = hasSignoff(text) ? "" : customerText(texts, "email.signoff", { firma: company.name });
+  // Nach der Anrede klein weiter ("Guten Tag Frau X, vielen Dank …"), ohne Anrede groß.
+  const body = greeting ? text.replace(/^Vielen Dank/, "vielen Dank") : text.charAt(0).toUpperCase() + text.slice(1);
+  return [greeting, body, signoff].filter(Boolean).join("\n\n");
 }
 
 /**
@@ -551,7 +570,7 @@ export async function sendCompletionMessage(store: Store, refreshed: RefreshResu
   if (!(await store.getAssistant()).autoReply) return;
   const c = refreshed.caseRecord;
   const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, c));
-  const text = await completionTextFor(store, c.fields.service, { appointmentProposed: booked });
+  const text = await frameEmail(store, await completionTextFor(store, c.fields.service, { appointmentProposed: booked }), c.fields.name);
   const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
@@ -793,8 +812,12 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
   });
 
   const settings = await store.getAssistant();
-  const text = appointmentConfirmedText(new Date(saved.startsAt), settings.appointmentConfirmedTemplate);
-  const channel = "email" as const;
+  // Eigener Text unter „Texte“ hat Vorrang vor der älteren Einstellung im Assistenten.
+  const own = (await store.getCompany()).businessProfile?.texts?.["appointment.confirmed"];
+  const confirmed = own ? customerText({ "appointment.confirmed": own }, "appointment.confirmed", { termin: formatSlot(new Date(saved.startsAt)) }) : appointmentConfirmedText(new Date(saved.startsAt), settings.appointmentConfirmedTemplate);
+  // WhatsApp-Kunden bekommen die Bestätigung per WhatsApp (oft ohne E-Mail-Adresse).
+  const channel = c.source === "whatsapp" ? ("whatsapp" as const) : ("email" as const);
+  const text = channel === "email" ? await frameEmail(store, confirmed, c.fields.name) : confirmed;
   const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Termin" });
   await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
 

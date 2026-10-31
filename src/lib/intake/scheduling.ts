@@ -249,9 +249,15 @@ export const formatSlot = (d: Date) => `${dateFmt.format(d)} um ${timeFmt.format
 export const formatYmd = (ymd: Ymd) => dateFmt.format(new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d, 12)));
 
 /** Kurze, für den jeweiligen Ton passende Formulierung der Verfügbarkeits-Frage. */
+const DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+/** Arbeitstage als Namen ("Montag", "Dienstag" …). */
+export const workingDayNames = (workingDays: number[]) => workingDays.map((d) => DAY_NAMES[d]);
+/** Beispiel für die Terminfrage: "Montag bis Freitag" bzw. "Dienstag, Donnerstag". */
+export const availabilityExample = (workingDays: number[]) =>
+  workingDays.length >= 5 ? `${DAY_NAMES[workingDays[0]]} bis ${DAY_NAMES[workingDays[workingDays.length - 1]]}` : workingDayNames(workingDays).join(", ");
+
 export function availabilityQuestion(workingDays: number[]): string {
-  const names = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
-  const example = workingDays.length >= 5 ? `${names[workingDays[0]]} bis ${names[workingDays[workingDays.length - 1]]}` : workingDays.map((d) => names[d]).join(", ");
+  const example = availabilityExample(workingDays);
   return `An welchen Wochentagen (oder an welchem konkreten Datum) passt es Ihnen am besten für einen Termin? (z. B. „${example}“ oder „15. Oktober“)`;
 }
 

@@ -1,8 +1,9 @@
 import { apiError, json, parseBody, withSession } from "@/lib/api";
 import type { DocumentKind } from "@/lib/data/types";
-import { refreshCase, requestDocuments } from "@/lib/intake/case-ops";
+import { frameEmail, refreshCase, requestDocuments } from "@/lib/intake/case-ops";
 import { buildChecklist } from "@/lib/intake/checklist";
-import { documentRequestMessage } from "@/lib/intake/messages";
+import { customerText } from "@/lib/config/customer-texts";
+import { documentList } from "@/lib/intake/messages";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { caseIdSchema, documentRequestSchema } from "@/lib/validation";
 
@@ -33,8 +34,10 @@ export const POST = withSession(
     if (kinds.length === 0) return apiError("Es fehlen keine Dokumente.", 400);
 
     const { url } = await requestDocuments(store, c, kinds);
-    const text = documentRequestMessage({ name: c.fields.name, kinds, url });
     const channel = c.source === "whatsapp" ? ("whatsapp" as const) : ("email" as const);
+    const requestBody = customerText(company.businessProfile?.texts, "forms.uploadRequest", { liste: documentList(kinds), link: url });
+    // E-Mail mit Anrede und Gruß, WhatsApp ohne – dort groß beginnen.
+    const text = channel === "email" ? await frameEmail(store, requestBody, c.fields.name) : requestBody.charAt(0).toUpperCase() + requestBody.slice(1);
     const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Unterlagen für Ihren Termin" });
     await store.addMessage(id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
     await store.addEvent(id, "document", result.delivered ? "Dokumentenanforderung an den Kunden gesendet" : "Dokumentenanforderung vorbereitet (nicht versendet)");

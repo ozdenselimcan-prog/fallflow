@@ -1,4 +1,5 @@
-import { CASE_LIMIT_REACHED_TEXT } from "@/lib/billing/limits";
+import { customerText } from "@/lib/config/customer-texts";
+import { frameEmail } from "@/lib/intake/case-ops";
 import { getPublicStore } from "@/lib/data";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { findCaseByIdentity } from "@/lib/intake/identity";
@@ -135,7 +136,10 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
         } catch (err) {
           if (err instanceof CaseLimitReachedError) {
             // Mails aus dem Junk-Ordner bekommen nie eine automatische Antwort (könnte Spam sein).
-            if (!mail.junk) await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", CASE_LIMIT_REACHED_TEXT).catch(() => {});
+            if (!mail.junk) {
+              const limitText = await frameEmail(store, customerText((await store.getCompany()).businessProfile?.texts, "other.caseLimit"));
+              await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", limitText).catch(() => {});
+            }
           } else {
             console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
           }
