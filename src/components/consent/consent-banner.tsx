@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CONSENT_EVENT, GOOGLE_ADS_ID, loadGoogleTag, OPEN_CONSENT_EVENT, readConsent, saveConsent, trackConversion } from "@/lib/tracking";
 
 /** Seiten, auf denen nie ein Banner erscheint (eingebettetes Chat-Widget, Upload-Link für Endkunden, Betreiber-Bereich). */
-const HIDDEN = /^\/(widget|upload|admin)(\/|$)/;
+const HIDDEN = /^\/(widget|upload|termin|admin)(\/|$)/;
 
 /**
  * Cookie-Hinweis für Google Ads. Ohne Einwilligung wird kein Google-Code geladen. Erscheint nur, wenn Google Ads
