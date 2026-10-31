@@ -1,5 +1,6 @@
 "use client";
 
+import { mailProvider, providerForEmail, type MailProvider } from "@/lib/integrations/mail-providers";
 import { Globe, Loader2, Lock, Mail, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Badge, Card } from "@/components/ui/card";
@@ -110,6 +111,29 @@ function AppPasswordLink({ imapHost }: { imapHost: string }) {
   );
 }
 
+/** Erkannter Anbieter: was der Kunde tun muss (z. B. IMAP erlauben, App-Passwort), mit Direktlink. */
+function ProviderHelp({ provider, microsoftAvailable }: { provider: MailProvider; microsoftAvailable: boolean }) {
+  return (
+    <div className="space-y-2 rounded-xl border border-accent/30 bg-accent/5 p-4 text-sm">
+      <p className="font-medium">Erkannt: {provider.label}</p>
+      {provider.microsoft && !microsoftAvailable ? (
+        <p className="text-xs text-muted-foreground">Für Outlook unten unter „Server-Einstellungen“ den Anbieter „Outlook“ wählen – dann führt FallFlow Sie durch die Weiterleitung.</p>
+      ) : (
+        <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground">
+          {provider.steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      )}
+      {provider.link && (
+        <a href={provider.link.url} target="_blank" rel="noopener noreferrer" className="inline-block text-xs font-medium text-accent underline underline-offset-2">
+          {provider.link.label} ↗
+        </a>
+      )}
+    </div>
+  );
+}
+
 /** E-Mail per IMAP/SMTP verbinden – eigene Zugangsdaten des Büros, kein OAuth, keine "App nicht von
  * Google geprüft"-Warnung. Funktioniert mit Gmail (per App-Passwort) und praktisch jedem
  * Anbieter, der IMAP/SMTP anbietet. */
@@ -143,9 +167,27 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
   };
 
   const [forwarding, setForwarding] = useState(false);
+  const [detected, setDetected] = useState<MailProvider | null>(null);
+  const [detectDone, setDetectDone] = useState(false);
+  const [serversOpen, setServersOpen] = useState(false);
+
+  // Anbieter an der Adresse erkennen und Server-Daten eintragen (eigene Domain: über den MX-Eintrag, serverseitig).
+  const detect = async (email: string) => {
+    if (!email.includes("@")) return;
+    let provider = providerForEmail(email);
+    if (!provider) {
+      const r = await apiFetch<{ provider: string | null }>("GET", `/api/integrations/detect?email=${encodeURIComponent(email)}`).catch(() => ({ provider: null }));
+      provider = r.provider ? mailProvider(r.provider) : null;
+    }
+    setDetected(provider);
+    setDetectDone(true);
+    if (provider && !provider.microsoft) setForm((f) => ({ ...f, imapHost: provider.imapHost, imapPort: provider.imapPort, smtpHost: provider.smtpHost, smtpPort: provider.smtpPort }));
+    setServersOpen(!provider);
+  };
 
   const applyPreset = (label: string) => {
     setForwarding(label === OUTLOOK_PRESET);
+    if (label === OUTLOOK_PRESET) setDetected(null);
     if (label !== OUTLOOK_PRESET) setForm((f) => ({ ...f, replyTo: "" }));
     const preset = PRESETS.find((p) => p.label === label);
     if (preset) setForm((f) => ({ ...f, imapHost: preset.imapHost, imapPort: preset.imapPort, smtpHost: preset.smtpHost, smtpPort: preset.smtpPort }));
@@ -157,6 +199,8 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
     if (res) {
       setForm(DEFAULT_FORM);
       setForwarding(false);
+      setDetected(null);
+      setDetectDone(false);
     }
     else setNotice({ tone: "error", text: error ?? "Verbindung fehlgeschlagen." });
   };
@@ -226,54 +270,71 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
               <Lock className="mt-0.5 size-3.5 shrink-0" />
               Ihre Zugangsdaten werden verschlüsselt (AES-256) gespeichert und ausschließlich automatisiert für den Mail-Abruf und -Versand genutzt. Niemand sieht Ihr Passwort im Klartext – auch wir als Betreiber nicht. Wir als Betreiber haben keinen manuellen Zugriff auf Ihr Postfach: Niemand bei uns liest Ihre E-Mails mit – der Abruf und Versand läuft ausschließlich automatisiert über das System.
             </p>
-            <Field label="Üblicher Anbieter (füllt Server-Felder automatisch aus)">
-              <Select defaultValue="" onChange={(e) => applyPreset(e.target.value)}>
-                <option value="">Manuell eingeben…</option>
-                {PRESETS.map((p) => (
-                  <option key={p.label} value={p.label}>
-                    {p.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            {!forwarding && (
+              <Field label="Ihre E-Mail-Adresse" hint="Die Adresse, an die Ihre Kunden schreiben. FallFlow erkennt Ihren Anbieter und trägt die Server-Daten selbst ein.">
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onBlur={() => void detect(form.email)}
+                  placeholder="buero@ihre-domain.de"
+                />
+              </Field>
+            )}
+            {!forwarding && detected && <ProviderHelp provider={detected} microsoftAvailable={microsoftAvailable} />}
+            {!forwarding && detectDone && !detected && form.email.includes("@") && (
+              <p className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+                Ihren Anbieter kennen wir nicht automatisch. Die Server-Daten (IMAP/SMTP) stehen in der Hilfe Ihres Anbieters oder in Ihrem bisherigen E-Mail-Programm – unten unter
+                „Server-Einstellungen“ eintragen.
+              </p>
+            )}
             {forwarding && <OutlookForwardingGuide microsoftAvailable={microsoftAvailable} />}
-            <div className="grid gap-3 sm:grid-cols-2">
-              {forwarding && (
+            {forwarding && (
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <Field label="Ihre Outlook-Adresse (die Ihre Kunden kennen)">
                     <Input type="email" value={form.replyTo} onChange={(e) => setForm({ ...form, replyTo: e.target.value })} placeholder="info@ihre-domain.de" />
                   </Field>
                 </div>
-              )}
-              <Field label={forwarding ? "Gmail-Adresse (nur für FallFlow)" : "E-Mail-Adresse"}>
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={forwarding ? "ihrbuero.anfragen@gmail.com" : "buero@ihre-domain.de"} />
-              </Field>
-              <Field
-                label={forwarding ? "App-Passwort von Google" : "Passwort"}
-                hint={forwarding ? undefined : "Bei Gmail: ein App-Passwort nutzen, nicht das normale Konto-Passwort (braucht 2-Faktor-Auth)."}
-              >
+                <Field label="Gmail-Adresse (nur für FallFlow)">
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="ihrbuero.anfragen@gmail.com" />
+                </Field>
+              </div>
+            )}
+            {!(detected?.microsoft && !forwarding) && (
+              <Field label={forwarding ? "App-Passwort von Google" : detected?.id === "gmail" || detected?.id === "yahoo" ? "App-Passwort" : detected?.id === "tonline" ? "E-Mail-Passwort" : "Passwort"}>
                 <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-                {!forwarding && (
-                  <div className="mt-1">
-                    <AppPasswordLink imapHost={form.imapHost} />
-                  </div>
-                )}
               </Field>
-            </div>
-            <div className={forwarding ? "hidden" : "grid gap-3 sm:grid-cols-2"}>
-              <Field label="IMAP-Server (Posteingang)">
-                <Input value={form.imapHost} onChange={(e) => setForm({ ...form, imapHost: e.target.value })} placeholder="imap.ihre-domain.de" />
-              </Field>
-              <Field label="IMAP-Port">
-                <Input type="number" value={form.imapPort} onChange={(e) => setForm({ ...form, imapPort: Number(e.target.value) })} />
-              </Field>
-              <Field label="SMTP-Server (Postausgang)">
-                <Input value={form.smtpHost} onChange={(e) => setForm({ ...form, smtpHost: e.target.value })} placeholder="smtp.ihre-domain.de" />
-              </Field>
-              <Field label="SMTP-Port">
-                <Input type="number" value={form.smtpPort} onChange={(e) => setForm({ ...form, smtpPort: Number(e.target.value) })} />
-              </Field>
-            </div>
+            )}
+            <details open={serversOpen} onToggle={(e) => setServersOpen((e.target as HTMLDetailsElement).open)} className="rounded-xl border border-border">
+              <summary className="cursor-pointer px-4 py-2.5 text-sm font-medium">Server-Einstellungen{detected && !forwarding ? ` (für ${detected.label} schon eingetragen)` : ""}</summary>
+              <div className="space-y-3 border-t border-border p-4">
+                <Field label="Anbieter selbst wählen (füllt die Felder aus)">
+                  <Select defaultValue="" onChange={(e) => applyPreset(e.target.value)}>
+                    <option value="">Manuell eingeben…</option>
+                    {PRESETS.map((p) => (
+                      <option key={p.label} value={p.label}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <div className={forwarding ? "hidden" : "grid gap-3 sm:grid-cols-2"}>
+                  <Field label="IMAP-Server (Posteingang)">
+                    <Input value={form.imapHost} onChange={(e) => setForm({ ...form, imapHost: e.target.value })} placeholder="imap.ihre-domain.de" />
+                  </Field>
+                  <Field label="IMAP-Port">
+                    <Input type="number" value={form.imapPort} onChange={(e) => setForm({ ...form, imapPort: Number(e.target.value) })} />
+                  </Field>
+                  <Field label="SMTP-Server (Postausgang)">
+                    <Input value={form.smtpHost} onChange={(e) => setForm({ ...form, smtpHost: e.target.value })} placeholder="smtp.ihre-domain.de" />
+                  </Field>
+                  <Field label="SMTP-Port">
+                    <Input type="number" value={form.smtpPort} onChange={(e) => setForm({ ...form, smtpPort: Number(e.target.value) })} />
+                  </Field>
+                </div>
+              </div>
+            </details>
             <Button
               variant="secondary"
               size="sm"

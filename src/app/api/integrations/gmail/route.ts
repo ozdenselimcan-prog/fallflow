@@ -1,3 +1,4 @@
+import { friendlyConnectError } from "@/lib/integrations/mail-providers";
 import { z } from "zod";
 import { apiError, json, parseBody, withSession } from "@/lib/api";
 import { encryptionAvailable } from "@/lib/crypto";
@@ -39,7 +40,7 @@ export const POST = withSession(
       await gmailProvider.testConnection({ accessToken: creds, refreshToken: null, expiresAt: null });
     } catch (err) {
       const reason = err instanceof Error ? err.message : "unbekannter Fehler";
-      return apiError(`Verbindung fehlgeschlagen: ${reason}. Bitte Zugangsdaten und Server-Einstellungen prüfen.`, 400);
+      return apiError(friendlyConnectError(reason, login.imapHost), 400);
     }
     await saveConnection({
       companyId: session.companyId,
