@@ -1,8 +1,10 @@
 import {
   ArrowDown,
   ArrowRight,
+  BellRing,
   Building2,
   CalendarCheck,
+  Camera,
   Check,
   ClipboardCheck,
   Clock,
@@ -11,6 +13,7 @@ import {
   FileUp,
   Globe,
   Inbox,
+  Languages,
   Mail,
   MessageCircle,
   MessageCircleQuestion,
@@ -19,6 +22,7 @@ import {
   ScatterChart,
   Siren,
   Sparkles,
+  Star,
   Workflow,
 } from "lucide-react";
 import Link from "next/link";
@@ -162,21 +166,25 @@ export function DemoSection() {
 
 const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = [
   { icon: Workflow, title: "AI Intake", text: "Alle laufenden Anfragen mit klarem Status – von „Neu“ bis „Bereit zur Prüfung“." },
-  { icon: MessageCircle, title: "WhatsApp", text: "Kunden schreiben Ihnen per WhatsApp – die KI fragt Schritt für Schritt nach, Fotos landen in der Fallakte. Was gefragt wird, legen Sie selbst fest." },
+  { icon: MessageCircle, title: "WhatsApp", text: "Kunden schreiben Ihnen per WhatsApp – die KI fragt Schritt für Schritt nach, versteht auch Sprachnachrichten, Fotos landen in der Fallakte." },
+  { icon: CalendarCheck, title: "Online-Terminbuchung", text: "Sind alle Angaben da, wählt der Kunde per Link selbst einen freien Termin – belegte Zeiten aus Ihrem Outlook-Kalender bleiben frei." },
+  { icon: FileText, title: "Angebot per Klick", text: "Die KI entwirft den Kostenvoranschlag aus Anfrage und Ihrer Preisliste. Sie prüfen, ergänzen und senden ihn als PDF." },
+  { icon: BellRing, title: "Automatische Erinnerungen", text: "Fehlen Angaben, erinnert FallFlow den Kunden. Am Vortag eines Termins kommt eine kurze Terminerinnerung." },
+  { icon: Siren, title: "Notfälle sofort aufs Handy", text: "Notfälle und Reklamationen erkennt FallFlow, gibt sie an Sie weiter und meldet Notfälle sofort per Push-Nachricht." },
+  { icon: Camera, title: "Foto-Einschätzung", text: "Die KI schaut sich die Fotos des Kunden an und notiert, was zu sehen ist – nur für Sie, als Vorbereitung für vor Ort." },
+  { icon: Languages, title: "In der Sprache des Kunden", text: "Schreibt ein Kunde Englisch, Türkisch oder Polnisch, antwortet FallFlow in seiner Sprache. Sie lesen und schreiben weiter Deutsch." },
+  { icon: Star, title: "Google-Bewertungen", text: "Nach dem Termin bittet FallFlow zufriedene Kunden um eine Bewertung – mit Ihrem Link, einmal und freundlich." },
   { icon: Phone, title: "Telefon-Assistent", text: "Geht niemand ran, nimmt die KI den Anruf an, fragt das Nötige ab und legt den Fall an – mit KI-Hinweis, ohne Aufzeichnung. Ab Tarif Pro.", soon: true },
   { icon: MessageCircleQuestion, title: "Aufmerksamkeit benötigt", text: "Stellt ein Kunde eine Frage oder ist die Leistung unklar, antwortet nicht die KI, sondern Sie – FallFlow sagt Ihnen Bescheid." },
   { icon: ClipboardCheck, title: "Vollständigkeit in %", text: "Jeder Fall zeigt auf einen Blick, was vorliegt und was noch fehlt." },
-  { icon: FileText, title: "Fallakte", text: "Kunde, Angaben zum Auftrag, Unterlagen, Kommunikation und Zusammenfassung an einem Ort." },
+  { icon: FileText, title: "Fallakte", text: "Kunde, Angaben zum Auftrag, Unterlagen, Kommunikation und eine kurze KI-Zusammenfassung an einem Ort." },
   { icon: FileUp, title: "Ausgefüllte PDFs auslesen", text: "Was der Kunde ins Formular einträgt, landet automatisch in der Fallakte – die PDF selbst natürlich auch." },
   { icon: Inbox, title: "Posteingang", text: "Alle Mails und Telefonnotizen, automatisch dem richtigen Kunden und Fall zugeordnet." },
   { icon: Globe, title: "Website-Chat", text: "Die KI beantwortet Besucherfragen zu Ihren Leistungen – eingebunden mit einem Script-Tag." },
   { icon: Mail, title: "E-Mail-Anbindung", text: "Per IMAP/SMTP verbunden – funktioniert mit Gmail, Outlook, IONOS, Strato, T-Online und praktisch jedem Postfach." },
-  { icon: CalendarCheck, title: "Termine & Outlook-Kalender", text: "Die KI schlägt freie Termine vor und lässt belegte Zeiten aus Ihrem Outlook-Kalender aus. Bestätigte Termine landen automatisch dort." },
-  { icon: Sparkles, title: "KI-Zusammenfassung", text: "Kurze, sachliche Zusammenfassung – nur aus den erfassten Angaben, keine Beratung." },
-  { icon: FileText, title: "PDF-Vorlagen je Leistung", text: "Passende Vollmachten & Formulare gehen automatisch mit – zum Ausfüllen oder nur zur Info (z. B. Preisliste)." },
-  { icon: Mail, title: "Testmail ausprobieren", text: "Sehen Sie vor dem Start genau, was Ihre Kunden bekommen – ohne dass etwas verschickt wird." },
+  { icon: Sparkles, title: "Wissen & Preise", text: "Hinterlegen Sie Preise und häufige Fragen – die KI beantwortet sie, erfindet aber nie selbst einen Preis." },
   { icon: Building2, title: "Für Ihre Branche eingerichtet", text: "Beschreiben Sie Ihren Betrieb in zwei Sätzen – die KI schlägt Leistungen, Angaben und Unterlagen vor. Sie entscheiden." },
-  { icon: Siren, title: "Notfälle & Reklamationen", text: "Themen, die Sie selbst beantworten wollen, erkennt FallFlow und gibt sie sofort an Sie weiter." },
+  { icon: Mail, title: "Alles bearbeitbar", text: "Jeder Text, den FallFlow an Kunden schickt, lässt sich ändern. Mit der Testmail sehen Sie vorher genau, was ankommt." },
 ];
 
 const MOBILE_FEATURES = 6;

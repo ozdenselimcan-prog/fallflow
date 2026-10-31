@@ -15,10 +15,12 @@ export interface Plan {
 /** In jedem Plan enthalten – überall vollständig aufgeführt, damit kein Plan "kleiner" wirkt. */
 const COMMON_FEATURES = [
   "Automatische E-Mail-Antworten mit Ihren Texten & PDF-Vorlagen",
+  "WhatsApp-Anbindung (auch Sprachnachrichten)",
   "Website-Chat für Besucherfragen",
   "Fallakte mit Vollständigkeit in %",
   "Ausgefüllte PDFs werden automatisch ausgelesen",
-  "Terminvorschläge im Kalender",
+  "Online-Terminbuchung & Terminerinnerungen",
+  "Angebote als PDF mit KI-Entwurf",
   "Mehrere Mitarbeiter",
   "Monatlich kündbar",
 ];
