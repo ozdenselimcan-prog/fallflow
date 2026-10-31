@@ -145,7 +145,7 @@ const MICROSOFT_NOTICES: Record<string, { tone: "success" | "error"; text: strin
 };
 
 function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integrationResult }: { connection: ConnectionView | null; canManage: boolean; microsoftAvailable: boolean; returnTo: string; integrationResult?: string }) {
-  const { pending, error, run } = useMutation();
+  const { pending, run } = useMutation();
   const [testPending, setTestPending] = useState(false);
   // Rückmeldung nach der Microsoft-Anmeldung (?integration=microsoft-…) direkt anzeigen.
   const [notice, setNotice] = useState<{ tone: "info" | "success" | "error"; text: string } | null>(() => MICROSOFT_NOTICES[integrationResult ?? ""] ?? null);
