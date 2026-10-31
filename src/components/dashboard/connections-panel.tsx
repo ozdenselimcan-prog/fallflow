@@ -195,14 +195,20 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
 
   const connect = async () => {
     setNotice(null);
-    const res = await run(() => apiFetch("POST", "/api/integrations/gmail", { ...form, replyTo: forwarding ? form.replyTo : "" }));
+    // Fehlermeldung direkt aus der Antwort nehmen – `error` aus useMutation ist hier noch der alte Stand.
+    let failure = "";
+    const res = await run(() =>
+      apiFetch("POST", "/api/integrations/gmail", { ...form, replyTo: forwarding ? form.replyTo : "" }).catch((e: unknown) => {
+        failure = e instanceof Error ? e.message : "Verbindung fehlgeschlagen.";
+        throw e;
+      }),
+    );
     if (res) {
       setForm(DEFAULT_FORM);
       setForwarding(false);
       setDetected(null);
       setDetectDone(false);
-    }
-    else setNotice({ tone: "error", text: error ?? "Verbindung fehlgeschlagen." });
+    } else setNotice({ tone: "error", text: failure || "Verbindung fehlgeschlagen." });
   };
 
   const disconnect = () => run(() => apiFetch("DELETE", `/api/integrations/${provider}`));
