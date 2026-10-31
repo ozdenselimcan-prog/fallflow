@@ -27,14 +27,28 @@ export function WhatsAppQuestionsEditor({ canEdit }: { canEdit: boolean }) {
   const [busy, setBusy] = useState<"load" | "suggest" | "save" | null>("load");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  /** Gerade automatisch erstellt und gespeichert (erster Besuch) */
+  const [fresh, setFresh] = useState(false);
 
-  const suggest = async () => {
+  /**
+   * Erster Besuch (auto): Vorschlag erstellen und gleich speichern – beim nächsten Öffnen ist er da, ohne neue KI-Anfrage.
+   * Danach nur auf Knopfdruck neu, und zwar anders als der bisherige (der wird mitgeschickt).
+   */
+  const suggest = async (auto = false) => {
     setBusy("suggest");
     setError(null);
     try {
-      const r = await apiFetch<{ questions: Q[] }>("POST", "/api/whatsapp-questions");
-      setList(r.questions);
-      setDraft(true);
+      const r = await apiFetch<{ questions: Q[] }>("POST", "/api/whatsapp-questions", auto ? {} : { previous: (list ?? []).map((q) => ({ label: q.label, prompt: q.prompt })) });
+      if (auto) {
+        const stored = await apiFetch<{ questions: Q[] | null }>("PUT", "/api/whatsapp-questions", { questions: r.questions });
+        setList(stored.questions ?? r.questions);
+        setDraft(false);
+        setFresh(true);
+      } else {
+        setList(r.questions);
+        setDraft(true);
+        setFresh(false);
+      }
       setSaved(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Vorschlag fehlgeschlagen");
@@ -50,7 +64,7 @@ export function WhatsAppQuestionsEditor({ canEdit }: { canEdit: boolean }) {
         if (r.questions) {
           setList(r.questions);
           setBusy(null);
-        } else if (canEdit) await suggest();
+        } else if (canEdit) await suggest(true);
         else {
           setList([]);
           setBusy(null);
@@ -105,7 +119,8 @@ export function WhatsAppQuestionsEditor({ canEdit }: { canEdit: boolean }) {
 
   return (
     <div className="space-y-4">
-      {draft && <Notice>Vorschlag bzw. Änderungen noch nicht gespeichert – bitte prüfen und speichern.</Notice>}
+      {fresh && !draft && <Notice tone="success">Die KI hat diese Fragen aus Ihren Angaben vorgeschlagen und gespeichert. Sie können sie jederzeit ändern.</Notice>}
+      {draft && <Notice>Neuer Vorschlag bzw. Änderungen noch nicht gespeichert – bitte prüfen und speichern.</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
       <ol className="space-y-3">
         {(list ?? []).map((q, i) => (
@@ -169,7 +184,7 @@ export function WhatsAppQuestionsEditor({ canEdit }: { canEdit: boolean }) {
           <Button variant="secondary" onClick={() => { setList((l) => [...(l ?? []), { key: "", label: "", prompt: "", services: [] }]); setDraft(true); setSaved(false); }}>
             <Plus className="size-4" /> Frage hinzufügen
           </Button>
-          <Button variant="ghost" onClick={suggest} loading={busy === "suggest"}>
+          <Button variant="ghost" onClick={() => suggest(false)} loading={busy === "suggest"}>
             <Sparkles className="size-4" /> Neu vorschlagen lassen
           </Button>
           <div className="flex-1" />

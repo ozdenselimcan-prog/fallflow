@@ -24,15 +24,19 @@ export const GET = withSession(async (_req, { store }) => {
   return json({ questions: company.businessProfile.whatsappQuestions ?? null, services: company.services.filter((s) => s !== "Sonstiges") });
 });
 
-/** KI-Vorschlag aus Einrichtung, Profil und Formularen (wird nicht gespeichert). */
+/** KI-Vorschlag aus Einrichtung, Profil und Formularen (wird nicht gespeichert). Mit `previous`: ein anderer Vorschlag als dieser. */
 export const POST = withSession(
-  async (_req, { store }) => {
+  async (req, { store }) => {
+    const body = (await req.json().catch(() => ({}))) as { previous?: { label?: unknown; prompt?: unknown }[] };
+    const previous = Array.isArray(body.previous)
+      ? body.previous.slice(0, 20).map((q) => ({ label: String(q.label ?? "").slice(0, 80), prompt: String(q.prompt ?? "").slice(0, 240) }))
+      : undefined;
     const company = await store.getCompany();
     const p = company.businessProfile;
     const services = company.services.filter((s) => s !== "Sonstiges");
     const known = await knownFields(store);
     const documents = [...new Set(services.flatMap((s) => profileDocumentsFor(p, s)))];
-    const suggestion = await suggestWhatsAppQuestions({ industry: p.industry, description: p.description, services, needsAddress: p.needsAddress ?? true, known, documents });
+    const suggestion = await suggestWhatsAppQuestions({ industry: p.industry, description: p.description, services, needsAddress: p.needsAddress ?? true, known, documents, previous });
     if (!suggestion) return apiError("Der Vorschlag konnte gerade nicht erstellt werden. Bitte gleich noch einmal versuchen.", 503);
     return json({ questions: suggestion });
   },

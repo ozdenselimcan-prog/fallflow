@@ -16,6 +16,8 @@ export interface WhatsAppQuestionSource {
   /** Bekannte Angaben (Standard + Profil + Formulare) – gleiche Bedeutung = gleicher Schlüssel. */
   known: { key: string; label: string; prompt: string; services?: string[] }[];
   documents: string[];
+  /** Bisheriger Vorschlag – dann soll der neue anders sein (der Betrieb hat "Neu vorschlagen" gedrückt). */
+  previous?: { label: string; prompt: string }[];
 }
 
 const SYSTEM = `Du stellst für einen deutschen Betrieb die Fragen zusammen, die ein KI-Assistent im WhatsApp-Chat neuen Kunden stellt,
@@ -103,11 +105,27 @@ Arbeitet beim Kunden vor Ort: ${src.needsAddress ? "ja" : "nein"}
 Typische Unterlagen: ${src.documents.join(", ") || "keine"}
 Bekannte Angaben:
 ${src.known.map((k) => `- ${k.key}: ${k.label} – ${k.prompt}${k.services?.length ? ` (nur bei: ${k.services.join(", ")})` : ""}`).join("\n")}
-</betrieb>`;
+</betrieb>${
+    src.previous?.length
+      ? `
+<bisher>
+${src.previous.map((q) => `- ${tidy(q.label, 60)}: ${tidy(q.prompt, 200)}`).join("\n")}
+</bisher>
+Der Betrieb möchte einen NEUEN Vorschlag, der sich vom bisherigen unterscheidet: Formuliere jede Frage anders (andere Worte,
+gern persönlicher oder kürzer) und prüfe Reihenfolge und Auswahl neu. Die Regeln oben gelten weiter.`
+      : ""
+  }`;
+  const norm = (list: { prompt: string }[]) => list.map((q) => q.prompt.toLowerCase().replace(/[^a-zäöüß]/g, "")).join("|");
   try {
-    const parsed = schema.safeParse(await provider.completeJson(SYSTEM, user));
-    if (!parsed.success) return null;
-    return tightenSuggestion(normalizeWhatsAppQuestions(parsed.data.questions, src.services, src.known.map((k) => k.key)), src);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const parsed = schema.safeParse(await provider.completeJson(SYSTEM, user));
+      if (!parsed.success) return null;
+      const list = tightenSuggestion(normalizeWhatsAppQuestions(parsed.data.questions, src.services, src.known.map((k) => k.key)), src);
+      // Kam (fast) dasselbe wie vorher heraus, einmal neu fragen.
+      if (src.previous?.length && norm(list) === norm(src.previous) && attempt === 0) continue;
+      return list;
+    }
+    return null;
   } catch (err) {
     console.error("[ai] WhatsApp-Fragen nicht vorgeschlagen:", err instanceof Error ? err.message : "unbekannt");
     return null;
