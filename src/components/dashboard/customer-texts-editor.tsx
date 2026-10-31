@@ -86,7 +86,7 @@ export function CustomerTextsEditor({ canEdit }: { canEdit: boolean }) {
   if (!items) return <p className="text-sm text-muted-foreground">Wird geladen …</p>;
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4">
       <Notice tone="info">
         Hier stehen alle Texte, die FallFlow automatisch an Ihre Kunden schickt. Ändern Sie sie, wie Sie möchten – Wörter in geschweiften Klammern wie {"{name}"} werden beim
         Versand ersetzt. Ein einzelnes „-“ schaltet einen Text ganz ab (z. B. keine Grußformel). Ihre Texte je Leistung bearbeiten Sie unter „Vorlagen &amp; Nachrichten“.
@@ -152,8 +152,9 @@ export function CustomerTextsEditor({ canEdit }: { canEdit: boolean }) {
         );
       })}
       {canEdit && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 backdrop-blur sm:px-6">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+        // Klebt unten im Inhaltsbereich – am Handy oberhalb der Menüleiste.
+        <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur lg:bottom-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">{changed ? `${changed} ${changed === 1 ? "Text" : "Texte"} geändert` : "Alle Texte im Standard"}</p>
             <div className="flex items-center gap-3">
               {error && <span className="text-sm text-danger">{error}</span>}
