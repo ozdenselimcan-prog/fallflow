@@ -92,27 +92,28 @@ export async function buildQuotePdf(input: QuotePdfInput): Promise<Uint8Array> {
   }
 
   // Tabelle
-  const col = { pos: M, title: M + 28, qty: A4.w - M - 210, unit: A4.w - M - 160, price: A4.w - M - 80, sum: A4.w - M };
+  // Rechtsbündige Spalten: Menge, Einzelpreis, Gesamt (rechte Kante); Einheit linksbündig.
+  const col = { pos: M, title: M + 28, qtyR: A4.w - M - 225, unit: A4.w - M - 210, priceR: A4.w - M - 85, sumR: A4.w - M };
   const header = () => {
     page.drawRectangle({ x: M - 4, y: y - 5, width: A4.w - 2 * M + 8, height: 18, color: rgb(0.95, 0.95, 0.96) });
     text("Pos.", col.pos, 9, bold);
     text("Leistung", col.title, 9, bold);
-    right("Menge", col.qty + 30, 9, bold);
+    right("Menge", col.qtyR, 9, bold);
     text("Einheit", col.unit, 9, bold);
-    right("Einzelpreis", col.price + 50, 9, bold);
-    right("Gesamt", col.sum, 9, bold);
+    right("Einzelpreis", col.priceR, 9, bold);
+    right("Gesamt", col.sumR, 9, bold);
     y -= 22;
   };
   header();
   input.quote.items.forEach((item, idx) => {
-    const lines = wrap(safe(item.title), font, 10, col.qty - col.title - 10);
+    const lines = wrap(safe(item.title), font, 10, col.qtyR - 40 - col.title);
     newPageIfNeeded(lines.length * 13 + 8);
     if (y > A4.h - M - 5) header();
     text(String(idx + 1), col.pos);
-    right(String(item.qty).replace(".", ","), col.qty + 30);
+    right(String(item.qty).replace(".", ","), col.qtyR);
     text(item.unit, col.unit);
-    right(item.unitPrice === null ? "–" : euro(item.unitPrice), col.price + 50);
-    right(item.unitPrice === null ? "–" : euro(item.unitPrice * item.qty), col.sum);
+    right(item.unitPrice === null ? "–" : euro(item.unitPrice), col.priceR);
+    right(item.unitPrice === null ? "–" : euro(item.unitPrice * item.qty), col.sumR);
     lines.forEach((l, i) => {
       text(l, col.title);
       if (i < lines.length - 1) y -= 13;

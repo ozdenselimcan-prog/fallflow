@@ -112,7 +112,7 @@ export function QuoteCard({ caseId, canWrite }: { caseId: string; canWrite: bool
             <Textarea rows={2} value={q.intro} disabled={!canWrite} onChange={(e) => change({ intro: e.target.value })} aria-label="Einleitung" placeholder="Einleitung, z. B. vielen Dank für Ihre Anfrage – gern bieten wir Ihnen an:" />
             <div className="space-y-2">
               {q.items.map((it, i) => (
-                <div key={i} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl border border-border p-2 sm:grid-cols-[1fr_5rem_5rem_7rem_auto] sm:items-center sm:border-0 sm:p-0">
+                <div key={i} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl border border-border p-2 sm:grid-cols-[1fr_4.5rem_6.5rem_7rem_auto] sm:items-center sm:border-0 sm:p-0">
                   <Input value={it.title} disabled={!canWrite} onChange={(e) => setItem(i, { title: e.target.value })} aria-label="Leistung" placeholder="Leistung" className="col-span-2 sm:col-span-1" />
                   <Input type="number" min={0} step="any" value={it.qty} disabled={!canWrite} onChange={(e) => setItem(i, { qty: Number(e.target.value) || 0 })} aria-label="Menge" />
                   <Input value={it.unit} disabled={!canWrite} onChange={(e) => setItem(i, { unit: e.target.value })} aria-label="Einheit" />
