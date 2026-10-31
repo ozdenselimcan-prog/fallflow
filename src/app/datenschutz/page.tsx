@@ -347,11 +347,20 @@ export default function DatenschutzPage() {
                 "zurückgeschickte Formulare und Dokumente (Text sowie bei Scans und Fotos die Seiten als Bild): um ausgefüllte Angaben auszulesen und zu prüfen, ob das Formular vollständig ist",
                 "Fragen im Website-Chat eines Büros zusammen mit den Angaben des Büros zu seinen Leistungen: um die Frage zu beantworten",
                 "Angaben aus der Fallakte: um eine Kurzzusammenfassung für das Büro zu erstellen",
+                "Sprachnachrichten, die Kunden per WhatsApp schicken: um sie in Text umzuwandeln (abzutippen), damit sie wie eine Textnachricht bearbeitet werden können",
+                "Fotos, die Kunden schicken: um für das Büro eine kurze, unverbindliche Einschätzung zu erstellen, was darauf zu sehen ist (nur für das Büro, nicht für den Kunden)",
+                "Nachrichten von Kunden, die in einer anderen Sprache als Deutsch schreiben, sowie die Antworten an sie: um die Sprache zu erkennen und die Nachrichten zu übersetzen",
+                "Angaben aus der Fallakte und die Preisliste des Büros: um auf Wunsch des Büros Entwürfe für persönliche Antworten und Angebote (Kostenvoranschläge) zu erstellen, die das Büro vor dem Versand prüft",
               ]}
             />
             <p>
               Über die API übermittelte Daten werden nach den Bedingungen von OpenAI nicht zum Training von KI-Modellen verwendet und höchstens 30 Tage zur Missbrauchserkennung
               gespeichert. Die Ergebnisse der KI sind Hilfen für das Büro; über die Bearbeitung entscheidet immer ein Mensch (Abschnitt 21).
+            </p>
+            <p>
+              Schaltet ein Mitarbeiter des Büros Push-Benachrichtigungen ein (z. B. bei Notfällen), speichern wir die vom Browser erzeugte Empfangsadresse seines Geräts. Die
+              Benachrichtigungen (z. B. Name des Kunden und Anlass) werden verschlüsselt über den Push-Dienst des jeweiligen Browserherstellers (z. B. Google, Apple, Mozilla)
+              zugestellt; dieser kann den Inhalt nicht lesen. Die Benachrichtigungen lassen sich jederzeit im Dashboard oder in den Browser-Einstellungen abschalten.
             </p>
             <p>
               Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Erbringung der vereinbarten Leistung gegenüber dem Büro bzw. Bearbeitung der Anfrage des Endkunden) im Rahmen der

@@ -40,6 +40,18 @@ export const faqs = [
     a: "Ja. Unter „KI-Assistent → Ihr Betrieb“ legen Sie Ihre Leistungen, die Angaben, die der Assistent erfragt (Pflicht oder optional), die Unterlagen und die Themen fest, bei denen Sie selbst antworten. Unter „Vorlagen & Nachrichten“ wählen Sie je Leistung Nachrichtentext, PDF-Vorlagen und die Unterlagen, die der Kunde schicken soll.",
   },
   {
+    q: "Können Kunden selbst einen Termin buchen?",
+    a: "Ja. Sind alle Angaben da, bekommt der Kunde einen Link zu Ihren freien Terminen und wählt selbst – belegte Zeiten aus Ihrem Outlook-Kalender bleiben frei. Sie bestätigen den Termin oder lassen FallFlow das automatisch tun. Am Vortag bekommt der Kunde eine kurze Erinnerung.",
+  },
+  {
+    q: "Antwortet FallFlow auch Kunden, die kein Deutsch sprechen?",
+    a: "Ja. Schreibt ein Kunde z. B. auf Englisch, Türkisch oder Polnisch, gehen die automatischen Antworten in seiner Sprache raus. Im Fall lassen Sie sich seine Nachrichten auf Deutsch anzeigen und antworten selbst auf Deutsch – FallFlow übersetzt.",
+  },
+  {
+    q: "Erfindet die KI Preise?",
+    a: "Nein. Preise nennt FallFlow nur, wenn sie in Ihrer Preisliste unter „Wissen & Preise“ stehen – in Antworten wie in Angebots-Entwürfen. Fehlt ein Preis, bleibt die Stelle leer und Sie tragen ihn selbst ein.",
+  },
+  {
     q: "Wo werden Kundendaten gespeichert?",
     a: "Die Daten werden in einer PostgreSQL-Datenbank (Supabase) gespeichert, jeder Betrieb sieht ausschließlich die eigenen Daten. Details stehen in der Datenschutzerklärung.",
   },

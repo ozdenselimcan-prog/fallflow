@@ -39,7 +39,7 @@ export default function AvvPage() {
           items={[
             "Kontaktdaten (Name, E-Mail-Adresse, Telefonnummer, Anschrift)",
             "Angaben zum Anliegen und zum Auftrag (z. B. gewünschte Leistung, Art und Größe des Objekts, Fahrzeugdaten, Adresse des Einsatzorts)",
-            "Inhalte von E-Mails und Chat-Nachrichten, Anhänge und hochgeladene Dokumente (z. B. ausgefüllte Formulare, Fotos, Pläne)",
+            "Inhalte von E-Mails, Chat- und WhatsApp-Nachrichten (auch Sprachnachrichten), Anhänge und hochgeladene Dokumente (z. B. ausgefüllte Formulare, Fotos, Pläne)",
             "Termindaten sowie Verlaufs- und Protokolldaten zur Bearbeitung",
           ]}
         />
@@ -88,7 +88,7 @@ export default function AvvPage() {
           items={[
             "Supabase Inc. – Datenbank, Authentifizierung, Dateispeicher; Speicherort EU (Irland)",
             "Vercel Inc. – Hosting und Auslieferung der Anwendung",
-            "OpenAI, L.L.C. – KI-Auswertung von Texten (Erkennung von Angaben, Zusammenfassungen, Prüfung zurückgeschickter Vorlagen, Antworten im Website-Chat); nach den API-Bedingungen von OpenAI keine Nutzung zum Training, Speicherung höchstens 30 Tage zur Missbrauchserkennung",
+            "OpenAI, L.L.C. – KI-Auswertung von Texten, Fotos und Sprachnachrichten (Erkennung von Angaben, Zusammenfassungen, Prüfung zurückgeschickter Vorlagen, Antworten im Website-Chat, Abtippen von Sprachnachrichten, Foto-Einschätzung, Übersetzung, Entwürfe für Antworten und Angebote); nach den API-Bedingungen von OpenAI keine Nutzung zum Training, Speicherung höchstens 30 Tage zur Missbrauchserkennung",
             "Functional Software Inc. (Sentry) – Fehlerüberwachung; Verarbeitung in der EU (Frankfurt)",
             "Twilio Inc. – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (nur wenn der Auftraggeber ihn nutzt); keine Aufzeichnung der Gespräche als Audiodatei",
             "Meta Platforms Ireland Ltd. – WhatsApp Business Platform (nur wenn der Auftraggeber WhatsApp verbindet): Empfang und Versand der WhatsApp-Nachrichten",
