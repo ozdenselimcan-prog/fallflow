@@ -68,3 +68,43 @@ export async function sendReminders(store: Store, now = new Date()): Promise<num
   }
   return sent;
 }
+
+/**
+ * Bitte um eine Bewertung: am Tag nach einem bestätigten Termin (frühestens 20 Stunden nach Terminende, höchstens 7 Tage
+ * danach) einmal per E-Mail – nur, wenn der Betrieb es eingeschaltet und einen Bewertungslink hinterlegt hat.
+ */
+const REVIEW_AFTER_MS = 20 * 60 * 60 * 1000;
+const REVIEW_WINDOW_MS = 7 * DAY;
+
+export function reviewDue(appt: { startsAt: string; durationMin: number; status: string }, c: Pick<CaseRecord, "fields">, now: Date): boolean {
+  if (appt.status !== "confirmed" || !c.fields.email || c.fields.reviewAsked) return false;
+  const since = now.getTime() - (new Date(appt.startsAt).getTime() + appt.durationMin * 60_000);
+  return since >= REVIEW_AFTER_MS && since <= REVIEW_WINDOW_MS;
+}
+
+export async function sendReviewRequests(store: Store, now = new Date()): Promise<number> {
+  if (!isDaytimeInGermany(now)) return 0;
+  const company = await store.getCompany();
+  const { reviews, reviewLink } = company.businessProfile?.automation ?? {};
+  if (!reviews || !reviewLink) return 0;
+  let sent = 0;
+  for (const appt of await store.listAppointments()) {
+    if (!appt.caseId) continue;
+    const c = await store.getCase(appt.caseId);
+    if (!c || !reviewDue(appt, c, now)) continue;
+    const body = customerText(company.businessProfile?.texts, "review.request", { bewertungslink: reviewLink });
+    // Mit "-" abgeschaltet: als erledigt merken, damit nicht bei jedem Durchlauf erneut geprüft wird.
+    if (!body) {
+      await store.updateCase(c.id, { fields: { reviewAsked: "1" }, keepTimestamp: true });
+      continue;
+    }
+    // Eigener Text ohne Platzhalter: Link trotzdem mitschicken.
+    const text = await frameEmail(store, body.includes(reviewLink) ? body : `${body}\n\n${reviewLink}`, c.fields.name);
+    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, text, subject: `Vielen Dank – ${company.name}` });
+    await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+    await store.updateCase(c.id, { fields: { reviewAsked: "1" }, keepTimestamp: true });
+    await store.addEvent(c.id, "note", `Bitte um Bewertung ${result.delivered ? "gesendet" : "vorbereitet (nicht versendet)"}.`);
+    sent++;
+  }
+  return sent;
+}

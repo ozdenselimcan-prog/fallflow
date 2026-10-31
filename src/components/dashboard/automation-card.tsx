@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/form";
+import { Checkbox, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { apiFetch } from "@/lib/use-api";
 import { PushToggle } from "./push-toggle";
@@ -11,16 +11,22 @@ interface Automation {
   reminders: boolean;
   autoConfirm: boolean;
   bookingLink: boolean;
+  reviews: boolean;
+  reviewLink: string;
 }
 
 /** KI-Assistent → Automatik: Erinnerungen an Kunden und automatische Terminbestätigung (wird sofort gespeichert). */
 export function AutomationCard({ canEdit }: { canEdit: boolean }) {
   const [a, setA] = useState<Automation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [link, setLink] = useState("");
 
   useEffect(() => {
     apiFetch<Automation>("GET", "/api/automation")
-      .then(setA)
+      .then((r) => {
+        setA(r);
+        setLink(r.reviewLink);
+      })
       .catch(() => setError("Konnte nicht geladen werden"));
   }, []);
 
@@ -30,7 +36,7 @@ export function AutomationCard({ canEdit }: { canEdit: boolean }) {
     setA(next);
     setError(null);
     try {
-      await apiFetch("PUT", "/api/automation", next);
+      setA(await apiFetch<Automation>("PUT", "/api/automation", next));
     } catch (e) {
       setA(a);
       setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
@@ -63,6 +69,32 @@ export function AutomationCard({ canEdit }: { canEdit: boolean }) {
                 Aus: FallFlow schlägt Termine vor, Sie bestätigen sie im Kalender. An: Freie Termine (laut Ihren Zeiten und verbundenem Outlook-Kalender) werden sofort fest
                 vergeben und dem Kunden bestätigt.
               </p>
+            </div>
+            <div>
+              <Checkbox
+                label="Nach dem Termin um eine Google-Bewertung bitten"
+                checked={a.reviews}
+                disabled={!canEdit || !a.reviewLink}
+                onChange={(v) => toggle({ reviews: v })}
+              />
+              <p className="mt-1.5 px-1 text-xs text-muted-foreground">
+                Am Tag nach einem bestätigten Termin bekommt der Kunde einmal eine freundliche E-Mail mit Ihrem Bewertungslink. Den Link finden Sie in Ihrem Google-Unternehmensprofil
+                unter „Nach Rezensionen fragen“. Den Text ändern Sie unter „Texte“.
+              </p>
+              <div className="mt-2 px-1">
+                <Input
+                  type="url"
+                  value={link}
+                  disabled={!canEdit}
+                  placeholder="https://g.page/r/…/review"
+                  aria-label="Link zur Google-Bewertung"
+                  onChange={(e) => setLink(e.target.value)}
+                  onBlur={() => {
+                    const v = link.trim();
+                    if (v !== a.reviewLink) void toggle({ reviewLink: v, reviews: v ? a.reviews || !a.reviewLink : false });
+                  }}
+                />
+              </div>
             </div>
             <PushToggle />
           </>

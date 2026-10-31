@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryStore } from "@/lib/data/memory";
 import type { CaseRecord } from "@/lib/data/types";
-import { dueReminder, isDaytimeInGermany, sendReminders } from "./reminders";
+import { dueReminder, isDaytimeInGermany, reviewDue, sendReminders, sendReviewRequests } from "./reminders";
 
 beforeEach(() => {
   delete (globalThis as unknown as { __fallflowDb?: unknown }).__fallflowDb;
@@ -38,5 +38,32 @@ describe("Erinnerungen", () => {
     const company = await store.getCompany();
     await store.updateCompany({ businessProfile: { ...company.businessProfile, automation: { reminders: false } } });
     expect(await sendReminders(store, now)).toBe(0);
+  });
+});
+
+describe("Bitte um Bewertung", () => {
+  const appt = (hoursAgo: number, status = "confirmed") => ({ startsAt: new Date(now.getTime() - hoursAgo * 3_600_000).toISOString(), durationMin: 60, status });
+  const c = (fields: Record<string, string> = {}) => ({ fields: { email: "k@example.com", ...fields } });
+
+  it("am Tag nach einem bestätigten Termin, einmal, höchstens eine Woche danach", () => {
+    expect(reviewDue(appt(10), c(), now)).toBe(false);
+    expect(reviewDue(appt(22), c(), now)).toBe(true);
+    expect(reviewDue(appt(24 * 9), c(), now)).toBe(false);
+    expect(reviewDue(appt(22, "proposed"), c(), now)).toBe(false);
+    expect(reviewDue(appt(22), c({ reviewAsked: "1" }), now)).toBe(false);
+    expect(reviewDue(appt(22), { fields: {} }, now)).toBe(false);
+  });
+
+  it("nur eingeschaltet und mit Bewertungslink – dann genau einmal", async () => {
+    const store = createMemoryStore();
+    for (const a of await store.listAppointments()) await store.deleteAppointment(a.id);
+    const k = await store.createCase({ fields: { name: "Max Kunde", email: "max@example.com", service: "Dach" }, customerName: "Max Kunde", service: "Dach", source: "email", status: "CONVERTED", assignedTo: null, summary: "" });
+    await store.saveAppointment({ caseId: k.id, title: "Termin", startsAt: appt(22).startsAt, durationMin: 60, notes: "", status: "confirmed" });
+    expect(await sendReviewRequests(store, now)).toBe(0);
+    const company = await store.getCompany();
+    await store.updateCompany({ businessProfile: { ...company.businessProfile, automation: { reviews: true, reviewLink: "https://g.page/r/test/review" } } });
+    expect(await sendReviewRequests(store, now)).toBe(1);
+    expect((await store.listMessages(k.id)).at(-1)?.content).toContain("https://g.page/r/test/review");
+    expect(await sendReviewRequests(store, now)).toBe(0);
   });
 });

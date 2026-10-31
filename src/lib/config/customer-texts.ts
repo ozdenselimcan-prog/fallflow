@@ -39,7 +39,8 @@ const VAR_HELP: Record<string, string> = {
   datum: "Datum",
   termin: "Datum und Uhrzeit des Termins",
   frage: "die nächste offene Frage",
-  link: "Link zum Hochladen",
+  link: "Link (zum Hochladen bzw. zur Terminbuchung)",
+  bewertungslink: "Ihr Link zur Google-Bewertung",
   antwort: "Antwort aus „Wissen & Preise“",
   telefon: "Ihre Telefonnummer",
   nummer: "Angebotsnummer",
@@ -110,6 +111,7 @@ export const CUSTOMER_TEXTS: CustomerText[] = [
 
   // Sonstiges
   { key: "quote.email", group: "other", label: "Angebot senden", when: "Wenn Sie im Fall ein Angebot (PDF) an den Kunden schicken.", default: "anbei erhalten Sie unser Angebot {nummer} zu „{leistung}“. Bei Fragen melden Sie sich gern – wir freuen uns auf Ihren Auftrag.", vars: ["nummer", "leistung"] },
+  { key: "review.request", group: "other", label: "Bitte um Bewertung", when: "Am Tag nach einem bestätigten Termin, wenn „Nach dem Termin um eine Bewertung bitten“ eingeschaltet ist.", default: "vielen Dank für Ihr Vertrauen! Wir hoffen, Sie sind mit unserer Arbeit zufrieden. Über eine kurze Bewertung würden wir uns sehr freuen – das dauert nur eine Minute: {bewertungslink}", vars: ["bewertungslink"] },
   { key: "other.caseLimit", group: "other", label: "Monatliches Kontingent erreicht", when: "Wenn Ihr Tarif-Kontingent an Anfragen für diesen Monat aufgebraucht ist.", default: "Vielen Dank für Ihre Nachricht! Unser Büro hat die monatliche Kapazität für neue Anfragen aktuell erreicht. Bitte kontaktieren Sie uns direkt telefonisch oder versuchen Sie es zu Beginn des nächsten Monats erneut.", vars: [] },
 ];
 

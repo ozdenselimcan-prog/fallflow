@@ -63,7 +63,7 @@ export interface BusinessProfile {
   /** „Wissen & Preise“: feste Preise und häufige Fragen, mit denen die KI Kundenfragen beantworten darf (fehlt = noch nie gespeichert). */
   knowledge?: { prices: { item: string; price: string; note?: string }[]; faqs: { q: string; a: string }[] };
   /** Automatik: Erinnerungen an Kunden (Standard an) und Termine ohne Freigabe bestätigen (Standard aus). */
-  automation?: { reminders?: boolean; autoConfirm?: boolean; bookingLink?: boolean };
+  automation?: { reminders?: boolean; autoConfirm?: boolean; bookingLink?: boolean; reviews?: boolean; reviewLink?: string };
   /** Für Push-Benachrichtigungen angemeldete Geräte (siehe lib/push.ts). */
   push?: { endpoint: string; keys: { p256dh: string; auth: string }; userId: string; createdAt: string }[];
 }
