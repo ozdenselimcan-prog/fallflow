@@ -11,6 +11,7 @@ import { AiStatusCard, CompletenessCard, PreparedCard, SummaryCard } from "@/com
 import { CommunicationPanel } from "@/components/dashboard/communication";
 import { DocumentsPanel } from "@/components/dashboard/documents-panel";
 import { KiToolsCard } from "@/components/dashboard/ki-tools-card";
+import { PhotoCard } from "@/components/dashboard/photo-card";
 import { QuoteCard } from "@/components/dashboard/quote-card";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
@@ -210,6 +211,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
             uploadLink={currentUploadLink(c)}
             canWrite={canWrite}
           />
+          {profiled && <PhotoCard caseId={c.id} canWrite={canWrite} />}
           {profiled && <QuoteCard caseId={c.id} canWrite={canWrite} />}
           {!profiled && <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} locked={!hasAiTools(subscription.plan)} />}
           <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email) || (c.source === "whatsapp" && Boolean(c.fields.phone))} whatsapp={c.source === "whatsapp"} />

@@ -1,10 +1,14 @@
-import { draftQuote } from "@/lib/ai/quote-draft";
+import { z } from "zod";
 import { knowledgeOf } from "@/lib/ai/knowledge";
+import { assessPhotos } from "@/lib/ai/photo-assessment";
+import type { AiImage } from "@/lib/ai/provider";
+import { draftQuote } from "@/lib/ai/quote-draft";
 import { FIELD_GROUPS } from "@/lib/cases/fields";
 import { customerText } from "@/lib/config/customer-texts";
 import type { Store } from "@/lib/data/store";
-import type { CaseRecord } from "@/lib/data/types";
+import type { CaseDocument, CaseRecord } from "@/lib/data/types";
 import { buildQuotePdf } from "@/lib/documents/quote-pdf";
+import { readFile } from "@/lib/documents/storage";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { QUOTE_FIELD, quoteNumber, quoteTotals, readQuote, type Quote } from "@/lib/quote";
 import { frameEmail } from "./case-ops";
@@ -13,10 +17,12 @@ import { frameEmail } from "./case-ops";
 async function caseFacts(store: Store, c: CaseRecord): Promise<string> {
   const questions = await store.listQuestions();
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? FIELD_GROUPS.flatMap((g) => g.fields).find((f) => f.key === k)?.label ?? k;
-  const skip = /^(name|email|phone|needsAttention|apptStage|quote|reminderCount|noResponse|clarifyAsked|serviceMessageSentFor|docsRequestedFor|contactChannel|aiPaused|extraServices)$/;
+  const skip = /^(name|email|phone|needsAttention|apptStage|quote|reminderCount|noResponse|clarifyAsked|serviceMessageSentFor|docsRequestedFor|contactChannel|aiPaused|extraServices|photoAssessment)$/;
+  const photos = readPhotoNote(c.fields);
   return Object.entries(c.fields)
     .filter(([k, v]) => v && !skip.test(k))
     .map(([k, v]) => `${label(k)}: ${String(v).slice(0, 300)}`)
+    .concat(photos ? [`Einschätzung der Fotos: ${photos.text}`] : [])
     .join("\n");
 }
 
@@ -72,4 +78,47 @@ export async function sendQuote(store: Store, c: CaseRecord): Promise<{ ok: true
   if (result.delivered) await saveQuote(store, c, { ...quote, sentAt: new Date().toISOString() });
   await store.addEvent(c.id, "document", result.delivered ? `Angebot ${quote.number} an den Kunden gesendet` : `Angebot ${quote.number} vorbereitet (nicht versendet)`);
   return { ok: true, delivered: result.delivered, reason: result.reason };
+}
+
+/** Gespeicherte Foto-Einschätzung (Fall-Feld, nur intern): Text und welche Fotos dabei ausgewertet wurden. */
+export const PHOTO_FIELD = "photoAssessment";
+const photoNoteSchema = z.object({ text: z.string().max(2000), docIds: z.array(z.string()).max(50), at: z.string() });
+export type PhotoNote = z.infer<typeof photoNoteSchema>;
+
+export function readPhotoNote(fields: Record<string, string>): PhotoNote | null {
+  try {
+    const parsed = photoNoteSchema.safeParse(JSON.parse(fields[PHOTO_FIELD] ?? ""));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+const VISION_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const MAX_PHOTOS = 4;
+
+/** Vom Kunden erhaltene Fotos des Falls (älteste zuerst). */
+export async function casePhotos(store: Store, caseId: string): Promise<CaseDocument[]> {
+  return (await store.listDocuments(caseId))
+    .filter((d) => d.status === "received" && d.storagePath && VISION_MIME.has(d.mimeType))
+    .sort((a, b) => (a.receivedAt ?? "").localeCompare(b.receivedAt ?? ""));
+}
+
+/** KI wertet die (neuesten, max. 4) Fotos aus und speichert die Einschätzung im Fall. */
+export async function assessCasePhotos(store: Store, c: CaseRecord): Promise<PhotoNote | null> {
+  const photos = (await casePhotos(store, c.id)).slice(-MAX_PHOTOS);
+  const images: AiImage[] = [];
+  for (const p of photos) {
+    const file = await readFile(p.storagePath);
+    if (file) images.push({ mime: p.mimeType, base64: Buffer.from(file.bytes).toString("base64") });
+  }
+  const company = await store.getCompany();
+  const text = await assessPhotos({ companyName: company.name, industry: company.businessProfile.industry, service: c.fields.service ?? "", facts: await caseFacts(store, c), images });
+  if (!text) return null;
+  return savePhotoNote(store, c, { text, docIds: photos.map((p) => p.id), at: new Date().toISOString() });
+}
+
+export async function savePhotoNote(store: Store, c: CaseRecord, note: PhotoNote): Promise<PhotoNote> {
+  await store.updateCase(c.id, { fields: { [PHOTO_FIELD]: JSON.stringify(note) }, keepTimestamp: true });
+  return note;
 }
