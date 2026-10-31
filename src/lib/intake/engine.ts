@@ -448,7 +448,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const chatBubbles = isInteractive(input.channel) && input.channel !== "whatsapp";
   // Kunde schreibt in einer anderen Sprache: alles (inkl. Anrede und Gruß) übersetzt senden.
   const outgoing = lang === "de" ? (chatBubbles ? replies : joined) : await translateReplies(chatBubbles ? replies : joined, lang);
-  if (chatBubbles) replies.splice(0, replies.length, ...outgoing);
+  // Rückgabe (Chat-Anzeige, Vorschau) zeigt, was der Kunde wirklich bekommt.
+  if (chatBubbles || lang !== "de") replies.splice(0, replies.length, ...outgoing);
   for (const reply of outgoing) {
     const subject = serviceMessages.find((m) => m.service === turn.fields.service)?.subject?.trim() || undefined;
     const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated, attachments, subject });
