@@ -5,6 +5,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { apiFetch } from "@/lib/use-api";
+import { PushToggle } from "./push-toggle";
 
 interface Automation {
   reminders: boolean;
@@ -63,6 +64,7 @@ export function AutomationCard({ canEdit }: { canEdit: boolean }) {
                 vergeben und dem Kunden bestätigt.
               </p>
             </div>
+            <PushToggle />
           </>
         )}
       </div>

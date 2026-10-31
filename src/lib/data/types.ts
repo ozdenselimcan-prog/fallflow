@@ -64,6 +64,8 @@ export interface BusinessProfile {
   knowledge?: { prices: { item: string; price: string; note?: string }[]; faqs: { q: string; a: string }[] };
   /** Automatik: Erinnerungen an Kunden (Standard an) und Termine ohne Freigabe bestätigen (Standard aus). */
   automation?: { reminders?: boolean; autoConfirm?: boolean; bookingLink?: boolean };
+  /** Für Push-Benachrichtigungen angemeldete Geräte (siehe lib/push.ts). */
+  push?: { endpoint: string; keys: { p256dh: string; auth: string }; userId: string; createdAt: string }[];
 }
 
 export interface WhatsAppQuestion {

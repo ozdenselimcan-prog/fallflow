@@ -15,6 +15,7 @@ import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calen
 import { refreshCase, ensureUploadToken, autoBookNextSlot, autoConfirmIfEnabled, bookingLinkEnabled, bookingUrl, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { CONTACT_CHANNEL_KEY } from "./checklist";
 import { customerText } from "@/lib/config/customer-texts";
+import { sendPush } from "@/lib/push";
 import { answerFromKnowledge, knowledgeOf } from "@/lib/ai/knowledge";
 import { templateQuestionsFor } from "./template-questions";
 import { answerWebsiteChat } from "./website-chat";
@@ -233,6 +234,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   } else if (attention) {
     await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: attention } });
     await store.addEvent(caseId, "handoff", `Aufmerksamkeit benötigt (${attention}) – keine automatische Antwort, bitte selbst antworten.`);
+    // Notfall: sofort aufs Handy bzw. in den Browser (Push), nicht erst per E-Mail.
+    if (/notfall/i.test(attention) && !input.simulated) {
+      await sendPush(store, { title: "Notfall – bitte melden", body: `${draft.customerName}: ${attention.replace(/^Frage des Kunden: /, "")}`, url: `/dashboard/cases/${caseId}` }).catch(() => 0);
+    }
   }
 
   const meta = { channel: input.channel, simulated: Boolean(input.simulated) };

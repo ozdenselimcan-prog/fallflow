@@ -11,6 +11,7 @@ import { verifyFilledTemplate } from "@/lib/ai/verify-filled-template";
 import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
 import { customerText, hasGreeting, hasSignoff } from "@/lib/config/customer-texts";
+import { sendPush } from "@/lib/push";
 import { siteConfig } from "@/lib/config/site";
 import { outlookBusy, pushAppointment, removeAppointment } from "@/lib/integrations/outlook-calendar";
 import type { Store } from "@/lib/data/store";
@@ -879,6 +880,7 @@ export async function bookByCustomer(store: Store, c: CaseRecord, startsAt: stri
   const appt = await store.saveAppointment({ caseId: c.id, title: `Termin ${c.customerName}`, startsAt: wanted.toISOString(), durationMin: settings.slotMinutes, notes: "Vom Kunden über den Buchungslink gewählt", status: "proposed" });
   await store.updateCase(c.id, { fields: { apptStage: "proposed" } });
   await store.addEvent(c.id, "appointment", `Kunde hat über den Buchungslink einen Termin gewählt: ${formatSlot(wanted)}`);
+  await sendPush(store, { title: "Neuer Termin gebucht", body: `${c.customerName}: ${formatSlot(wanted)}`, url: "/dashboard/calendar" }).catch(() => 0);
   if ((await store.getCompany()).businessProfile?.automation?.autoConfirm) {
     const r = await confirmAppointment(store, appt.id, undefined, { auto: true });
     return { ok: true, confirmed: r.ok };
