@@ -478,6 +478,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 function eventForSource(source: CaseSource, simulated?: boolean) {
   const suffix = simulated ? " (Simulation)" : "";
   if (source === "email") return `Anfrage per E-Mail eingegangen${suffix}`;
+  if (source === "whatsapp") return `Anfrage per WhatsApp eingegangen${suffix}`;
+  if (source === "phone") return `Anfrage per Telefon eingegangen${suffix}`;
   return `Anfrage über den Website-Chat eingegangen${suffix}`;
 }
 
