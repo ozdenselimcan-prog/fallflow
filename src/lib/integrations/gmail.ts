@@ -67,9 +67,16 @@ export const gmailProvider: MailSyncProvider = {
 
   async testConnection(tokens) {
     const creds = parseCreds(tokens);
-    await withImapClient(creds, async (client) => {
-      await client.mailboxOpen("INBOX");
-    });
+    try {
+      await withImapClient(creds, async (client) => {
+        await client.mailboxOpen("INBOX");
+      });
+    } catch (err) {
+      // ImapFlow meldet nur „Command failed“ – Details (abgelehnte Anmeldung, Text des Servers) stehen in eigenen Feldern.
+      const e = err as { authenticationFailed?: boolean; responseText?: string; serverResponseCode?: string; message?: string };
+      if (e.authenticationFailed || e.serverResponseCode === "AUTHENTICATIONFAILED") throw new Error(`AUTHENTICATIONFAILED${e.responseText ? `: ${e.responseText}` : ""}`);
+      throw new Error([e.message, e.responseText].filter(Boolean).join(": ") || "unbekannter Fehler");
+    }
     await smtpTransport(creds).verify();
   },
 
