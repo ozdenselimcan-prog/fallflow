@@ -342,7 +342,6 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
               </div>
             </details>
             <Button
-              variant="secondary"
               size="sm"
               loading={pending}
               disabled={!form.email || !form.password || !form.imapHost || !form.smtpHost || (forwarding && !form.replyTo)}
