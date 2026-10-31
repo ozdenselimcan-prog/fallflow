@@ -7,7 +7,7 @@ import { json, parseBody, withSession } from "@/lib/api";
  */
 export const GET = withSession(async (_req, { store }) => {
   const a = (await store.getCompany()).businessProfile.automation ?? {};
-  return json({ reminders: a.reminders !== false, autoConfirm: a.autoConfirm === true, bookingLink: a.bookingLink !== false, reviews: a.reviews === true, reviewLink: a.reviewLink ?? "", multilingual: a.multilingual !== false });
+  return json({ reminders: a.reminders !== false, autoConfirm: a.autoConfirm === true, bookingLink: a.bookingLink !== false, reviews: a.reviews === true, reviewLink: a.reviewLink ?? "", multilingual: a.multilingual !== false, apptReminders: a.apptReminders !== false });
 });
 
 const schema = z.object({
@@ -16,6 +16,7 @@ const schema = z.object({
   bookingLink: z.boolean().default(true),
   reviews: z.boolean().default(false),
   multilingual: z.boolean().default(true),
+  apptReminders: z.boolean().default(true),
   reviewLink: z
     .string()
     .trim()

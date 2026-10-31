@@ -14,6 +14,7 @@ interface Automation {
   reviews: boolean;
   reviewLink: string;
   multilingual: boolean;
+  apptReminders: boolean;
 }
 
 /** KI-Assistent → Automatik: Erinnerungen an Kunden und automatische Terminbestätigung (wird sofort gespeichert). */
@@ -69,6 +70,13 @@ export function AutomationCard({ canEdit }: { canEdit: boolean }) {
               <p className="mt-1.5 px-1 text-xs text-muted-foreground">
                 Aus: FallFlow schlägt Termine vor, Sie bestätigen sie im Kalender. An: Freie Termine (laut Ihren Zeiten und verbundenem Outlook-Kalender) werden sofort fest
                 vergeben und dem Kunden bestätigt.
+              </p>
+            </div>
+            <div>
+              <Checkbox label="Kunden am Vortag an den Termin erinnern" checked={a.apptReminders} disabled={!canEdit} onChange={(v) => toggle({ apptReminders: v })} />
+              <p className="mt-1.5 px-1 text-xs text-muted-foreground">
+                Am Tag vor einem bestätigten Termin bekommt der Kunde eine kurze Erinnerung per E-Mail. Kann er nicht, antwortet er einfach – FallFlow sagt den Termin ab und
+                sucht einen neuen.
               </p>
             </div>
             <div>

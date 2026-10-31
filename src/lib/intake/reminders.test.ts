@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMemoryStore } from "@/lib/data/memory";
 import type { CaseRecord } from "@/lib/data/types";
-import { dueReminder, isDaytimeInGermany, reviewDue, sendReminders, sendReviewRequests } from "./reminders";
+import { apptReminderDue, dueReminder, isDaytimeInGermany, reviewDue, sendAppointmentReminders, sendReminders, sendReviewRequests } from "./reminders";
 
 beforeEach(() => {
   delete (globalThis as unknown as { __fallflowDb?: unknown }).__fallflowDb;
@@ -65,5 +65,32 @@ describe("Bitte um Bewertung", () => {
     expect(await sendReviewRequests(store, now)).toBe(1);
     expect((await store.listMessages(k.id)).at(-1)?.content).toContain("https://g.page/r/test/review");
     expect(await sendReviewRequests(store, now)).toBe(0);
+  });
+});
+
+describe("Terminerinnerung am Vortag", () => {
+  const tomorrow = { startsAt: "2026-11-04T09:00:00Z", status: "confirmed" };
+  const c = (fields: Record<string, string> = {}) => ({ fields: { email: "k@example.com", ...fields } });
+
+  it("nur für bestätigte Termine morgen, einmal je Termin", () => {
+    expect(apptReminderDue(tomorrow, c(), now)).toBe(true);
+    expect(apptReminderDue({ ...tomorrow, startsAt: "2026-11-05T09:00:00Z" }, c(), now)).toBe(false);
+    expect(apptReminderDue({ ...tomorrow, status: "proposed" }, c(), now)).toBe(false);
+    expect(apptReminderDue(tomorrow, c({ apptReminded: tomorrow.startsAt }), now)).toBe(false);
+    expect(apptReminderDue(tomorrow, c({ apptReminded: "2026-11-02T09:00:00Z" }), now)).toBe(true);
+  });
+
+  it("sendet einmal und ist abschaltbar", async () => {
+    const store = createMemoryStore();
+    for (const a of await store.listAppointments()) await store.deleteAppointment(a.id);
+    const k = await store.createCase({ fields: { name: "Max Kunde", email: "max@example.com", service: "Dach" }, customerName: "Max Kunde", service: "Dach", source: "email", status: "CONVERTED", assignedTo: null, summary: "" });
+    await store.saveAppointment({ caseId: k.id, title: "Termin", startsAt: tomorrow.startsAt, durationMin: 60, notes: "", status: "confirmed" });
+    expect(await sendAppointmentReminders(store, now)).toBe(1);
+    expect((await store.listMessages(k.id)).at(-1)?.content).toContain("Erinnerung");
+    expect(await sendAppointmentReminders(store, now)).toBe(0);
+    const company = await store.getCompany();
+    await store.updateCompany({ businessProfile: { ...company.businessProfile, automation: { apptReminders: false } } });
+    await store.updateCase(k.id, { fields: { apptReminded: "" } });
+    expect(await sendAppointmentReminders(store, now)).toBe(0);
   });
 });

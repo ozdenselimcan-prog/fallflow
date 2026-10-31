@@ -5,7 +5,7 @@ import { gmailProvider } from "@/lib/integrations/gmail";
 import { microsoftProvider } from "@/lib/integrations/microsoft";
 import { syncMailbox } from "@/lib/integrations/mail-sync";
 import { purgeStaleCases } from "@/lib/intake/retention";
-import { sendReminders, sendReviewRequests } from "@/lib/intake/reminders";
+import { sendAppointmentReminders, sendReminders, sendReviewRequests } from "@/lib/intake/reminders";
 import { purgeOldTrialUsage } from "@/lib/billing/trial-usage";
 import { processCanceledCompanies } from "@/lib/billing/account-deletion";
 import { syncAllSubscriptions } from "@/lib/billing/stripe-sync";
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
   // Mit wachsender Buero-Anzahl waere ein rein sequentieller Durchlauf zu langsam fuers Timeout –
   // mehrere Bueros gleichzeitig bearbeiten (begrenzte Parallelitaet, damit die DB nicht ueberlastet wird).
-  const totals = { companies: 0, purged: 0, reminders: 0, reviews: 0 };
+  const totals = { companies: 0, purged: 0, reminders: 0, reviews: 0, apptReminders: 0 };
   const stores = await listAllStores();
   const CONCURRENCY = 10;
   for (let i = 0; i < stores.length; i += CONCURRENCY) {
@@ -44,6 +44,10 @@ export async function GET(req: NextRequest) {
           console.error("[reviews] fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
           return 0;
         }),
+        apptReminders: await sendAppointmentReminders(store).catch((err) => {
+          console.error("[appt-reminders] fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
+          return 0;
+        }),
       })),
     );
     for (const r of results) {
@@ -51,6 +55,7 @@ export async function GET(req: NextRequest) {
       totals.purged += r.purged;
       totals.reminders += r.reminders;
       totals.reviews += r.reviews;
+      totals.apptReminders += r.apptReminders;
     }
   }
 

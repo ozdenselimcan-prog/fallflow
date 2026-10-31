@@ -5,6 +5,7 @@ import type { Store } from "@/lib/data/store";
 import type { CaseRecord } from "@/lib/data/types";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { emailSubjectFor, frameEmail, refreshCase } from "./case-ops";
+import { formatSlot } from "./scheduling";
 
 /**
  * Automatische Erinnerungen per E-Mail: Wartet ein Fall auf den Kunden (es fehlen noch Angaben oder Unterlagen) und hat
@@ -105,6 +106,38 @@ export async function sendReviewRequests(store: Store, now = new Date()): Promis
     await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
     await store.updateCase(c.id, { fields: { reviewAsked: "1" }, keepTimestamp: true });
     await store.addEvent(c.id, "note", `Bitte um Bewertung ${result.delivered ? "gesendet" : "vorbereitet (nicht versendet)"}.`);
+    sent++;
+  }
+  return sent;
+}
+
+/**
+ * Terminerinnerung am Vortag (per E-Mail): für bestätigte Termine, die morgen (deutsche Zeit) stattfinden. Gemerkt wird der
+ * Zeitpunkt des erinnerten Termins – wird verschoben, kommt für den neuen Termin wieder eine Erinnerung.
+ */
+const berlinDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin" }).format(d);
+
+export function apptReminderDue(appt: { startsAt: string; status: string }, c: Pick<CaseRecord, "fields">, now: Date): boolean {
+  if (appt.status !== "confirmed" || !c.fields.email || c.fields.apptReminded === appt.startsAt) return false;
+  return berlinDay(new Date(appt.startsAt)) === berlinDay(new Date(now.getTime() + DAY));
+}
+
+export async function sendAppointmentReminders(store: Store, now = new Date()): Promise<number> {
+  if (!isDaytimeInGermany(now)) return 0;
+  const company = await store.getCompany();
+  if (company.businessProfile?.automation?.apptReminders === false) return 0;
+  let sent = 0;
+  for (const appt of await store.listAppointments()) {
+    if (!appt.caseId) continue;
+    const c = await store.getCase(appt.caseId);
+    if (!c || !apptReminderDue(appt, c, now)) continue;
+    await store.updateCase(c.id, { fields: { apptReminded: appt.startsAt }, keepTimestamp: true });
+    const body = customerText(company.businessProfile?.texts, "appointment.reminder", { termin: formatSlot(new Date(appt.startsAt)) });
+    if (!body) continue;
+    const text = await inCustomerLanguage(c.fields, await frameEmail(store, body, c.fields.name));
+    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, text, subject: "Erinnerung an Ihren Termin" });
+    await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+    await store.addEvent(c.id, "appointment", `Terminerinnerung an den Kunden ${result.delivered ? "gesendet" : "vorbereitet (nicht versendet)"}.`);
     sent++;
   }
   return sent;
