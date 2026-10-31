@@ -46,13 +46,14 @@ export async function saveBusinessProfile(store: Store, input: BusinessProfileIn
   };
   for (const q of existing) {
     if (!(q.key in ADDRESS_PROMPTS)) continue;
-    // Ältere Konten hatten die Straßen-Frage teils abgeschaltet – dann fragte der Assistent nur die PLZ.
-    await store.saveQuestion({ ...q, prompt: ADDRESS_PROMPTS[q.key], required: needsAddress, active: needsAddress || q.active });
+    // Arbeitet der Betrieb beim Kunden, ist die Adresse an und Pflicht (ältere Konten hatten die Straßen-Frage teils
+    // abgeschaltet – dann fragte der Assistent nur die PLZ). Sonst (Friseur, Werkstatt …) wird sie gar nicht erst gefragt.
+    await store.saveQuestion({ ...q, prompt: ADDRESS_PROMPTS[q.key], required: needsAddress, active: needsAddress });
   }
   // Ältere bzw. neu angelegte Konten haben teils keine Straßen-Frage – dann fragte der Assistent nur die PLZ.
   const postal = existing.find((q) => q.key === "postalCode");
   if (!existing.some((q) => q.key === "street")) {
-    await store.saveQuestion({ key: "street", label: "Straße, Nr.", prompt: ADDRESS_PROMPTS.street, type: "text", options: [], required: needsAddress, active: true, position: postal?.position ?? 1 });
+    await store.saveQuestion({ key: "street", label: "Straße, Nr.", prompt: ADDRESS_PROMPTS.street, type: "text", options: [], required: needsAddress, active: needsAddress, position: postal?.position ?? 1 });
     if (postal) await store.saveQuestion({ ...postal, prompt: ADDRESS_PROMPTS.postalCode, required: needsAddress, position: postal.position + 1 });
   }
   // Nicht mehr gewünschte Branchen-Angaben entfernen (z. B. die Energieberatungs-Standards Baujahr, Heizung …)
