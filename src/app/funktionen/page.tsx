@@ -16,7 +16,7 @@ export default function Page() {
     <>
       <Navbar />
       <main>
-        <FeaturesSection />
+        <FeaturesSection h1 />
         <NoCrmSection />
         <PricingSection />
         <FinalCta />

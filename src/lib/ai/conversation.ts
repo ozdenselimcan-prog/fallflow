@@ -202,6 +202,10 @@ export function parseAnswer(q: Question, raw: string): Parsed {
 }
 
 /** Zerlegt eine Adresse in Straße/Hausnummer, PLZ und Ort (beide Reihenfolgen). Ohne PLZ: alles als Straße. */
+/** Hausnummer oder typisches Straßenwort – "Lindenweg 7", "Am Markt 3", "Hauptstraße", aber nicht "Ayşe Yılmaz". */
+export const looksLikeStreet = (v: string) =>
+  /\d/.test(v) || /(stra(ß|ss)e|str\.|weg|platz|allee|ring|gasse|damm|ufer|markt|chaussee|steig|pfad|zeile|stieg)\b/i.test(v);
+
 export function splitAddress(raw: string): { street: string; postalCode: string; city: string } {
   const t = raw.replace(/\s+/g, " ").trim().replace(/[.!]$/, "");
   const streetFirst = t.match(/^(.*?\d+\s*[a-z]?)[,\s]+(\d{5})\s*([^\d,]*)$/i);
@@ -338,13 +342,15 @@ export function applyTurn(input: TurnInput): TurnResult {
     // von der KI herausgelesenen Wert (z. B. "Einfamilienhaus" statt der kompletten Antwortmail).
     const extractedValue = pendingBefore.type === "text" ? input.extracted?.[pendingBefore.key] : undefined;
     const wholeMessage = pendingBefore.type === "text" && (text.trim().includes("\n") || text.trim().length > 80);
-    const parsed: Parsed = input.isQuestion
+    const parsedRaw: Parsed = input.isQuestion
       ? { ok: false }
       : extractedValue
         ? { ok: true, value: extractedValue }
         : wholeMessage
           ? { ok: false }
           : parseAnswer(pendingBefore, text);
+    // Antwort auf die Adressfrage muss nach Adresse aussehen (sonst z. B. nur der Name als Straße gespeichert).
+    const parsed: Parsed = parsedRaw.ok && pendingBefore.key === "street" && !looksLikeStreet(parsedRaw.value) ? { ok: false } : parsedRaw;
     if (parsed.ok) {
       fields[pendingBefore.key] = parsed.value;
       recognized.push(pendingBefore.key);

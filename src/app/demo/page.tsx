@@ -5,7 +5,7 @@ import { Footer } from "@/components/landing/footer";
 import { Navbar } from "@/components/landing/navbar";
 import { buttonStyles } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Demo" };
+export const metadata: Metadata = { title: "Demo", description: "Probieren Sie aus, wie FallFlow Kundenanfragen per E-Mail und WhatsApp beantwortet und die Fallakte füllt – ohne Anmeldung.", alternates: { canonical: "/demo" } };
 
 export default function DemoPage() {
   return (
@@ -23,8 +23,8 @@ export default function DemoPage() {
           <Link href="/signup" className={buttonStyles()}>
             Kostenlos starten
           </Link>
-          <Link href="/dashboard" className={buttonStyles({ variant: "secondary" })}>
-            Beispiel-Dashboard ansehen
+          <Link href="/preise" className={buttonStyles({ variant: "secondary" })}>
+            Preise ansehen
           </Link>
         </div>
       </main>

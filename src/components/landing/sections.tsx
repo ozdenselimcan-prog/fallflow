@@ -37,11 +37,13 @@ import { cn } from "@/lib/utils";
 
 type Icon = ComponentType<{ className?: string }>;
 
-function Section({ id, title, intro, children, tinted }: { id?: string; title: string; intro?: string; children: ReactNode; tinted?: boolean }) {
+/** h1 = Hauptüberschrift der Seite (auf Unterseiten, deren erster Abschnitt dieser ist). */
+function Section({ id, title, intro, children, tinted, h1 }: { id?: string; title: string; intro?: string; children: ReactNode; tinted?: boolean; h1?: boolean }) {
+  const Heading = h1 ? "h1" : "h2";
   return (
     <section id={id} className={cn("scroll-mt-16 py-16 sm:py-20", tinted && "border-y border-border bg-muted/60")}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">{title}</h2>
+        <Heading className="max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">{title}</Heading>
         {intro && <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">{intro}</p>}
         <div className="mt-10">{children}</div>
       </div>
@@ -90,9 +92,9 @@ export function FlowSection() {
 
 /** Läuft automatisch ab (Mail rein → KI antwortet → Vorlage wird verschickt → vollständig) – als
  * selbsterklärendes "Kurzvideo" ohne echte Videodatei, direkt unter dem Hero. */
-export function MailFlowSection() {
+export function MailFlowSection({ h1 = false }: { h1?: boolean } = {}) {
   return (
-    <Section title="So sieht ein echter Fall aus – in Echtzeit." intro="Von der ersten Kundenmail bis zum bestätigten Termin – in 25 Sekunden. Links Ihr Postfach, rechts die Fallakte, die FallFlow dabei automatisch füllt.">
+    <Section h1={h1} title="So sieht ein echter Fall aus – in Echtzeit." intro="Von der ersten Kundenmail bis zum bestätigten Termin – in 25 Sekunden. Links Ihr Postfach, rechts die Fallakte, die FallFlow dabei automatisch füllt.">
       <IndustryFilm />
     </Section>
   );
@@ -204,9 +206,9 @@ function FeatureCard({ icon: I, title, text, soon }: (typeof features)[number]) 
   );
 }
 
-export function FeaturesSection() {
+export function FeaturesSection({ h1 = false }: { h1?: boolean } = {}) {
   return (
-    <Section id="funktionen" tinted title="Alles, was zwischen Anfrage und Auftrag liegt.">
+    <Section id="funktionen" h1={h1} tinted title="Alles, was zwischen Anfrage und Auftrag liegt.">
       {/* Am Handy erst die 6 wichtigsten, der Rest aufklappbar – sonst wird die Seite sehr lang. */}
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((f, i) => (
@@ -282,9 +284,9 @@ export function AudienceSection() {
   );
 }
 
-export function PricingSection() {
+export function PricingSection({ h1 = false }: { h1?: boolean } = {}) {
   return (
-    <Section id="preise" title="Einfache, monatliche Preise." intro="Wählen Sie den Plan, der zur Größe Ihres Betriebs passt.">
+    <Section id="preise" h1={h1} title="Einfache, monatliche Preise." intro="Wählen Sie den Plan, der zur Größe Ihres Betriebs passt.">
       <div className="grid gap-4 lg:grid-cols-3">
         {plans.map((p) => (
           <Card key={p.id} className={cn("flex flex-col p-6", p.highlighted && "border-accent ring-1 ring-accent")}>
@@ -318,9 +320,9 @@ export function PricingSection() {
   );
 }
 
-export function FaqSection() {
+export function FaqSection({ h1 = false }: { h1?: boolean } = {}) {
   return (
-    <Section id="faq" tinted title="Häufige Fragen">
+    <Section id="faq" h1={h1} tinted title="Häufige Fragen">
       <div className="max-w-3xl space-y-3">
         {faqs.map((f) => (
           <details key={f.q} className="group rounded-lg border border-border bg-card px-5 py-4">

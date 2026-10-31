@@ -16,7 +16,7 @@ export default function Page() {
     <>
       <Navbar />
       <main>
-        <PricingSection />
+        <PricingSection h1 />
         <FaqSection />
         <FinalCta />
       </main>

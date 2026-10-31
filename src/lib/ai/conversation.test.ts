@@ -255,3 +255,14 @@ describe("applyTurn", () => {
     expect(res.handoff).toBe(false);
   });
 });
+
+describe("Adressfrage", () => {
+  it("nimmt nur Antworten an, die nach Adresse aussehen", async () => {
+    const { looksLikeStreet } = await import("./conversation");
+    expect(looksLikeStreet("Lindenweg 7")).toBe(true);
+    expect(looksLikeStreet("Hauptstraße")).toBe(true);
+    expect(looksLikeStreet("Am Markt")).toBe(true);
+    expect(looksLikeStreet("Ayşe Yılmaz")).toBe(false);
+    expect(looksLikeStreet("Anna Weinberg")).toBe(false);
+  });
+});

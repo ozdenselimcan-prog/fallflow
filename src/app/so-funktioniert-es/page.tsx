@@ -16,7 +16,7 @@ export default function Page() {
     <>
       <Navbar />
       <main>
-        <MailFlowSection />
+        <MailFlowSection h1 />
         <FlowSection />
         <SolutionSection />
         <DemoSection />
