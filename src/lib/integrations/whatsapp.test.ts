@@ -31,7 +31,9 @@ describe("WhatsApp-Webhook lesen", () => {
     expect(g.messages[0]).toMatchObject({ id: "m1", name: "Erika", text: "Hallo", media: null });
     expect(g.messages[1]).toMatchObject({ text: "Der Schaden", media: { id: "media1", mime: "image/jpeg" } });
     expect(g.messages[2].media?.filename).toBe("Formular.pdf");
-    expect(g.messages[3].unsupported).toBe("audio");
+    // Sprachnachrichten werden abgetippt (whatsapp-inbound.ts), nicht als „nicht unterstützt“ abgewiesen.
+    expect(g.messages[3].audio).toEqual({ id: "media3", mime: "audio/ogg" });
+    expect(g.messages[3].unsupported).toBeNull();
   });
   it("ignoriert Status-Meldungen ohne Nachrichten", () => {
     expect(parseWebhook({ entry: [{ changes: [{ value: { metadata: { phone_number_id: "1" }, statuses: [{}] } }] }] })).toEqual([]);

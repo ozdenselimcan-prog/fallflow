@@ -6,6 +6,7 @@ import { attentionOf } from "@/lib/cases/attention";
 import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { routeInbound } from "@/lib/intake/router";
 import { runSimulated } from "@/lib/integrations/outbound";
+import { transcribeAudio } from "@/lib/ai/transcribe";
 
 /**
  * Test-Nummern für simulierte WhatsApp-Gespräche: +49000… gibt es nicht – so landet eine Simulation nie in einem Fall
@@ -18,7 +19,9 @@ const schema = z.object({
   /** Fehlt sie, beginnt ein neues Gespräch mit einer zufälligen Test-Nummer. */
   phone: testPhone.optional(),
   name: z.string().trim().max(100).optional(),
-  text: z.string().trim().min(1).max(1500),
+  text: z.string().trim().max(1500).default(""),
+  /** Sprachnachricht (Base64) statt Text – wird wie bei echtem WhatsApp abgetippt. */
+  audio: z.object({ base64: z.string().max(8_000_000), mime: z.string().max(60).default("audio/ogg") }).optional(),
 });
 
 /**
@@ -30,12 +33,20 @@ export const POST = withSession(
     const body = await parseBody(req, schema);
     if (!body.ok) return body.res;
     const phone = body.data.phone ?? `${TEST_PREFIX}${randomInt(100000, 999999)}`;
+    let text = body.data.text;
+    let transcript: string | null = null;
+    if (body.data.audio) {
+      transcript = await transcribeAudio(new Uint8Array(Buffer.from(body.data.audio.base64, "base64")), body.data.audio.mime);
+      if (!transcript) return apiError("Die Sprachnachricht konnte nicht abgetippt werden.", 422);
+      text = transcript;
+    }
+    if (!text) return apiError("Text oder Sprachnachricht fehlt", 400);
     try {
       const { turn } = await runSimulated(() =>
-        routeInbound(store, { companyId: session.companyId, channel: "whatsapp", text: body.data.text, sender: { phone, name: body.data.name }, simulated: true }),
+        routeInbound(store, { companyId: session.companyId, channel: "whatsapp", text, sender: { phone, name: body.data.name }, simulated: true }),
       );
       const c = await store.getCase(turn.sessionId);
-      return json({ phone, caseId: turn.sessionId, replies: turn.replies, done: turn.done, status: turn.status, service: turn.fields.service ?? "", attention: c ? attentionOf(c.fields) : "", fields: turn.fields });
+      return json({ phone, transcript, caseId: turn.sessionId, replies: turn.replies, done: turn.done, status: turn.status, service: turn.fields.service ?? "", attention: c ? attentionOf(c.fields) : "", fields: turn.fields });
     } catch (err) {
       if (err instanceof CaseLimitReachedError) return apiError(CASE_LIMIT_REACHED_TEXT, 402);
       throw err;

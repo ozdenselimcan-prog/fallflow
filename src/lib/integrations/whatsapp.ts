@@ -25,7 +25,9 @@ export interface WhatsAppInbound {
   /** Text bzw. Bildunterschrift */
   text: string;
   media: { id: string; mime: string; filename: string } | null;
-  /** Nicht unterstützte Art (Sprachnachricht, Standort, Sticker …) */
+  /** Sprachnachricht (wird abgetippt, siehe whatsapp-inbound.ts) */
+  audio?: { id: string; mime: string } | null;
+  /** Nicht unterstützte Art (Standort, Sticker …) */
   unsupported: string | null;
 }
 
@@ -53,7 +55,8 @@ export function parseWebhook(body: any): { phoneNumberId: string; messages: What
             text: String(media?.caption ?? ""),
             media: { id: String(media?.id ?? ""), mime: String(media?.mime_type ?? ""), filename: String(media?.filename ?? (m.type === "image" ? "foto.jpg" : "dokument.pdf")) },
           });
-        } else messages.push({ ...base, unsupported: String(m.type ?? "unbekannt") });
+        } else if (m.type === "audio" && m.audio?.id) messages.push({ ...base, audio: { id: String(m.audio.id), mime: String(m.audio.mime_type ?? "audio/ogg") } });
+        else messages.push({ ...base, unsupported: String(m.type ?? "unbekannt") });
       }
       out.push({ phoneNumberId, messages });
     }

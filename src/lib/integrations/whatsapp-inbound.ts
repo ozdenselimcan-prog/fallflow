@@ -1,3 +1,4 @@
+import { transcribeAudio } from "@/lib/ai/transcribe";
 import { customerText } from "@/lib/config/customer-texts";
 import { getPublicStore } from "@/lib/data";
 import type { Store } from "@/lib/data/store";
@@ -56,6 +57,19 @@ async function handleMessage(store: Store, conn: Connection, phoneNumberId: stri
       throw err;
     }
   };
+
+  // Sprachnachricht: abtippen und wie eine Textnachricht behandeln; klappt das nicht, um eine kurze Textnachricht bitten.
+  if (m.audio) {
+    const file = await downloadMedia(conn.accessToken!, m.audio.id).catch(() => null);
+    const text = file ? await transcribeAudio(file.bytes, file.mime || m.audio.mime) : null;
+    if (!text) {
+      await reply(conn, phoneNumberId, phone, customerText(texts, "whatsapp.audio"));
+      return;
+    }
+    const turn = await route(text);
+    if (turn?.sessionId) await store.addEvent(turn.sessionId, "note", `Sprachnachricht abgetippt: „${text.slice(0, 300)}“`);
+    return;
+  }
 
   if (!m.media) {
     if (m.text.trim()) await route(m.text);
