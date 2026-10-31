@@ -39,6 +39,7 @@ const VAR_HELP: Record<string, string> = {
   termin: "Datum und Uhrzeit des Termins",
   frage: "die nächste offene Frage",
   link: "Link zum Hochladen",
+  antwort: "Antwort aus „Wissen & Preise“",
 };
 export const varHelp = (v: string) => VAR_HELP[v] ?? v;
 
@@ -49,6 +50,7 @@ export const CUSTOMER_TEXTS: CustomerText[] = [
   { key: "email.intro", group: "email", label: "Einleitung", when: "Erste Antwort auf eine Anfrage – nur, wenn Sie für die Leistung unter „Vorlagen & Nachrichten“ keinen eigenen Text hinterlegt haben.", default: "vielen Dank für Ihre Anfrage zu „{leistung}“.", vars: ["leistung"] },
   { key: "email.missing", group: "email", label: "Fehlende Angaben", when: "Wenn in der Anfrage Pflichtangaben fehlen.", default: "Damit wir Ihre Anfrage vorbereiten können, nennen Sie uns bitte noch: {liste}.", vars: ["liste"] },
   { key: "email.helpful", group: "email", label: "Hilfreiche Unterlagen", when: "Wenn zur Leistung typische Unterlagen (z. B. Fotos) hinterlegt sind.", default: "Sehr hilfreich wären noch: {liste} – gern einfach als Antwort auf diese E-Mail.", vars: ["liste"] },
+  { key: "email.answer", group: "email", label: "Antwort auf eine Frage", when: "Wenn der Kunde eine Frage stellt, die FallFlow mit Ihren Angaben unter „Wissen & Preise“ beantworten kann.", default: "Zu Ihrer Frage: {antwort}", vars: ["antwort"] },
   { key: "email.complete", group: "email", label: "Alle Angaben vollständig", when: "Wenn der Kunde alle Angaben geschickt hat (ohne automatischen Terminvorschlag).", default: "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.", vars: [] },
   { key: "email.completeAppointment", group: "email", label: "Alle Angaben vollständig – mit Terminvorschlag", when: "Wenn alle Angaben da sind und FallFlow einen Termin vorbereitet hat.", default: "Vielen Dank, damit haben wir alle Angaben. Wir haben bereits einen passenden Termin für Sie vorbereitet – ein Mitarbeiter bestätigt Ihnen den genauen Termin in Kürze.", vars: [] },
 

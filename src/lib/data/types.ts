@@ -60,6 +60,8 @@ export interface BusinessProfile {
   whatsappQuestions?: WhatsAppQuestion[];
   /** Eigene Fassungen der automatischen Kundentexte (Schlüssel siehe config/customer-texts.ts); fehlt = Standard. */
   texts?: Record<string, string>;
+  /** „Wissen & Preise“: feste Preise und häufige Fragen, mit denen die KI Kundenfragen beantworten darf (fehlt = noch nie gespeichert). */
+  knowledge?: { prices: { item: string; price: string; note?: string }[]; faqs: { q: string; a: string }[] };
 }
 
 export interface WhatsAppQuestion {

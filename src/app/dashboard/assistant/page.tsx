@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, FileText, MessageCircle, MessageSquareText } from "lucide-react";
+import { BookOpen, Building2, FileText, MessageCircle, MessageSquareText } from "lucide-react";
 import { AssistantForm } from "@/components/dashboard/assistant-form";
 import { AssistantPreview } from "@/components/dashboard/assistant-preview";
 import { buttonStyles } from "@/components/ui/button";
@@ -31,6 +31,9 @@ export default async function AssistantPage() {
             </Link>
             <Link href="/dashboard/assistant/templates" className={buttonStyles({ variant: "secondary" })}>
               <FileText className="size-4" /> Vorlagen & Nachrichten
+            </Link>
+            <Link href="/dashboard/assistant/knowledge" className={buttonStyles({ variant: "secondary" })}>
+              <BookOpen className="size-4" /> Wissen & Preise
             </Link>
             <Link href="/dashboard/assistant/texts" className={buttonStyles({ variant: "secondary" })}>
               <MessageSquareText className="size-4" /> Texte

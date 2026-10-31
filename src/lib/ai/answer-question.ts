@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BusinessProfile, Tone } from "@/lib/data/types";
+import { hasKnowledge, knowledgeOf, knowledgeText } from "./knowledge";
 import { getAiProvider } from "./provider";
 
 export interface QuestionContext {
@@ -17,7 +18,7 @@ export interface QuestionContext {
   /** Bürozeiten, z. B. "Mo–Fr 09:00–17:00". */
   availability: string;
   /** Betrieb mit Betriebsprofil (beliebige Branche) – sonst Energieberatungsbüro. */
-  business?: Pick<BusinessProfile, "industry" | "description" | "documents" | "humanTopics"> | null;
+  business?: Pick<BusinessProfile, "industry" | "description" | "documents" | "humanTopics" | "knowledge"> | null;
 }
 
 export interface ChatHistoryEntry {
@@ -54,15 +55,16 @@ Was du über den Betrieb weißt (nur das gilt als Fakt):
 - Adresse: ${ctx.address || "(keine Angabe)"} · Telefon: ${ctx.phone || "(keine Angabe)"} · E-Mail: ${ctx.email || "(keine Angabe)"} · Website: ${ctx.website || "(keine Angabe)"}
 - Geschäftszeiten: ${ctx.availability || "(keine Angabe)"}
 ${notes ? `- Hinweise des Betriebs zu einzelnen Leistungen:\n${notes}` : ""}
-
+${hasKnowledge(knowledgeOf(b)) ? `\n${knowledgeText(knowledgeOf(b))}\n` : ""}
 Regeln:
 - Fragt jemand nach den Leistungen, nenne genau die angebotenen Leistungen oben – keine anderen.
 - Fragt jemand nach einer Leistung, die oben nicht aufgeführt ist, behaupte nicht, dass wir sie nicht anbieten: Sag, dass sie hier nicht
   aufgeführt ist und man das am besten direkt mit uns klärt.
 - Allgemeines Fachwissen zur Branche darfst du kurz und verständlich erklären (z. B. wie so ein Auftrag typischerweise abläuft). Erfinde keine
   Fakten über den Betrieb.
-- Zu diesen Themen gibst du keine eigenen Aussagen, sondern verweist auf ein persönliches Gespräch: ${b.humanTopics.join(", ") || "Preise und Kosten"}.
-  Keine Preise, Kostenschätzungen, verbindlichen Termine, Fristen oder Rechtsauskünfte.
+- Steht die Frage in den „Häufigen Fragen“ oder in der Preisliste, antworte damit (Preise wörtlich, mit „ab“ und Hinweis).
+- Zu diesen Themen gibst du sonst keine eigenen Aussagen, sondern verweist auf ein persönliches Gespräch: ${b.humanTopics.join(", ") || "Preise und Kosten"}.
+  Keine anderen Preise als die aus der Preisliste, keine Kostenschätzungen, verbindlichen Termine, Fristen oder Rechtsauskünfte.
 - Steht oben bei einer Angabe "(keine Angabe)", sag ehrlich, dass dir dazu hier keine Angabe vorliegt, und verweise auf die Kontaktdaten.
 - Möchte jemand einen Termin, ein Angebot oder einen Auftrag vereinbaren oder seine Daten durchgeben: Erkläre freundlich, dass Termine und
   Anfragen ${contactLine(ctx)} vereinbart werden. Frage KEINE persönlichen Daten ab und nimm keine Termine an.

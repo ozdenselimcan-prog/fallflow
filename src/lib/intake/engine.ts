@@ -15,6 +15,7 @@ import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calen
 import { refreshCase, ensureUploadToken, autoBookNextSlot, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { CONTACT_CHANNEL_KEY } from "./checklist";
 import { customerText } from "@/lib/config/customer-texts";
+import { answerFromKnowledge, knowledgeOf } from "@/lib/ai/knowledge";
 import { templateQuestionsFor } from "./template-questions";
 import { answerWebsiteChat } from "./website-chat";
 import { documentList } from "./messages";
@@ -151,6 +152,13 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // „Ich warte noch auf eine Antwort“) dürfen nicht plötzlich eine automatische Antwort auslösen.
   const pendingAttention = input.channel === "email" && existing ? attentionOf(existing.fields) : "";
   let attention: string | null = input.forceAttention ?? (pendingAttention || null);
+  // „Wissen & Preise“: Kann die KI eine Kundenfrage mit den Angaben des Betriebs sicher beantworten, antwortet sie selbst
+  // (statt „Aufmerksamkeit benötigt“). Notfälle und Reklamationen gehen immer an den Betrieb.
+  let knowledgeReply: string | null = null;
+  const fromKnowledge = async (question: string) =>
+    /^(notfall|reklamation|beschwerde)/i.test(question)
+      ? null
+      : answerFromKnowledge(input.text, knowledgeOf(company.businessProfile), { industry: company.businessProfile?.industry ?? "", companyName: company.name });
   // Termin absagen oder verschieben per E-Mail: Das klärt das Büro selbst (Kalender) – nicht still übergehen.
   if (!attention && input.channel === "email" && existing && (existing.fields.apptStage ?? "") !== "" && (looksLikeCancellation(input.text) || looksLikeReschedule(input.text))) {
     attention = "Kunde möchte den Termin absagen oder verschieben";
@@ -161,7 +169,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       input.text,
       company.businessProfile?.industry ? { industry: company.businessProfile.industry, humanTopics: company.businessProfile.humanTopics } : null,
     );
-    if (question) attention = input.channel === "phone" ? `Anruf: ${question}` : `Frage des Kunden: ${question}`;
+    if (question && input.channel === "whatsapp") knowledgeReply = await fromKnowledge(question);
+    if (question && !knowledgeReply) attention = input.channel === "phone" ? `Anruf: ${question}` : `Frage des Kunden: ${question}`;
   }
   if (!attention && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
@@ -179,13 +188,15 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       // Betriebe mit Profil: Ist es eine Reklamation, ein Notfall o. Ä., das als Grund nennen statt nur "Leistung nicht erkannt".
       const profile = company.businessProfile;
       const question = profile?.industry ? await customerQuestion(input.text, { industry: profile.industry, humanTopics: profile.humanTopics }) : null;
-      attention = question ? `Frage des Kunden: ${question}` : "Leistung nicht erkannt";
+      if (question) knowledgeReply = await fromKnowledge(question);
+      if (!knowledgeReply) attention = question ? `Frage des Kunden: ${question}` : "Leistung nicht erkannt";
     } else {
       const question = await customerQuestion(
         input.text,
         company.businessProfile?.industry ? { industry: company.businessProfile.industry, humanTopics: company.businessProfile.humanTopics } : null,
       );
-      if (question) attention = `Frage des Kunden: ${question}`;
+      if (question) knowledgeReply = await fromKnowledge(question);
+      if (question && !knowledgeReply) attention = `Frage des Kunden: ${question}`;
     }
   }
 
@@ -232,6 +243,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const replies = silent || attention || inAppointmentFlow || firstCompleteEmail || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
   // WhatsApp: Auch wenn das Team selbst antwortet, bekommt der Kunde sofort eine kurze Bestätigung (kein Schweigen im Chat).
   if (input.channel === "whatsapp" && attention && !silent) replies.push(T("whatsapp.handoff"));
+  if (knowledgeReply && !silent && input.channel !== "email") replies.splice(replies.length ? 1 : 0, 0, knowledgeReply);
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? FIELD_GROUPS.flatMap((g) => g.fields).find((f) => f.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
@@ -248,6 +260,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const material = attention || silent || formChannel ? null : await matchServiceMaterials(store, caseNow, templates, serviceMessages, input.channel);
   const attachments: InboundAttachment[] = material?.attachments ?? [];
   if (material) replies.push(...material.texts);
+  if (knowledgeReply && !silent && input.channel === "email") replies.push(T("email.answer", { antwort: knowledgeReply }));
 
   // Nachbereitung: Vollständigkeit, Status, automatische Dokumentenanforderung.
   const refreshed = await refreshCase(store, caseId, {
@@ -464,10 +477,14 @@ async function answerSideQuestion(store: Store, existing: CaseRecord, input: Int
     .slice(-8)
     .map((m) => ({ role: m.role as "user" | "assistant", text: m.content.slice(0, 500) }));
   await store.addMessage(existing.id, "user", input.text.slice(0, 2000), { ...meta, delivery: "delivered" });
-  const human = obviousHumanQuestion(input.text);
-  const texts = (await store.getCompany()).businessProfile?.texts;
+  const company = await store.getCompany();
+  const texts = company.businessProfile?.texts;
+  const known = obviousHumanQuestion(input.text) ? await answerFromKnowledge(input.text, knowledgeOf(company.businessProfile), { industry: company.businessProfile?.industry ?? "", companyName: company.name }) : null;
+  const human = known ? null : obviousHumanQuestion(input.text);
   let answer: string;
-  if (human) {
+  if (known) {
+    answer = known;
+  } else if (human) {
     answer = customerText(texts, "whatsapp.sideQuestion");
     await store.updateCase(existing.id, { fields: { [ATTENTION_KEY]: `Frage des Kunden: ${human}` } });
     await store.addEvent(existing.id, "handoff", `Aufmerksamkeit benötigt (Frage des Kunden per WhatsApp: ${human}).`);
