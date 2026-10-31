@@ -225,6 +225,8 @@ describe("looksLikeCancellation", () => {
     expect(looksLikeCancellation("Der Termin fällt leider aus")).toBe(true);
     expect(looksLikeCancellation("Ich schaffe es leider nicht")).toBe(true);
     expect(looksLikeCancellation("Kann ich den Termin verschieben?")).toBe(true);
+    expect(looksLikeCancellation("Hallo, den Termin muss ich leider absagen.")).toBe(true);
+    expect(looksLikeCancellation("Leider müssen wir den Termin am Montag stornieren.")).toBe(true);
   });
 
   it("reagiert nicht auf unrelatierten Text", () => {
