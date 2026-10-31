@@ -137,7 +137,7 @@ const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
       {
         mail: { from: "customer", sender: "WhatsApp · Jonas (+49 170 …)", text: "Hallo, nach dem Sturm tropft es bei uns durchs Dach. Können Sie vorbeikommen?" },
         action: "Nachricht kommt per WhatsApp – Name und Handynummer kennt FallFlow schon. Die KI fragt Schritt für Schritt, was auf Ihrer Seite „WhatsApp-Fragen“ steht.",
-        case: { status: { label: "Wird qualifiziert", tone: "accent" }, percent: 25, fields: [["Leistung", "Dachreparatur"], ["Name", "Jonas"], ["Kanal", "WhatsApp"]], checklist: [] },
+        case: { status: { label: "KI fragt nach", tone: "accent" }, percent: 25, fields: [["Leistung", "Dachreparatur"], ["Name", "Jonas"], ["Kanal", "WhatsApp"]], checklist: [] },
       },
       {
         mail: { from: "ai", sender: OFFICE, text: "Vielen Dank für Ihre Nachricht! Wie lautet die Adresse (Straße, Hausnummer, PLZ und Ort)?" },
@@ -147,7 +147,7 @@ const SCENARIOS: { id: string; label: string; steps: Step[] }[] = [
       {
         mail: { from: "customer", sender: "WhatsApp · Jonas (+49 170 …)", text: "Lindenweg 7, 82166 Gräfelfing" },
         action: "Straße, PLZ und Ort werden getrennt in die Fallakte übernommen.",
-        case: { status: { label: "Wird qualifiziert", tone: "accent" }, percent: 60, fields: [["Leistung", "Dachreparatur"], ["Name", "Jonas"], ["Adresse", "Lindenweg 7, 82166 Gräfelfing"]], checklist: [] },
+        case: { status: { label: "KI fragt nach", tone: "accent" }, percent: 60, fields: [["Leistung", "Dachreparatur"], ["Name", "Jonas"], ["Adresse", "Lindenweg 7, 82166 Gräfelfing"]], checklist: [] },
       },
       {
         mail: { from: "ai", sender: OFFICE, text: "Danke! Dringt bereits Wasser ins Haus ein?" },

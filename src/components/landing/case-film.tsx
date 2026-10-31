@@ -111,7 +111,7 @@ export function CaseFilm({ scenario = DEFAULT_FILM }: { scenario?: FilmScenario 
     : t >= s3 + 3700
       ? { label: "Wartet auf Kunde", tone: "warning" as const }
       : t >= s2
-        ? { label: "Wird qualifiziert", tone: "accent" as const }
+        ? { label: "KI fragt nach", tone: "accent" as const }
         : { label: "Neu", tone: "accent" as const };
 
   // Linke Seite: welche Mail ist gerade "geöffnet"?

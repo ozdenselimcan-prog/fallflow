@@ -40,7 +40,7 @@ export default async function DashboardPage() {
     { label: "Vollständige Fälle", value: stats.completeCases, icon: CheckCircle2, href: "/dashboard/cases?status=READY_FOR_REVIEW" },
     { label: "Warten auf Kundendaten", value: stats.waitingForCustomer, icon: Hourglass, href: "/dashboard/intake?status=WAITING_FOR_CUSTOMER" },
     { label: "Heute anstehende Termine", value: stats.appointmentsToday, icon: CalendarCheck, href: "/dashboard/calendar" },
-    { label: "Automatisch qualifizierte Leads", value: stats.autoQualified, icon: Sparkles, href: "/dashboard/intake" },
+    { label: "Von der KI vorbereitet", value: stats.autoQualified, icon: Sparkles, href: "/dashboard/intake" },
   ];
 
   const attention = buildAttention({ cases, documents, appointments });
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Aktuelle Vorgänge</h2>
             <Link href="/dashboard/intake" className="text-sm font-medium text-accent hover:underline">
-              Alle im AI Intake
+              Alle Anfragen
             </Link>
           </div>
           <CaseTable cases={active} meta={meta} />

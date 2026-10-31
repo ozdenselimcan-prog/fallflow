@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CONSENT_EVENT, GOOGLE_ADS_ID, loadGoogleTag, OPEN_CONSENT_EVENT, readConsent, saveConsent, trackConversion } from "@/lib/tracking";
 
@@ -16,6 +16,22 @@ const HIDDEN = /^\/(widget|upload|termin|admin)(\/|$)/;
 export function ConsentBanner() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const visible = Boolean(GOOGLE_ADS_ID) && open && !HIDDEN.test(pathname);
+
+  // Solange der Hinweis offen ist, bekommt die Seite unten so viel Platz, dass er keine Knöpfe (z. B. „Weiter“) verdeckt.
+  useEffect(() => {
+    const el = box.current;
+    if (!visible || !el) return;
+    const apply = () => (document.body.style.paddingBottom = `${el.offsetHeight}px`);
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.body.style.paddingBottom = "";
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!GOOGLE_ADS_ID) return;
@@ -31,7 +47,7 @@ export function ConsentBanner() {
     };
   }, []);
 
-  if (!GOOGLE_ADS_ID || !open || HIDDEN.test(pathname)) return null;
+  if (!visible) return null;
 
   const choose = (choice: "granted" | "denied") => {
     setOpen(false);
@@ -39,7 +55,7 @@ export function ConsentBanner() {
   };
 
   return (
-    <div role="dialog" aria-label="Cookie-Einstellungen" className="fixed inset-x-0 bottom-0 z-50 p-2 sm:p-4">
+    <div ref={box} role="dialog" aria-label="Cookie-Einstellungen" className="fixed inset-x-0 bottom-0 z-50 p-2 sm:p-4">
       <div className="mx-auto flex max-w-3xl flex-col gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-lg sm:flex-row sm:items-center sm:gap-3 sm:p-4">
         <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
           Wir verwenden Cookies, um unsere Website zu verbessern und die Wirkung unserer Werbung zu messen. Notwendige Cookies sind immer aktiv.{" "}

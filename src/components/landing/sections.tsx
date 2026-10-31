@@ -167,7 +167,7 @@ export function DemoSection() {
 }
 
 const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = [
-  { icon: Workflow, title: "AI Intake", text: "Alle laufenden Anfragen mit klarem Status – von „Neu“ bis „Bereit zur Prüfung“." },
+  { icon: Workflow, title: "Alle Anfragen im Blick", text: "Alle laufenden Anfragen mit klarem Status – von „Neu“ bis „Bereit zur Prüfung“." },
   { icon: MessageCircle, title: "WhatsApp", text: "Kunden schreiben Ihnen per WhatsApp – die KI fragt Schritt für Schritt nach, versteht auch Sprachnachrichten, Fotos landen in der Fallakte." },
   { icon: CalendarCheck, title: "Online-Terminbuchung", text: "Sind alle Angaben da, wählt der Kunde per Link selbst einen freien Termin – belegte Zeiten aus Ihrem Outlook-Kalender bleiben frei." },
   { icon: FileText, title: "Angebot per Klick", text: "Die KI entwirft den Kostenvoranschlag aus Anfrage und Ihrer Preisliste. Sie prüfen, ergänzen und senden ihn als PDF." },

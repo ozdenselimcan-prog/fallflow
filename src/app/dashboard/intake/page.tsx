@@ -13,7 +13,7 @@ import { CASE_STATUSES, type CaseRecord, type CaseStatus } from "@/lib/data/type
 import { buildCaseMeta } from "@/lib/intake/meta";
 import { cn, timeAgo } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "AI Intake" };
+export const metadata: Metadata = { title: "Anfragen" };
 
 const FILTERS = { documents: "Warten auf Dokumente" } as const;
 
@@ -32,7 +32,7 @@ const CaseLink = ({ c }: { c: CaseRecord }) => (
   </Link>
 );
 
-/** AI Intake: alle laufenden Qualifizierungen – aktive Gespräche, neue Leads, fehlende Informationen, angeforderte Dokumente. */
+/** Anfragen: alles, woran die KI gerade arbeitet – aktive Gespräche, neue Anfragen, fehlende Informationen, angeforderte Dokumente. */
 export default async function IntakePage({ searchParams }: PageProps<"/dashboard/intake">) {
   const raw = await searchParams;
   const statusParam = typeof raw.status === "string" ? raw.status : "";
@@ -74,8 +74,8 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
     <>
       <LiveRefresh active={counts.NEW + counts.QUALIFYING > 0} everyMs={6000} />
       <PageHeader
-        title="AI Intake"
-        description="Hier qualifiziert die KI Anfragen: Sie erkennt Angaben, fordert Fehlendes per E-Mail an und bereitet den Fall vor."
+        title="Anfragen"
+        description="Hier sehen Sie, woran die KI gerade arbeitet: Sie erkennt Angaben, fordert Fehlendes beim Kunden an und bereitet den Fall vor."
         action={
           <a href={testUrl} target="_blank" rel="noreferrer" className={buttonStyles({ variant: "secondary" })}>
             <ExternalLink className="size-4" /> Website-Chat testen
@@ -111,7 +111,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Panel title="Neu erkannte Leads" description="Eingegangen, noch nicht ausgewertet" count={fresh.length} empty="Keine neuen Leads.">
+            <Panel title="Neue Anfragen" description="Eingegangen, noch nicht ausgewertet" count={fresh.length} empty="Keine neuen Anfragen.">
               {fresh.slice(0, 5).map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                   <div className="min-w-0">
@@ -167,7 +167,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
             </Panel>
           </div>
 
-          <Panel title="Abgeschlossene Qualifizierungen" description="Fallakte vorbereitet – bereit für Sie" count={finished.length} empty="Noch keine abgeschlossenen Qualifizierungen.">
+          <Panel title="Fertig vorbereitet" description="Fallakte vorbereitet – bereit für Sie" count={finished.length} empty="Noch keine fertig vorbereiteten Anfragen.">
             {finished.slice(0, 6).map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <div className="min-w-0">

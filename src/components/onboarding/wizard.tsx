@@ -148,12 +148,29 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
 
         {step === 3 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-semibold tracking-tight">PDF-Vorlagen & Nachrichtentexte (optional)</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Eigene Formulare & Texte (optional)</h1>
             <p className="text-sm text-muted-foreground">
-              Schicken Sie Kunden bei bestimmten Leistungen ein auszufüllendes Formular (z. B. eine Vollmacht)? Hier pro Leistung hochladen und den Nachrichtentext dazu festlegen. Mit einem Klick auf die PDF legen Sie fest, ob sie „ausgefüllt zurück“ kommen soll oder „nur zur Info“ dabei ist (z. B. eine Preisliste). Ohne eigene Nachricht schickt FallFlow einen kurzen Standardtext und nennt die benötigten Unterlagen. Nutzen Sie das nicht, überspringen Sie diesen Schritt einfach.
+              FallFlow antwortet Ihren Kunden bereits mit passenden Standardtexten und fragt die nötigen Angaben und Unterlagen ab. Hier können Sie zusätzlich pro Leistung ein
+              eigenes PDF-Formular (z. B. eine Vollmacht) mitschicken oder den Text selbst formulieren.
             </p>
-            <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit profile={{ documents: profile.documents, documentsByService: profile.documentsByService }} />
-            <AppointmentConfirmationCard initial={assistant} canEdit />
+            <p className="rounded-xl bg-muted px-4 py-3 text-sm">
+              <strong>Die meisten Betriebe überspringen diesen Schritt</strong> und passen die Texte später unter KI-Assistent → Vorlagen &amp; Nachrichten an. Klicken Sie dafür
+              einfach auf „Weiter“.
+            </p>
+            <details className="group rounded-xl border border-border">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+                <span className="group-open:hidden">+ Jetzt eigene Formulare oder Texte festlegen</span>
+                <span className="hidden group-open:inline">− Eigene Formulare & Texte</span>
+              </summary>
+              <div className="space-y-4 border-t border-border p-4">
+                <p className="text-xs text-muted-foreground">
+                  Mit einem Klick auf die PDF legen Sie fest, ob sie „ausgefüllt zurück“ kommen soll oder „nur zur Info“ dabei ist (z. B. eine Preisliste). Bitte nach jeder Änderung
+                  bei der jeweiligen Leistung auf „Speichern“ klicken.
+                </p>
+                <ServiceMessagesPanel services={services} initialMessages={serviceMessages} initialTemplates={documentTemplates} canEdit profile={{ documents: profile.documents, documentsByService: profile.documentsByService }} />
+                <AppointmentConfirmationCard initial={assistant} canEdit />
+              </div>
+            </details>
           </div>
         )}
 
@@ -161,7 +178,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Wann können Sie Termine anbieten?</h1>
             <p className="text-sm text-muted-foreground">
-              Sobald ein Fall vollständig ist, trägt die KI einen passenden freien Termin – nur an diesen Tagen, in diesem Zeitfenster – als Vorschlag in Ihren Kalender ein. Erst wenn Sie ihn bestätigen, schickt die KI die Bestätigung per Mail an den Kunden.
+              Sobald alle Angaben da sind, bekommt der Kunde einen Link und wählt selbst einen freien Termin – nur an diesen Tagen, in diesem Zeitfenster. Den Termin bestätigen Sie mit einem Klick im Kalender (oder lassen FallFlow das später automatisch tun).
             </p>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Verfügbare Wochentage">
               {DISPLAY_ORDER.map((day) => {

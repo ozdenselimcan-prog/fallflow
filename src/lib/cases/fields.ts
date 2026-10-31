@@ -131,7 +131,7 @@ export const TONE_LABELS = { professional: "Professionell", friendly: "Freundlic
 
 export const STATUS_LABELS: Record<CaseStatus, string> = {
   NEW: "Neu",
-  QUALIFYING: "Wird qualifiziert",
+  QUALIFYING: "KI fragt nach",
   WAITING_FOR_CUSTOMER: "Wartet auf Kunde",
   NEEDS_REPLY: "Antwort durch Büro nötig",
   COMPLETE: "Angaben vollständig",
