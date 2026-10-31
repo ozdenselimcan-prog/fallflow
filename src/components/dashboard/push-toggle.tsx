@@ -8,7 +8,8 @@ import { apiFetch } from "@/lib/use-api";
 
 /** VAPID-Schlüssel (Base64url) → Uint8Array für pushManager.subscribe. */
 function keyBytes(base64: string): Uint8Array {
-  const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const key = base64.trim();
+  const padded = (key + "=".repeat((4 - (key.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(padded);
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }

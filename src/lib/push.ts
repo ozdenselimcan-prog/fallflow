@@ -15,12 +15,15 @@ export interface StoredPush extends PushSubscriptionJson {
   createdAt: string;
 }
 
-export const pushConfigured = () => Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+// Getrimmt: beim Einfügen in Vercel rutscht leicht ein Zeilenumbruch mit.
+export const vapidPublicKey = () => (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "").trim();
+const vapidPrivateKey = () => (process.env.VAPID_PRIVATE_KEY ?? "").trim();
+export const pushConfigured = () => Boolean(vapidPublicKey() && vapidPrivateKey());
 
 let configured = false;
 function configure() {
   if (configured || !pushConfigured()) return;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:support@fallflow.xyz", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+  webpush.setVapidDetails((process.env.VAPID_SUBJECT || "mailto:support@fallflow.xyz").trim(), vapidPublicKey(), vapidPrivateKey());
   configured = true;
 }
 

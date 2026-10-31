@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { apiError, json, parseBody, withSession } from "@/lib/api";
-import { pushConfigured, pushSubscriptionsOf, sendPush } from "@/lib/push";
+import { pushConfigured, pushSubscriptionsOf, sendPush, vapidPublicKey } from "@/lib/push";
 
 /** Ist Push eingerichtet, und ist dieses Gerät (endpoint) angemeldet? */
 export const GET = withSession(async (req, { store }) => {
   const endpoint = req.nextUrl.searchParams.get("endpoint") ?? "";
   const subs = pushSubscriptionsOf((await store.getCompany()).businessProfile);
-  return json({ available: pushConfigured(), publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "", subscribed: Boolean(endpoint) && subs.some((s) => s.endpoint === endpoint), devices: subs.length });
+  return json({ available: pushConfigured(), publicKey: vapidPublicKey(), subscribed: Boolean(endpoint) && subs.some((s) => s.endpoint === endpoint), devices: subs.length });
 });
 
 const subSchema = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p256dh: z.string().max(200), auth: z.string().max(100) }) });
