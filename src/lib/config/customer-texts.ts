@@ -42,6 +42,7 @@ const VAR_HELP: Record<string, string> = {
   link: "Link zum Hochladen",
   antwort: "Antwort aus „Wissen & Preise“",
   telefon: "Ihre Telefonnummer",
+  nummer: "Angebotsnummer",
 };
 export const varHelp = (v: string) => VAR_HELP[v] ?? v;
 
@@ -108,6 +109,7 @@ export const CUSTOMER_TEXTS: CustomerText[] = [
   { key: "whatsapp.fileError", group: "whatsapp", label: "Datei nicht lesbar", when: "Wenn eine geschickte Datei nicht geöffnet werden kann.", default: "Vielen Dank! Diese Datei konnte ich leider nicht öffnen – bitte schicken Sie sie als Foto oder PDF.", vars: [] },
 
   // Sonstiges
+  { key: "quote.email", group: "other", label: "Angebot senden", when: "Wenn Sie im Fall ein Angebot (PDF) an den Kunden schicken.", default: "anbei erhalten Sie unser Angebot {nummer} zu „{leistung}“. Bei Fragen melden Sie sich gern – wir freuen uns auf Ihren Auftrag.", vars: ["nummer", "leistung"] },
   { key: "other.caseLimit", group: "other", label: "Monatliches Kontingent erreicht", when: "Wenn Ihr Tarif-Kontingent an Anfragen für diesen Monat aufgebraucht ist.", default: "Vielen Dank für Ihre Nachricht! Unser Büro hat die monatliche Kapazität für neue Anfragen aktuell erreicht. Bitte kontaktieren Sie uns direkt telefonisch oder versuchen Sie es zu Beginn des nächsten Monats erneut.", vars: [] },
 ];
 
