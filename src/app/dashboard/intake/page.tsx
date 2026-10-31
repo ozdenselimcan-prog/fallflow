@@ -110,7 +110,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
         </section>
       ) : (
         <div className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Panel title="Neu erkannte Leads" description="Eingegangen, noch nicht ausgewertet" count={fresh.length} empty="Keine neuen Leads.">
               {fresh.slice(0, 5).map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-3 py-3 text-sm">

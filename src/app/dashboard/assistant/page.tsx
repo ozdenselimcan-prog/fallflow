@@ -42,7 +42,7 @@ export default async function AssistantPage() {
           </div>
         }
       />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <AssistantForm initial={assistant} canEdit={can(session.role, "assistant:manage")} />
         <div className="space-y-6">
           <AutomationCard canEdit={can(session.role, "assistant:manage")} />

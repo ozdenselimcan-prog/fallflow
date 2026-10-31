@@ -110,7 +110,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
         <CaseActions caseId={c.id} customerName={c.customerName} email={c.fields.email ?? ""} status={c.status} canWrite={canWrite} />
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <aside className="space-y-4 lg:order-2">
           {attentionOf(c.fields) && (
             <Notice>
