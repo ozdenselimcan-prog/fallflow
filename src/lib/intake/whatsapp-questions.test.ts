@@ -102,3 +102,21 @@ describe("Adresse in einer Antwort", () => {
     expect(splitAddress("Musterstraße 1")).toEqual({ street: "Musterstraße 1", postalCode: "", city: "" });
   });
 });
+
+describe("Letzte WhatsApp-Nachricht", async () => {
+  const { polishWhatsAppReplies } = await import("./engine");
+  it("stellt die Terminfrage ans Ende und kündigt keinen Mitarbeiter an", () => {
+    const out = polishWhatsAppReplies([
+      "Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.",
+      "An welchen Wochentagen (oder an welchem konkreten Datum) passt es Ihnen am besten für einen Termin?",
+      "Wenn Sie haben, schicken Sie uns gern noch: Fotos vom Schaden – einfach als Foto oder PDF hier im Chat.",
+    ]);
+    expect(out[0]).toBe("Vielen Dank, damit habe ich alle Angaben!");
+    expect(out[1]).toMatch(/^Wenn Sie haben/);
+    expect(out[2]).toMatch(/^An welchen Wochentagen/);
+  });
+  it("ohne Terminfrage bleibt alles wie es ist", () => {
+    const r = ["Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen."];
+    expect(polishWhatsAppReplies(r)).toEqual(r);
+  });
+});

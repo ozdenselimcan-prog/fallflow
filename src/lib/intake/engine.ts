@@ -390,6 +390,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       await store.updateCase(caseId, { fields: { docsRequestedFor: svc }, keepTimestamp: true });
     }
   }
+  if (input.channel === "whatsapp") replies.splice(0, replies.length, ...polishWhatsAppReplies(replies));
   // WhatsApp: eine Nachricht pro Gesprächszug (wie E-Mail), statt mehrerer kurzer Nachrichten hintereinander.
   const outgoing = isInteractive(input.channel) && input.channel !== "whatsapp" ? replies : replies.length ? [replies.join("\n\n")] : [];
   for (const reply of outgoing) {
@@ -426,6 +427,19 @@ function eventForSource(source: CaseSource, simulated?: boolean) {
 
 /** Feld: "1" = KI antwortet in diesem Chat nicht automatisch (Team hat übernommen). */
 export const AI_PAUSED_KEY = "aiPaused";
+
+/**
+ * Letzte WhatsApp-Nachricht entwirren: Folgt noch die Terminfrage, nicht "Ein Mitarbeiter meldet sich" sagen und die
+ * Frage ans Ende stellen (nach der Bitte um Fotos) – so gibt es genau eine offene Frage zum Schluss.
+ */
+export function polishWhatsAppReplies(replies: string[]): string[] {
+  const ask = replies.find((r) => r.startsWith("An welchen Wochentagen"));
+  if (!ask) return replies;
+  return [
+    ...replies.filter((r) => r !== ask).map((r) => r.replace("Vielen Dank, damit habe ich alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.", "Vielen Dank, damit habe ich alle Angaben!")),
+    ask,
+  ];
+}
 
 /** Kein zweites "Vielen Dank!" direkt hinter einer Nachricht, die schon dankt ("Vielen Dank für Ihre Anfrage …"). */
 export const withoutRepeatedThanks = (previous: string[], text: string) =>
