@@ -8,6 +8,7 @@ import { deriveFields } from "./checklist";
 import type { Store } from "@/lib/data/store";
 import type { CaseMessage, MessageChannel } from "@/lib/data/types";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
+import { inCustomerLanguage, LANGUAGE_NAMES } from "@/lib/ai/language";
 import { refreshCase } from "./case-ops";
 
 const SHORT_TEXT = 25;
@@ -40,14 +41,17 @@ export async function addPhoneNote(store: Store, caseId: string, text: string): 
 export async function sendTeamMessage(
   store: Store,
   caseId: string,
-  input: { channel: Extract<MessageChannel, "email">; text: string; subject?: string },
-): Promise<{ message: CaseMessage; delivered: boolean; reason: string }> {
+  input: { channel: Extract<MessageChannel, "email">; text: string; subject?: string; translate?: boolean },
+): Promise<{ message: CaseMessage; delivered: boolean; reason: string; translated: boolean }> {
   const c = await store.getCase(caseId);
   if (!c) throw new Error("Fall nicht gefunden");
   // Kam der Kunde per WhatsApp, geht die Antwort des Teams auch per WhatsApp raus.
   const channel: MessageChannel = c.source === "whatsapp" ? "whatsapp" : input.channel;
-  const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text: input.text, subject: input.subject });
-  const message = await store.addMessage(caseId, "staff", input.text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
+  // Kunde schreibt in einer anderen Sprache: Das Team schreibt Deutsch, raus geht die Übersetzung.
+  const text = input.translate === false ? input.text : await inCustomerLanguage(c.fields, input.text);
+  const translated = text !== input.text;
+  const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: input.subject });
+  const message = await store.addMessage(caseId, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
   await store.addEvent(caseId, "note", result.delivered ? "Nachricht an den Kunden gesendet" : "Nachricht gespeichert – nicht versendet (Kanal nicht verbunden)");
   // Antwortet das Team selbst im WhatsApp-Chat, hält sich die KI dort zurück, bis sie wieder eingeschaltet wird.
   if (result.delivered && channel === "whatsapp") await store.updateCase(caseId, { fields: { [AI_PAUSED_KEY]: "1" }, keepTimestamp: true });
@@ -56,5 +60,6 @@ export async function sendTeamMessage(
     await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: "" }, keepTimestamp: true });
     await refreshCase(store, caseId, { hint: "waiting", touch: false });
   }
-  return { message, delivered: result.delivered, reason: result.reason };
+  if (translated) await store.addEvent(caseId, "note", `Nachricht übersetzt gesendet (${LANGUAGE_NAMES[c.fields.lang] ?? c.fields.lang}). Ihr Text: ${input.text.slice(0, 300)}`);
+  return { message, delivered: result.delivered, reason: result.reason, translated };
 }

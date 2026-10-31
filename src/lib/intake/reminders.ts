@@ -1,3 +1,4 @@
+import { inCustomerLanguage } from "@/lib/ai/language";
 import { attentionOf } from "@/lib/cases/attention";
 import { customerText } from "@/lib/config/customer-texts";
 import type { Store } from "@/lib/data/store";
@@ -59,7 +60,7 @@ export async function sendReminders(store: Store, now = new Date()): Promise<num
       leistung: c.fields.service || "Ihrer Anfrage",
       liste: missing.join(", "),
     });
-    const text = await frameEmail(store, body, c.fields.name);
+    const text = await inCustomerLanguage(c.fields, await frameEmail(store, body, c.fields.name));
     const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, text, subject: await emailSubjectFor(store, c.fields.service) });
     await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
     await store.updateCase(c.id, { fields: { reminderCount: due === "first" ? "1" : "2" }, keepTimestamp: true });
@@ -99,7 +100,7 @@ export async function sendReviewRequests(store: Store, now = new Date()): Promis
       continue;
     }
     // Eigener Text ohne Platzhalter: Link trotzdem mitschicken.
-    const text = await frameEmail(store, body.includes(reviewLink) ? body : `${body}\n\n${reviewLink}`, c.fields.name);
+    const text = await inCustomerLanguage(c.fields, await frameEmail(store, body.includes(reviewLink) ? body : `${body}\n\n${reviewLink}`, c.fields.name));
     const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, text, subject: `Vielen Dank – ${company.name}` });
     await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
     await store.updateCase(c.id, { fields: { reviewAsked: "1" }, keepTimestamp: true });

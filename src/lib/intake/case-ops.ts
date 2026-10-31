@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { inCustomerLanguage } from "@/lib/ai/language";
 import { extractFromFilledForm } from "@/lib/ai/form-extractor";
 import { mergeExtracted } from "@/lib/ai/conversation";
 import { FORM_ENTRIES_KEY, mergeFormEntries } from "@/lib/cases/form-entries";
@@ -521,8 +522,9 @@ export async function receiveFilledTemplate(
       const blank = await readFile(template.storagePath);
       if (blank) attachments.push({ filename: template.fileName, mime: "application/pdf", bytes: blank.bytes });
     }
-    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: requestText, attachments, subject: await emailSubjectFor(store, c.fields.service) });
-    await store.addMessage(caseId, "assistant", requestText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
+    const outText = await inCustomerLanguage(c.fields, requestText);
+    const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text: outText, attachments, subject: await emailSubjectFor(store, c.fields.service) });
+    await store.addMessage(caseId, "assistant", outText, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
     await refreshCase(store, caseId, { hint: "waiting" });
     return true;
   }
@@ -583,7 +585,7 @@ export async function sendCompletionMessage(store: Store, refreshed: RefreshResu
     await store.updateCase(c.id, { fields: { apptStage: "ask" } });
     body = `${customerText(texts, "email.completeConfirmed")}\n\n${customerText(texts, "appointment.bookingLinkEmail", { link: bookingUrl(await ensureUploadToken(store, c)) })}`;
   }
-  const text = await frameEmail(store, body, c.fields.name);
+  const text = await inCustomerLanguage(c.fields, await frameEmail(store, body, c.fields.name));
   const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
@@ -669,7 +671,7 @@ export async function receiveEmailAttachments(store: Store, caseId: string, atta
   const stillMissing = refreshed.checklist.missing.map((i) => i.label);
   if (!stillMissing.length) return;
   const c = refreshed.caseRecord;
-  const text = `Vielen Dank, Ihre Unterlagen sind bei uns angekommen. Damit wir Ihre Anfrage abschließen können, fehlt uns noch: ${stillMissing.join(", ")}. Sie können uns das einfach als Antwort auf diese E-Mail schicken.`;
+  const text = await inCustomerLanguage(c.fields, await frameEmail(store, `Vielen Dank, Ihre Unterlagen sind bei uns angekommen. Damit wir Ihre Anfrage abschließen können, fehlt uns noch: ${stillMissing.join(", ")}. Sie können uns das einfach als Antwort auf diese E-Mail schicken.`, c.fields.name));
   const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
@@ -836,7 +838,7 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
   const channel = c.source === "whatsapp" ? ("whatsapp" as const) : ("email" as const);
   // Automatisch bestätigt: Der Text geht in der laufenden Antwort mit, keine zweite Nachricht.
   if (opts.notifyCustomer === false) return { ok: true, appointment: saved, delivered: true, reason: "", text: confirmed };
-  const text = channel === "email" ? await frameEmail(store, confirmed, c.fields.name) : confirmed;
+  const text = await inCustomerLanguage(c.fields, channel === "email" ? await frameEmail(store, confirmed, c.fields.name) : confirmed);
   const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Termin" });
   await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
 

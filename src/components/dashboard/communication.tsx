@@ -1,10 +1,10 @@
 "use client";
 
-import { Phone, RotateCw, Send, Sparkles } from "lucide-react";
+import { Languages, Phone, RotateCw, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Input, Select, Textarea } from "@/components/ui/form";
+import { Checkbox, Input, Select, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import type { CaseMessage } from "@/lib/data/types";
 import { apiFetch, useMutation } from "@/lib/use-api";
@@ -32,8 +32,38 @@ function ResendButton({ caseId, messageId }: { caseId: string; messageId: string
   );
 }
 
+/** Fremdsprachige Nachricht fürs Büro auf Deutsch anzeigen (auf Klick, wird nicht gespeichert). */
+function TranslateButton({ caseId, messageId, onText }: { caseId: string; messageId: string; onText: (t: string) => void }) {
+  const { pending, error, run } = useMutation();
+  async function translate() {
+    const res = await run(() => apiFetch<{ text: string }>("POST", `/api/cases/${caseId}/translate`, { messageId }), { refresh: false });
+    if (res) onText(res.text);
+  }
+  return (
+    <>
+      <button type="button" onClick={translate} disabled={pending} className="inline-flex items-center gap-1 font-medium text-accent hover:underline disabled:opacity-50">
+        <Languages className={cn("size-3", pending && "animate-pulse")} aria-hidden /> Auf Deutsch
+      </button>
+      {error && <span className="basis-full text-warning">{error}</span>}
+    </>
+  );
+}
+
 /** Chronologischer Gesprächsverlauf über alle Kanäle mit Zustellstatus – nichts wird als „gesendet“ gezeigt, was nicht versendet wurde. */
-export function MessageThread({ messages, className, resendCaseId }: { messages: CaseMessage[]; className?: string; /** gesetzt = „Erneut senden“ anbieten */ resendCaseId?: string }) {
+export function MessageThread({
+  messages,
+  className,
+  resendCaseId,
+  translateCaseId,
+}: {
+  messages: CaseMessage[];
+  className?: string;
+  /** gesetzt = „Erneut senden“ anbieten */
+  resendCaseId?: string;
+  /** gesetzt = Kunde schreibt in einer anderen Sprache: „Auf Deutsch“ anbieten */
+  translateCaseId?: string;
+}) {
+  const [german, setGerman] = useState<Record<string, string>>({});
   if (messages.length === 0) return <p className="text-sm text-muted-foreground">Noch keine Nachrichten.</p>;
   return (
     <div className={cn("space-y-3 overflow-y-auto", className)}>
@@ -45,6 +75,7 @@ export function MessageThread({ messages, className, resendCaseId }: { messages:
             {m.delivery === "not_sent" && <span className="text-warning">nicht versendet</span>}
             {m.delivery === "not_sent" && resendCaseId && m.channel === "email" && m.role !== "user" && !m.simulated && <ResendButton caseId={resendCaseId} messageId={m.id} />}
             {m.delivery === "internal" && <span>interne Notiz</span>}
+            {translateCaseId && m.delivery !== "internal" && !german[m.id] && <TranslateButton caseId={translateCaseId} messageId={m.id} onText={(t) => setGerman((g) => ({ ...g, [m.id]: t }))} />}
             <span>{formatDateTime(m.createdAt)}</span>
           </div>
           <span
@@ -54,6 +85,7 @@ export function MessageThread({ messages, className, resendCaseId }: { messages:
             )}
           >
             {m.content}
+            {german[m.id] && <span className="mt-2 block border-t border-current/20 pt-2 text-xs opacity-90">Deutsch: {german[m.id]}</span>}
           </span>
         </div>
       ))}
@@ -69,15 +101,18 @@ interface Props {
   /** Kunde kam per WhatsApp: Nachrichten des Teams gehen per WhatsApp raus (ohne Betreff). */
   whatsapp?: boolean;
   title?: string;
+  /** Sprache des Kunden, wenn nicht Deutsch (z. B. „Türkisch“): Nachrichten werden übersetzt gesendet. */
+  language?: string;
 }
 
 /** Kommunikation eines Falls: Verlauf, Telefonnotiz (Angaben werden übernommen) und Nachricht an den Kunden. */
-export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whatsapp = false, title = "Kommunikation" }: Props) {
+export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whatsapp = false, title = "Kommunikation", language }: Props) {
   const { pending, error, run } = useMutation();
   const [mode, setMode] = useState<"phone_note" | "email">("phone_note");
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
   const [info, setInfo] = useState<string | null>(null);
+  const [translate, setTranslate] = useState(true);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -88,13 +123,14 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whats
         content: text,
         kind: mode,
         ...(mode === "email" && !whatsapp && subject.trim() ? { subject: subject.trim() } : {}),
+        ...(language ? { translate } : {}),
       }),
     );
     if (!res) return;
     setText("");
     setSubject("");
     if (mode === "phone_note") setInfo(res.added?.length ? "Notiz gespeichert. Erkannte Angaben wurden in die Fallakte übernommen." : "Notiz gespeichert.");
-    else setInfo(res.delivered ? "Nachricht gesendet." : `Nachricht gespeichert, aber nicht versendet. ${res.reason ?? ""}`);
+    else setInfo(res.delivered ? (language && translate ? `Nachricht auf ${language} übersetzt gesendet.` : "Nachricht gesendet.") : `Nachricht gespeichert, aber nicht versendet. ${res.reason ?? ""}`);
   }
 
   const channelReady = mode === "phone_note" || hasEmail;
@@ -121,7 +157,12 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whats
     <Card>
       <CardHeader title={title} description={whatsapp ? "WhatsApp-Nachrichten und Telefonnotizen in einem Verlauf" : "E-Mails und Telefonnotizen in einem Verlauf"} />
       <div className="space-y-4 px-5 py-4">
-        <MessageThread messages={messages} className="max-h-96" resendCaseId={canWrite && hasEmail ? caseId : undefined} />
+        {language && (
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Languages className="size-3.5" aria-hidden /> Kunde schreibt auf {language} – automatische Antworten gehen auf {language} raus.
+          </p>
+        )}
+        <MessageThread messages={messages} className="max-h-96" resendCaseId={canWrite && hasEmail ? caseId : undefined} translateCaseId={language ? caseId : undefined} />
         {canWrite && (
           <form onSubmit={submit} className="space-y-2 border-t border-border pt-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -156,6 +197,7 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whats
               aria-label="Nachricht"
               className="min-h-20"
             />
+            {language && mode === "email" && <Checkbox label={`Auf Deutsch schreiben, auf ${language} übersetzt senden`} checked={translate} onChange={setTranslate} />}
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
                 {mode === "phone_note"

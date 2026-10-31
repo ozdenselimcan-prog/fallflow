@@ -13,6 +13,7 @@ interface Automation {
   bookingLink: boolean;
   reviews: boolean;
   reviewLink: string;
+  multilingual: boolean;
 }
 
 /** KI-Assistent → Automatik: Erinnerungen an Kunden und automatische Terminbestätigung (wird sofort gespeichert). */
@@ -68,6 +69,13 @@ export function AutomationCard({ canEdit }: { canEdit: boolean }) {
               <p className="mt-1.5 px-1 text-xs text-muted-foreground">
                 Aus: FallFlow schlägt Termine vor, Sie bestätigen sie im Kalender. An: Freie Termine (laut Ihren Zeiten und verbundenem Outlook-Kalender) werden sofort fest
                 vergeben und dem Kunden bestätigt.
+              </p>
+            </div>
+            <div>
+              <Checkbox label="In der Sprache des Kunden antworten" checked={a.multilingual} disabled={!canEdit} onChange={(v) => toggle({ multilingual: v })} />
+              <p className="mt-1.5 px-1 text-xs text-muted-foreground">
+                Schreibt ein Kunde z. B. auf Englisch, Türkisch oder Polnisch, gehen die automatischen Antworten übersetzt in seiner Sprache raus. Im Fall können Sie seine
+                Nachrichten auf Deutsch anzeigen und selbst auf Deutsch antworten – FallFlow übersetzt.
               </p>
             </div>
             <div>

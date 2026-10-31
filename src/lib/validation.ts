@@ -147,6 +147,8 @@ export const messageSchema = z.object({
   kind: z.enum(["phone_note", "email"]).default("phone_note"),
   /** Nur bei kind "email": eigener Betreff statt des Standardtexts. */
   subject: str(200).optional(),
+  /** Kunde schreibt in einer anderen Sprache: Nachricht übersetzt senden (Standard: ja). */
+  translate: z.boolean().optional(),
 });
 
 export const documentRequestSchema = z.object({ kinds: z.array(z.enum(DOCUMENT_KINDS)).max(4).optional() });

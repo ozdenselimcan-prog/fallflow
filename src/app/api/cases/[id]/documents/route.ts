@@ -1,3 +1,4 @@
+import { inCustomerLanguage } from "@/lib/ai/language";
 import { apiError, json, parseBody, withSession } from "@/lib/api";
 import type { DocumentKind } from "@/lib/data/types";
 import { frameEmail, refreshCase, requestDocuments } from "@/lib/intake/case-ops";
@@ -37,7 +38,7 @@ export const POST = withSession(
     const channel = c.source === "whatsapp" ? ("whatsapp" as const) : ("email" as const);
     const requestBody = customerText(company.businessProfile?.texts, "forms.uploadRequest", { liste: documentList(kinds), link: url });
     // E-Mail mit Anrede und Gruß, WhatsApp ohne – dort groß beginnen.
-    const text = channel === "email" ? await frameEmail(store, requestBody, c.fields.name) : requestBody.charAt(0).toUpperCase() + requestBody.slice(1);
+    const text = await inCustomerLanguage(c.fields, channel === "email" ? await frameEmail(store, requestBody, c.fields.name) : requestBody.charAt(0).toUpperCase() + requestBody.slice(1));
     const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Unterlagen für Ihren Termin" });
     await store.addMessage(id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
     await store.addEvent(id, "document", result.delivered ? "Dokumentenanforderung an den Kunden gesendet" : "Dokumentenanforderung vorbereitet (nicht versendet)");

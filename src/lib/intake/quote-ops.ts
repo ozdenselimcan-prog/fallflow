@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { knowledgeOf } from "@/lib/ai/knowledge";
+import { inCustomerLanguage } from "@/lib/ai/language";
 import { assessPhotos } from "@/lib/ai/photo-assessment";
 import type { AiImage } from "@/lib/ai/provider";
 import { draftQuote } from "@/lib/ai/quote-draft";
@@ -65,7 +66,7 @@ export async function sendQuote(store: Store, c: CaseRecord): Promise<{ ok: true
   if (!pdf) return { ok: false, message: "Das PDF konnte nicht erstellt werden." };
   const texts = (await store.getCompany()).businessProfile.texts;
   const body = customerText(texts, "quote.email", { nummer: quote.number, leistung: c.fields.service || "Ihrer Anfrage" });
-  const text = await frameEmail(store, body, c.fields.name);
+  const text = await inCustomerLanguage(c.fields, await frameEmail(store, body, c.fields.name));
   const result = await deliverToCustomer({
     companyId: c.companyId,
     channel: "email",

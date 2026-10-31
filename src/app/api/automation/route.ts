@@ -3,11 +3,11 @@ import { json, parseBody, withSession } from "@/lib/api";
 
 /**
  * Automatik: Erinnerungen (Standard an), Buchungslink für Kunden (Standard an), Termine ohne Freigabe bestätigen (Standard aus),
- * Bitte um Bewertung nach dem Termin (Standard aus, braucht einen Bewertungslink).
+ * Bitte um Bewertung nach dem Termin (Standard aus, braucht einen Bewertungslink), Antworten in der Sprache des Kunden (Standard an).
  */
 export const GET = withSession(async (_req, { store }) => {
   const a = (await store.getCompany()).businessProfile.automation ?? {};
-  return json({ reminders: a.reminders !== false, autoConfirm: a.autoConfirm === true, bookingLink: a.bookingLink !== false, reviews: a.reviews === true, reviewLink: a.reviewLink ?? "" });
+  return json({ reminders: a.reminders !== false, autoConfirm: a.autoConfirm === true, bookingLink: a.bookingLink !== false, reviews: a.reviews === true, reviewLink: a.reviewLink ?? "", multilingual: a.multilingual !== false });
 });
 
 const schema = z.object({
@@ -15,6 +15,7 @@ const schema = z.object({
   autoConfirm: z.boolean(),
   bookingLink: z.boolean().default(true),
   reviews: z.boolean().default(false),
+  multilingual: z.boolean().default(true),
   reviewLink: z
     .string()
     .trim()

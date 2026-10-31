@@ -1,3 +1,4 @@
+import { LANGUAGE_NAMES } from "@/lib/ai/language";
 import type { Metadata } from "next";
 import { AiPauseNotice } from "@/components/dashboard/ai-pause-notice";
 import { AI_PAUSED_KEY } from "@/lib/intake/engine";
@@ -214,7 +215,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
           {profiled && <PhotoCard caseId={c.id} canWrite={canWrite} />}
           {profiled && <QuoteCard caseId={c.id} canWrite={canWrite} />}
           {!profiled && <KiToolsCard caseId={c.id} events={events} yearBuilt={c.fields.yearBuilt} hasEmail={Boolean(c.fields.email)} canWrite={canWrite} locked={!hasAiTools(subscription.plan)} />}
-          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email) || (c.source === "whatsapp" && Boolean(c.fields.phone))} whatsapp={c.source === "whatsapp"} />
+          <CommunicationPanel caseId={c.id} messages={messages} canWrite={canWrite} hasEmail={Boolean(c.fields.email) || (c.source === "whatsapp" && Boolean(c.fields.phone))} whatsapp={c.source === "whatsapp"} language={c.fields.lang && c.fields.lang !== "de" ? (LANGUAGE_NAMES[c.fields.lang] ?? c.fields.lang) : undefined} />
         </div>
       </div>
     </div>

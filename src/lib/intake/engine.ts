@@ -10,6 +10,7 @@ import type { Store } from "@/lib/data/store";
 import { profileDocumentsFor, type CaseRecord, type CaseSource, type CaseStatus, type DocumentKind, type MessageChannel } from "@/lib/data/types";
 import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
+import { detectLanguage, LANGUAGE_NAMES, translateReplies } from "@/lib/ai/language";
 import { normalizePhone } from "./identity";
 import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calendar";
 import { refreshCase, ensureUploadToken, autoBookNextSlot, autoConfirmIfEnabled, bookingLinkEnabled, bookingUrl, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
@@ -242,6 +243,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
 
   const meta = { channel: input.channel, simulated: Boolean(input.simulated) };
   await store.addMessage(caseId, "user", input.text.slice(0, 2000), { ...meta, delivery: "delivered" });
+  const lang = await customerLanguage(store, caseId, existing?.fields.lang, input.text, company.businessProfile?.automation?.multilingual !== false);
 
   // Terminfrage/-bestätigung laufen als eigener kleiner Dialog NACH Abschluss der Datenerfassung: Antwortet der
   // Kunde in diesem Zustand, ersetzt die Terminantwort die sonst übliche „liegt bereits vor“-Floskel.
@@ -443,7 +445,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const joined = replies.length ? [replies.join("\n\n")] : [];
   // E-Mail mit Anrede und Gruß (bearbeitbar unter „Texte“); im Chat nicht.
   if (input.channel === "email" && joined.length) joined[0] = await frameEmail(store, joined[0], turn.fields.name);
-  const outgoing = isInteractive(input.channel) && input.channel !== "whatsapp" ? replies : joined;
+  const chatBubbles = isInteractive(input.channel) && input.channel !== "whatsapp";
+  // Kunde schreibt in einer anderen Sprache: alles (inkl. Anrede und Gruß) übersetzt senden.
+  const outgoing = lang === "de" ? (chatBubbles ? replies : joined) : await translateReplies(chatBubbles ? replies : joined, lang);
+  if (chatBubbles) replies.splice(0, replies.length, ...outgoing);
   for (const reply of outgoing) {
     const subject = serviceMessages.find((m) => m.service === turn.fields.service)?.subject?.trim() || undefined;
     const result = await deliverToCustomer({ companyId, channel: input.channel, email: turn.fields.email, phone: turn.fields.phone, text: reply, simulated: input.simulated, attachments, subject });
@@ -495,6 +500,21 @@ export function polishWhatsAppReplies(replies: string[], doneText = "Vielen Dank
 export const withoutRepeatedThanks = (previous: string[], text: string) =>
   previous.some((r) => /vielen dank/i.test(r)) ? text.replace(/^Vielen Dank!\s*/, "") : text;
 
+/** Sprache des Kunden bestimmen und im Fall merken (kurze Nachrichten wie „Ok“ ändern sie nicht). */
+async function customerLanguage(store: Store, caseId: string, previous: string | undefined, text: string, enabled: boolean): Promise<string> {
+  const before = previous || "de";
+  if (!enabled) {
+    if (before !== "de") await store.updateCase(caseId, { fields: { lang: "" }, keepTimestamp: true });
+    return "de";
+  }
+  const lang = (await detectLanguage(text)) ?? before;
+  if (lang !== before) {
+    await store.updateCase(caseId, { fields: { lang }, keepTimestamp: true });
+    if (lang !== "de") await store.addEvent(caseId, "note", `Kunde schreibt auf ${LANGUAGE_NAMES[lang]} – automatische Antworten gehen auf ${LANGUAGE_NAMES[lang]} raus.`);
+  }
+  return lang;
+}
+
 /** Nachricht bei pausierter KI nur speichern und dem Team zeigen ("Aufmerksamkeit benötigt"). */
 async function recordWhilePaused(store: Store, existing: CaseRecord, input: IntakeInput): Promise<IntakeTurn> {
   await store.addMessage(existing.id, "user", input.text.slice(0, 2000), { channel: input.channel, simulated: Boolean(input.simulated), delivery: "delivered" });
@@ -529,9 +549,11 @@ async function answerSideQuestion(store: Store, existing: CaseRecord, input: Int
   } else {
     answer = await answerWebsiteChat(store, input.text, history);
   }
-  const text = pendingPrompt ? `${answer}
+  let text = pendingPrompt ? `${answer}
 
 ${customerText(texts, "whatsapp.backToRequest", { frage: pendingPrompt })}` : answer;
+  const lang = await customerLanguage(store, existing.id, existing.fields.lang, input.text, company.businessProfile?.automation?.multilingual !== false);
+  if (lang !== "de") text = (await translateReplies([text], lang))[0];
   const result = await deliverToCustomer({ companyId: input.companyId, channel: input.channel, email: existing.fields.email, phone: existing.fields.phone, text, simulated: input.simulated });
   await store.addMessage(existing.id, "assistant", text, { ...meta, delivery: result.delivered ? "delivered" : "not_sent" });
   const current = (await store.getCase(existing.id)) ?? existing;
