@@ -12,7 +12,7 @@ import { buildSummary } from "@/lib/cases/completeness";
 import { DOCUMENT_LABELS, STATUS_LABELS } from "@/lib/cases/fields";
 import { customerText, hasGreeting, hasSignoff } from "@/lib/config/customer-texts";
 import { siteConfig } from "@/lib/config/site";
-import { outlookBusy, pushAppointment } from "@/lib/integrations/outlook-calendar";
+import { outlookBusy, pushAppointment, removeAppointment } from "@/lib/integrations/outlook-calendar";
 import type { Store } from "@/lib/data/store";
 import { profileDocumentsFor, type Appointment, type CaseDocument, type CaseRecord, type DocumentKind, type DocumentTemplate, type MessageChannel, type ServiceMessage, type TemplateDocument } from "@/lib/data/types";
 import { extractPdfText } from "@/lib/documents/pdf-text";
@@ -24,7 +24,7 @@ import { notifyOffice } from "./notify";
 import { AWAITING_REPLY_KEY, buildChecklist, deriveFields, deriveStatus, documentRequirements, isRelevant, type Checklist, type StatusHint } from "./checklist";
 import { isAnswered } from "@/lib/cases/completeness";
 import { requestsUntrackedItems } from "./request-signals";
-import { appointmentConfirmedText, findNextSlot, formatSlot } from "./scheduling";
+import { appointmentConfirmedText, findNextSlot, formatSlot, listFreeSlots } from "./scheduling";
 
 /** Fall-Operationen, die Website-Chat, Inbox, Uploads und Dashboard gemeinsam nutzen. */
 
@@ -572,8 +572,17 @@ export async function sendCompletionMessage(store: Store, refreshed: RefreshResu
   // "Automatische Antworten" aus: keine Abschluss-Mail und kein automatischer Terminvorschlag – das Büro meldet sich selbst.
   if (!(await store.getAssistant()).autoReply) return;
   const c = refreshed.caseRecord;
-  const booking = refreshed.checklist.missing.length === 0 ? await autoBookNextSlot(store, c) : false;
-  const text = await frameEmail(store, await completionTextFor(store, c.fields.service, { appointmentProposed: Boolean(booking), confirmedText: booking ? booking.confirmedText : null }), c.fields.name);
+  const settings = await store.getAssistant();
+  const linkMode = settings.appointmentBooking && refreshed.checklist.missing.length === 0 && (c.fields.apptStage ?? "") === "" && (await bookingLinkEnabled(store));
+  const booking = refreshed.checklist.missing.length === 0 && !linkMode ? await autoBookNextSlot(store, c) : false;
+  let body = await completionTextFor(store, c.fields.service, { appointmentProposed: Boolean(booking), confirmedText: booking ? booking.confirmedText : null });
+  if (linkMode) {
+    // Kunde wählt seinen Termin selbst (Buchungslink) statt eines automatisch vorgeschlagenen Termins.
+    const texts = (await store.getCompany()).businessProfile?.texts;
+    await store.updateCase(c.id, { fields: { apptStage: "ask" } });
+    body = `${customerText(texts, "email.completeConfirmed")}\n\n${customerText(texts, "appointment.bookingLinkEmail", { link: bookingUrl(await ensureUploadToken(store, c)) })}`;
+  }
+  const text = await frameEmail(store, body, c.fields.name);
   const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
@@ -831,6 +840,50 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
   await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
 
   return { ok: true, appointment: saved, delivered: result.delivered, reason: result.reason, text: confirmed };
+}
+
+/** Öffentliche Buchungsseite des Falls (gleicher geheimer Link-Token wie beim Hochladen von Unterlagen). */
+export const bookingUrl = (token: string) => `${siteConfig.appUrl}/termin/${token}`;
+/** Kunden wählen ihren Termin selbst über den Buchungslink (Standard an; abschaltbar unter Automatik). */
+export const bookingLinkEnabled = async (store: Store) => (await store.getCompany()).businessProfile?.automation?.bookingLink !== false;
+
+/** Freie Termine für die Buchungsseite – der bisherige Termin dieses Falls zählt nicht als belegt (Umbuchen). */
+export async function freeSlotsForBooking(store: Store, c: CaseRecord) {
+  const [settings, appts] = await Promise.all([store.getAssistant(), store.listAppointments()]);
+  return listFreeSlots({
+    workingDays: settings.workingDays,
+    slotStart: settings.slotStart,
+    slotEnd: settings.slotEnd,
+    slotMinutes: settings.slotMinutes,
+    maxAppointmentsPerDay: settings.maxAppointmentsPerDay,
+    vacation: settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null,
+    existing: appts.filter((a) => a.caseId !== c.id),
+    blocked: await outlookBusy(c.companyId),
+  });
+}
+
+/**
+ * Kunde wählt auf der Buchungsseite einen Termin: nur, wenn er noch frei ist. Ein bisheriger Termin des Falls wird dabei
+ * freigegeben. Mit „Termine automatisch bestätigen“ ist er sofort fest (Bestätigung geht an den Kunden), sonst ein Vorschlag.
+ */
+export async function bookByCustomer(store: Store, c: CaseRecord, startsAt: string): Promise<{ ok: true; confirmed: boolean } | { ok: false; message: string }> {
+  const wanted = new Date(startsAt);
+  if (Number.isNaN(wanted.getTime())) return { ok: false, message: "Ungültiger Termin" };
+  const free = (await freeSlotsForBooking(store, c)).flatMap((d) => d.slots);
+  if (!free.includes(wanted.toISOString())) return { ok: false, message: "Dieser Termin ist leider nicht mehr frei. Bitte wählen Sie einen anderen." };
+  for (const old of (await store.listAppointments()).filter((a) => a.caseId === c.id && (a.status === "proposed" || a.status === "confirmed"))) {
+    await store.deleteAppointment(old.id);
+    await removeAppointment(c.companyId, old.id);
+  }
+  const settings = await store.getAssistant();
+  const appt = await store.saveAppointment({ caseId: c.id, title: `Termin ${c.customerName}`, startsAt: wanted.toISOString(), durationMin: settings.slotMinutes, notes: "Vom Kunden über den Buchungslink gewählt", status: "proposed" });
+  await store.updateCase(c.id, { fields: { apptStage: "proposed" } });
+  await store.addEvent(c.id, "appointment", `Kunde hat über den Buchungslink einen Termin gewählt: ${formatSlot(wanted)}`);
+  if ((await store.getCompany()).businessProfile?.automation?.autoConfirm) {
+    const r = await confirmAppointment(store, appt.id, undefined, { auto: true });
+    return { ok: true, confirmed: r.ok };
+  }
+  return { ok: true, confirmed: false };
 }
 
 /** Termin sofort bestätigen, wenn der Betrieb „Termine automatisch bestätigen“ eingeschaltet hat – gibt dann den Bestätigungstext zurück. */

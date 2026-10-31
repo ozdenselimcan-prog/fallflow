@@ -12,7 +12,7 @@ import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
 import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calendar";
-import { refreshCase, ensureUploadToken, autoBookNextSlot, autoConfirmIfEnabled, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
+import { refreshCase, ensureUploadToken, autoBookNextSlot, autoConfirmIfEnabled, bookingLinkEnabled, bookingUrl, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { CONTACT_CHANNEL_KEY } from "./checklist";
 import { customerText } from "@/lib/config/customer-texts";
 import { answerFromKnowledge, knowledgeOf } from "@/lib/ai/knowledge";
@@ -316,6 +316,10 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // erst wenn ein Mitarbeiter den Vorschlag im Kalender akzeptiert (oder selbst einen anderen Termin
   // wählt), geht die Terminbestätigung per Mail an den Kunden raus (siehe /api/appointments/[id]/accept
   // und .../decline).
+  // Buchungslink (Standard): Der Kunde wählt seinen Termin selbst auf einer Seite mit den freien Zeiten.
+  const useBookingLink = settings.appointmentBooking && (await bookingLinkEnabled(store));
+  const bookingLink = useBookingLink ? bookingUrl(await ensureUploadToken(store, refreshed.caseRecord)) : "";
+  const askLine = useBookingLink ? T("appointment.bookingLinkChat", { link: bookingLink }) : T("appointment.ask", { beispiel: availabilityExample(settings.workingDays) });
   if (settings.appointmentBooking && !turn.handoff && !attention && !silent) {
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
     const vacation = settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null;
@@ -398,9 +402,15 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       // die Terminfrage, und seine Antwort landet als Wert der anderen Angabe in der Fallakte.
     } else if (stage === "" && isInteractive(input.channel) && (turn.appointmentRequested || turn.complete) && !replies.some((r) => r.trim().endsWith("?"))) {
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
-      replies.push(T("appointment.ask", { beispiel: availabilityExample(settings.workingDays) }));
+      replies.push(askLine);
     } else if (stage === "" && !isInteractive(input.channel) && (turn.appointmentRequested || checklist.missing.length === 0)) {
-      const booking = await autoBookNextSlot(store, refreshed.caseRecord);
+      if (useBookingLink) {
+        // Statt selbst einen Termin vorzuschlagen: Link zur Buchungsseite (Tage per Antwort gehen weiterhin).
+        await store.updateCase(caseId, { fields: { apptStage: "ask" } });
+        if (completionIndex >= 0) replies[completionIndex] = T("email.completeConfirmed");
+        replies.push(T("appointment.bookingLinkEmail", { link: bookingLink }));
+      }
+      const booking = useBookingLink ? false : await autoBookNextSlot(store, refreshed.caseRecord);
       if (booking) {
         // Abschluss-Nachricht und Terminhinweis in einem Satz statt doppeltem "Vielen Dank … ein Mitarbeiter …".
         if (completionIndex >= 0) replies[completionIndex] = await completionTextFor(store, refreshed.caseRecord.fields.service, { appointmentProposed: true, confirmedText: booking.confirmedText });
@@ -423,7 +433,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       await store.updateCase(caseId, { fields: { docsRequestedFor: svc }, keepTimestamp: true });
     }
   }
-  if (input.channel === "whatsapp") replies.splice(0, replies.length, ...polishWhatsAppReplies(replies, T("chat.done"), T("appointment.ask", { beispiel: availabilityExample(settings.workingDays) })));
+  if (input.channel === "whatsapp") replies.splice(0, replies.length, ...polishWhatsAppReplies(replies, T("chat.done"), askLine));
   // WhatsApp: eine Nachricht pro Gesprächszug (wie E-Mail), statt mehrerer kurzer Nachrichten hintereinander.
   const joined = replies.length ? [replies.join("\n\n")] : [];
   // E-Mail mit Anrede und Gruß (bearbeitbar unter „Texte“); im Chat nicht.

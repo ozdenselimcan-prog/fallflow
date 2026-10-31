@@ -5,7 +5,7 @@ import { indexable, siteConfig } from "@/lib/config/site";
 export default function robots(): MetadataRoute.Robots {
   if (!indexable) return { rules: { userAgent: "*", disallow: "/" } };
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/dashboard", "/onboarding", "/admin", "/api/", "/upload/", "/widget/"] },
+    rules: { userAgent: "*", allow: "/", disallow: ["/dashboard", "/onboarding", "/admin", "/api/", "/upload/", "/termin/", "/widget/"] },
     sitemap: `${siteConfig.appUrl}/sitemap.xml`,
   };
 }

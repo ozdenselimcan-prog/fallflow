@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/use-api";
 interface Automation {
   reminders: boolean;
   autoConfirm: boolean;
+  bookingLink: boolean;
 }
 
 /** KI-Assistent → Automatik: Erinnerungen an Kunden und automatische Terminbestätigung (wird sofort gespeichert). */
@@ -47,6 +48,12 @@ export function AutomationCard({ canEdit }: { canEdit: boolean }) {
               <Checkbox label="Kunden automatisch erinnern" checked={a.reminders} disabled={!canEdit} onChange={(v) => toggle({ reminders: v })} />
               <p className="mt-1.5 px-1 text-xs text-muted-foreground">
                 Fehlen nach einer Antwort noch Angaben oder Unterlagen, erinnert FallFlow den Kunden per E-Mail nach 2 und nach 5 Tagen. Die Texte ändern Sie unter „Texte“.
+              </p>
+            </div>
+            <div>
+              <Checkbox label="Kunden wählen ihren Termin selbst (Buchungslink)" checked={a.bookingLink} disabled={!canEdit} onChange={(v) => toggle({ bookingLink: v })} />
+              <p className="mt-1.5 px-1 text-xs text-muted-foreground">
+                Sind alle Angaben da, bekommt der Kunde einen Link zu Ihren freien Terminen und bucht mit einem Klick. Aus: FallFlow schlägt selbst einen Termin vor.
               </p>
             </div>
             <div>

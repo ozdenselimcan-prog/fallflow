@@ -214,6 +214,44 @@ function firstFreeSlotOnDay(
   return null;
 }
 
+/** Alle freien Slots eines Tages (gleiche Regeln wie firstFreeSlotOnDay). */
+function freeSlotsOnDay(
+  ymd: Ymd,
+  slotStart: string,
+  slotEnd: string,
+  slotMinutes: number,
+  existing: Pick<Appointment, "startsAt" | "durationMin">[],
+  maxPerDay?: number | null,
+  blocked: Pick<Appointment, "startsAt" | "durationMin">[] = [],
+): Date[] {
+  if (maxPerDay && countOnDay(ymd, existing) >= maxPerDay) return [];
+  const busy = busyRanges([...existing, ...blocked]);
+  const start = parseTime(slotStart);
+  const end = parseTime(slotEnd);
+  const out: Date[] = [];
+  for (let cursorMin = start.h * 60 + start.m; cursorMin + slotMinutes <= end.h * 60 + end.m; cursorMin += slotMinutes) {
+    const slot = berlinWallTimeToUtc(ymd.y, ymd.m, ymd.d, Math.floor(cursorMin / 60), cursorMin % 60);
+    const slotEndMs = slot.getTime() + slotMinutes * 60_000;
+    if (slot.getTime() < Date.now() + MIN_LEAD_MS) continue;
+    if (busy.some((b) => slot.getTime() < b.end && slotEndMs > b.start)) continue;
+    out.push(slot);
+  }
+  return out;
+}
+
+/** Freie Termine der nächsten Tage für die Buchungsseite – gruppiert nach Tag (YYYY-MM-DD), höchstens `days` Tage mit freien Slots. */
+export function listFreeSlots(input: Omit<SlotSearch, "customerDays">, opts: { days?: number; horizonDays?: number } = {}): { day: string; slots: string[] }[] {
+  const start = berlinTodayYmd(input.from ?? new Date());
+  const out: { day: string; slots: string[] }[] = [];
+  for (let i = 0; i <= (opts.horizonDays ?? 28) && out.length < (opts.days ?? 10); i++) {
+    const day = addDays(start, i);
+    if (!input.workingDays.includes(weekdayOf(day)) || isOnVacation(day, input.vacation)) continue;
+    const slots = freeSlotsOnDay(day, input.slotStart, input.slotEnd, input.slotMinutes, input.existing, input.maxAppointmentsPerDay, input.blocked);
+    if (slots.length) out.push({ day: ymdKey(day), slots: slots.map((s) => s.toISOString()) });
+  }
+  return out;
+}
+
 /** Sucht den nächsten freien Termin: Schnittmenge aus Bürotagen und Kundentagen, innerhalb der Bürozeit, ohne Überschneidung, unter der Tagesobergrenze. */
 export function findNextSlot(input: SlotSearch): Date | null {
   const allowedDays = new Set(input.workingDays.filter((d) => input.customerDays.includes(d)));

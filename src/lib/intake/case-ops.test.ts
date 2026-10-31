@@ -12,8 +12,14 @@ vi.mock("@/lib/documents/pdf-text", () => ({ extractPdfText: vi.fn(async () => "
 vi.mock("@/lib/ai/verify-filled-template", () => ({ verifyFilledTemplate: vi.fn(async () => ({ filled: null, wrongDocument: false, note: "" })) }));
 
 function freshStore(): Store {
-  delete (globalThis as unknown as { __fallflowDb?: unknown }).__fallflowDb;
-  return createMemoryStore();
+  const g = globalThis as unknown as { __fallflowDb?: { company: { businessProfile?: Record<string, unknown> } } };
+  delete g.__fallflowDb;
+  const store = createMemoryStore();
+  // Diese Tests prüfen den automatisch vorgeschlagenen Termin – der Buchungslink (Standard) ist hier aus.
+  void store.getCompany();
+  const db = (globalThis as unknown as { __fallflowDb?: { company: { businessProfile?: Record<string, unknown> } } }).__fallflowDb;
+  if (db) db.company.businessProfile = { ...(db.company.businessProfile ?? {}), automation: { bookingLink: false } };
+  return store;
 }
 
 describe("receiveFilledTemplate", () => {
