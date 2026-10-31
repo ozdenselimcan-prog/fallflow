@@ -4,12 +4,13 @@
  * ohne Änderung gilt der Standard. Platzhalter in geschweiften Klammern werden beim Versand ersetzt.
  */
 
-export type TextGroup = "email" | "forms" | "appointment" | "chat" | "whatsapp" | "other";
+export type TextGroup = "email" | "forms" | "appointment" | "reminder" | "chat" | "whatsapp" | "other";
 
 export const TEXT_GROUPS: { id: TextGroup; title: string; hint: string }[] = [
   { id: "email", title: "E-Mail-Antworten", hint: "Antwort auf eine neue Anfrage per E-Mail – Anrede, Fragen nach fehlenden Angaben, Abschluss." },
   { id: "forms", title: "Formulare und Unterlagen", hint: "Wenn Formulare mitgeschickt, geprüft oder Unterlagen angefordert werden." },
   { id: "appointment", title: "Termine", hint: "Terminfrage, Terminvorschlag, Bestätigung, Absage." },
+  { id: "reminder", title: "Erinnerungen", hint: "Wenn ein Kunde fehlende Angaben oder Unterlagen nicht schickt (nach 2 und nach 5 Tagen)." },
   { id: "chat", title: "WhatsApp und Website-Chat", hint: "Begrüßung, Abschluss und Übergabe im Chat." },
   { id: "whatsapp", title: "Nur WhatsApp", hint: "Sonderfälle im WhatsApp-Chat." },
   { id: "other", title: "Sonstiges", hint: "" },
@@ -40,6 +41,7 @@ const VAR_HELP: Record<string, string> = {
   frage: "die nächste offene Frage",
   link: "Link zum Hochladen",
   antwort: "Antwort aus „Wissen & Preise“",
+  telefon: "Ihre Telefonnummer",
 };
 export const varHelp = (v: string) => VAR_HELP[v] ?? v;
 
@@ -51,7 +53,11 @@ export const CUSTOMER_TEXTS: CustomerText[] = [
   { key: "email.missing", group: "email", label: "Fehlende Angaben", when: "Wenn in der Anfrage Pflichtangaben fehlen.", default: "Damit wir Ihre Anfrage vorbereiten können, nennen Sie uns bitte noch: {liste}.", vars: ["liste"] },
   { key: "email.helpful", group: "email", label: "Hilfreiche Unterlagen", when: "Wenn zur Leistung typische Unterlagen (z. B. Fotos) hinterlegt sind.", default: "Sehr hilfreich wären noch: {liste} – gern einfach als Antwort auf diese E-Mail.", vars: ["liste"] },
   { key: "email.answer", group: "email", label: "Antwort auf eine Frage", when: "Wenn der Kunde eine Frage stellt, die FallFlow mit Ihren Angaben unter „Wissen & Preise“ beantworten kann.", default: "Zu Ihrer Frage: {antwort}", vars: ["antwort"] },
+  { key: "email.received", group: "email", label: "Eingangsbestätigung", when: "Wenn eine E-Mail an Sie persönlich geht (Notfall, Reklamation, Frage, die die KI nicht beantworten kann).", default: "vielen Dank für Ihre Nachricht – wir haben sie erhalten und melden uns persönlich bei Ihnen.", vars: [] },
+  { key: "email.urgentPhone", group: "email", label: "Hinweis bei Notfällen", when: "Zusätzlich zur Eingangsbestätigung, wenn die Nachricht nach einem Notfall klingt.", default: "In dringenden Fällen erreichen Sie uns telefonisch unter {telefon}.", vars: ["telefon"] },
+  { key: "email.unclear", group: "email", label: "Rückfrage bei unklarer Anfrage", when: "Wenn aus der E-Mail nicht hervorgeht, worum es geht.", default: "vielen Dank für Ihre Nachricht! Damit wir Ihnen gezielt weiterhelfen können: Worum geht es genau? Wir bieten unter anderem {liste} an.", vars: ["liste"] },
   { key: "email.complete", group: "email", label: "Alle Angaben vollständig", when: "Wenn der Kunde alle Angaben geschickt hat (ohne automatischen Terminvorschlag).", default: "Vielen Dank, damit haben wir alle Angaben. Ein Mitarbeiter meldet sich bei Ihnen.", vars: [] },
+  { key: "email.completeConfirmed", group: "email", label: "Alle Angaben vollständig – Termin automatisch bestätigt", when: "Wenn „Termine automatisch bestätigen“ an ist; danach folgt der Text „Termin bestätigt“.", default: "Vielen Dank, damit haben wir alle Angaben.", vars: [] },
   { key: "email.completeAppointment", group: "email", label: "Alle Angaben vollständig – mit Terminvorschlag", when: "Wenn alle Angaben da sind und FallFlow einen Termin vorbereitet hat.", default: "Vielen Dank, damit haben wir alle Angaben. Wir haben bereits einen passenden Termin für Sie vorbereitet – ein Mitarbeiter bestätigt Ihnen den genauen Termin in Kürze.", vars: [] },
 
   // Formulare und Unterlagen
@@ -77,6 +83,10 @@ export const CUSTOMER_TEXTS: CustomerText[] = [
   { key: "appointment.noSlot", group: "appointment", label: "Kein freier Termin", when: "Wenn in den nächsten Wochen nichts frei ist.", default: "Leider konnte ich in den nächsten Wochen keinen passenden Termin finden. Ein Mitarbeiter meldet sich bei Ihnen, um einen Termin zu vereinbaren.", vars: [] },
   { key: "appointment.cancelled", group: "appointment", label: "Termin abgesagt", when: "Wenn der Kunde einen Termin absagt.", default: "Kein Problem, der Termin ist storniert. Sagen Sie uns gerne, welche Wochentage oder welches Datum stattdessen für Sie passen würden.", vars: [] },
   { key: "appointment.rescheduled", group: "appointment", label: "Termin verschoben", when: "Wenn der Kunde einen Termin verschiebt und neue Tage nennt.", default: "Danke für die Rückmeldung! Der bisherige Termin ist storniert, und ich habe bereits einen neuen passenden Termin für Sie vorbereitet. Ein Mitarbeiter bestätigt ihn Ihnen in Kürze.", vars: [] },
+
+  // Erinnerungen
+  { key: "reminder.first", group: "reminder", label: "Erste Erinnerung", when: "2 Tage nach der letzten Nachricht, wenn noch Angaben oder Unterlagen fehlen.", default: "wir möchten kurz an Ihre Anfrage zu „{leistung}“ erinnern. Damit wir weitermachen können, fehlen uns noch: {liste}. Antworten Sie einfach auf diese E-Mail.", vars: ["leistung", "liste"] },
+  { key: "reminder.second", group: "reminder", label: "Zweite Erinnerung", when: "5 Tage nach der letzten Nachricht, wenn immer noch etwas fehlt.", default: "wir haben noch nichts von Ihnen gehört – besteht Ihre Anfrage zu „{leistung}“ noch? Dann schicken Sie uns bitte noch: {liste}. Antworten Sie einfach auf diese E-Mail.", vars: ["leistung", "liste"] },
 
   // Chat (WhatsApp und Website-Chat)
   { key: "chat.intro", group: "chat", label: "Begrüßung", when: "Erste Antwort im Chat.", default: "Vielen Dank für Ihre Nachricht!", vars: [] },

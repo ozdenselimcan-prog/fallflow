@@ -12,7 +12,7 @@ import type { InboundAttachment } from "@/lib/integrations/email";
 import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { normalizePhone } from "./identity";
 import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calendar";
-import { refreshCase, ensureUploadToken, autoBookNextSlot, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
+import { refreshCase, ensureUploadToken, autoBookNextSlot, autoConfirmIfEnabled, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { CONTACT_CHANNEL_KEY } from "./checklist";
 import { customerText } from "@/lib/config/customer-texts";
 import { answerFromKnowledge, knowledgeOf } from "@/lib/ai/knowledge";
@@ -160,9 +160,11 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       ? null
       : answerFromKnowledge(input.text, knowledgeOf(company.businessProfile), { industry: company.businessProfile?.industry ?? "", companyName: company.name });
   // Termin absagen oder verschieben per E-Mail: Das klärt das Büro selbst (Kalender) – nicht still übergehen.
-  if (!attention && input.channel === "email" && existing && (existing.fields.apptStage ?? "") !== "" && (looksLikeCancellation(input.text) || looksLikeReschedule(input.text))) {
-    attention = "Kunde möchte den Termin absagen oder verschieben";
-  }
+  // Termin absagen oder verschieben (auch per E-Mail) erledigt der Termin-Ablauf unten automatisch.
+  const wantsApptChange = Boolean(existing && (existing.fields.apptStage ?? "") !== "" && (looksLikeCancellation(input.text) || looksLikeReschedule(input.text)));
+  // Unklare Anfrage: einmal nachfragen statt sofort an den Betrieb; mehrere Leistungen: eine Antwort für alle.
+  let clarify = false;
+  let extraServices: string[] = [];
   // Anruf: Notfall, Reklamation, Preisfrage o. Ä. gleich zu Beginn → das Team ruft zurück, die KI fragt nur noch das Nötigste.
   if (!attention && (input.channel === "phone" || input.channel === "whatsapp") && first && settings.autoReply) {
     const question = await customerQuestion(
@@ -179,7 +181,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     const several = existing || company.businessProfile?.needsAddress === false ? [] : mentionedServices(input.text, company.services);
     if (turn.handoff) attention = "Kunde wünscht persönlichen Kontakt";
     // Mehrere angebotene Leistungen in einer Anfrage: nicht nur eine davon beantworten und die andere still übergehen.
-    else if (several.length > 1) attention = `Kunde fragt nach mehreren Leistungen (${several.join(" und ")})`;
+    else if (several.length > 1) extraServices = several.filter((s) => s !== (service || several[0]));
     // Formular kommt nicht per E-Mail (Post, kein Drucker …): das klärt das Büro selbst.
     else if (existing && formNotByEmail(input.text)) attention = "Kunde schickt das Formular nicht per E-Mail (z. B. per Post) – bitte selbst klären";
     // Kunde zieht die Anfrage zurück: nicht mit "Vielen Dank, wir haben alles" antworten – das Büro entscheidet.
@@ -189,7 +191,9 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       const profile = company.businessProfile;
       const question = profile?.industry ? await customerQuestion(input.text, { industry: profile.industry, humanTopics: profile.humanTopics }) : null;
       if (question) knowledgeReply = await fromKnowledge(question);
-      if (!knowledgeReply) attention = question ? `Frage des Kunden: ${question}` : "Leistung nicht erkannt";
+      if (question && !knowledgeReply) attention = `Frage des Kunden: ${question}`;
+      else if (!question && !existing?.fields.clarifyAsked) clarify = true;
+      else if (!question) attention = "Leistung nicht erkannt";
     } else {
       const question = await customerQuestion(
         input.text,
@@ -216,6 +220,14 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     await store.addEvent(caseId, "received", eventForSource(input.source, input.simulated));
   }
 
+  // Kunde hat geantwortet: Erinnerungen wieder von vorn (falls später erneut etwas fehlt).
+  if (existing && (existing.fields.reminderCount || existing.fields.noResponse)) await store.updateCase(caseId, { fields: { reminderCount: "", noResponse: "" }, keepTimestamp: true });
+  if (extraServices.length) {
+    await store.updateCase(caseId, { fields: { extraServices: extraServices.join(", ") }, keepTimestamp: true });
+    await store.addEvent(caseId, "note", `Kunde fragt zusätzlich nach: ${extraServices.join(", ")} – die Antwort deckt alle Leistungen ab.`);
+  }
+  if (clarify) await store.updateCase(caseId, { fields: { clarifyAsked: "1" }, keepTimestamp: true });
+
   if (attention && attention === pendingAttention) {
     await store.addEvent(caseId, "handoff", "Kunde hat erneut geschrieben – der Fall wartet weiter auf Ihre persönliche Antwort (keine automatische Antwort).");
   } else if (attention) {
@@ -240,10 +252,17 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   // Erste E-Mail, die schon alle Angaben enthält: keine Chat-Begrüßung ("Gerne! Das habe ich schon verstanden: …") –
   // der Kunde bekommt die Büro-Nachricht zur Leistung (unten) und ggf. den Terminhinweis.
   const firstCompleteEmail = input.channel === "email" && first && turn.done && Boolean(turn.fields.service);
-  const replies = silent || attention || inAppointmentFlow || firstCompleteEmail || (input.channel === "email" && !turn.done) ? [] : [...turn.replies];
+  const replies = silent || attention || inAppointmentFlow || firstCompleteEmail || (input.channel === "email" && (!turn.done || wantsApptChange)) ? [] : [...turn.replies];
   // WhatsApp: Auch wenn das Team selbst antwortet, bekommt der Kunde sofort eine kurze Bestätigung (kein Schweigen im Chat).
   if (input.channel === "whatsapp" && attention && !silent) replies.push(T("whatsapp.handoff"));
   if (knowledgeReply && !silent && input.channel !== "email") replies.splice(replies.length ? 1 : 0, 0, knowledgeReply);
+  // E-Mail an den Betrieb (Notfall, Reklamation, Frage …): Der Kunde bekommt sofort eine Eingangsbestätigung statt Stille –
+  // nur beim ersten Mal (nicht bei jeder weiteren Mail, während der Fall auf die Antwort des Büros wartet).
+  if (input.channel === "email" && attention && attention !== pendingAttention && !silent && settings.autoReply && !/zieht die Anfrage zurück|per Post/i.test(attention)) {
+    const urgent = /notfall/i.test(attention) && company.phone ? ` ${T("email.urgentPhone", { telefon: company.phone })}` : "";
+    replies.push(`${T("email.received")}${urgent}`);
+  }
+  if (clarify && !silent) replies.push(T("email.unclear", { liste: company.services.filter((s) => s !== "Sonstiges").slice(0, 8).join(", ") }));
   const label = (k: string) => questions.find((q) => q.key === k)?.label ?? FIELD_GROUPS.flatMap((g) => g.fields).find((f) => f.key === k)?.label ?? k;
   // Verlauf nur bei Neuem: mehrere Angaben auf einmal erkannt bzw. eine neue Frage gestellt (keine Wiederholungen).
   if (turn.recognizedKeys.length > 1 || (first && turn.recognizedKeys.length > 0)) await store.addEvent(caseId, "answer", `KI hat erkannt: ${turn.recognizedKeys.map(label).join(", ")}`);
@@ -305,10 +324,12 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     const pendingDefault = T("appointment.pending");
     const noSlot = T("appointment.noSlot");
     const bookSlot = async (slot: Date, pendingText: string = pendingDefault) => {
-      await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
+      const appt = await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: slot.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
       await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
       await store.addEvent(caseId, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
-      replies.push(withoutRepeatedThanks(replies, pendingText));
+      // „Termine automatisch bestätigen“: gleich die Bestätigung statt „ein Mitarbeiter bestätigt …“.
+      const confirmed = await autoConfirmIfEnabled(store, appt.id);
+      replies.push(confirmed ?? withoutRepeatedThanks(replies, pendingText));
     };
 
     /** Versucht zuerst ein konkretes Datum, sonst einen Wochentag-Bereich aus dem Kundentext zu lesen und vorzuschlagen. Gibt zurück, ob etwas erkannt wurde. */
@@ -327,10 +348,11 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
           T(exact.reason === "not_a_working_day" ? "appointment.notWorkingDay" : exact.reason === "on_vacation" ? "appointment.vacation" : "appointment.fullyBooked", { datum: formatYmd(specificDate) });
         const alt = findNextSlot({ ...slotBase, customerDays: settings.workingDays, existing: existingAppts, blocked, from: ymdToDate(specificDate) });
         if (alt) {
-          await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
+          const appt = await store.saveAppointment({ caseId, title: `Termin ${refreshed.caseRecord.customerName}`, startsAt: alt.toISOString(), durationMin: settings.slotMinutes, notes: "Automatisch von der KI vorgeschlagen – wartet auf Freigabe durch das Team", status: "proposed" });
           await store.updateCase(caseId, { fields: { apptStage: "proposed" } });
           await store.addEvent(caseId, "appointment", `Wunschtermin nicht verfügbar, Alternative vorgeschlagen, wartet auf Freigabe: ${formatSlot(alt)}`);
-          replies.push(`${info} ${pendingText}`);
+          const confirmed = await autoConfirmIfEnabled(store, appt.id);
+          replies.push(`${info} ${confirmed ?? pendingText}`);
         } else {
           await store.updateCase(caseId, { fields: { apptStage: "failed" } });
           replies.push(`${info} ${noSlot}`);
@@ -357,11 +379,11 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     // Kunde sagt einen bereits bestätigten Termin ab. Nur innerhalb eines bekannten, bereits laufenden
     // Falls (existing) – bei der allerersten Nachricht eines unbekannten Absenders ignoriert die KI das
     // bewusst, sonst könnte eine völlig fremde Mail fälschlich einen Termin canceln.
-    const confirmedAppt = existing ? (await store.listAppointments()).find((a) => a.caseId === caseId && a.status === "confirmed") : undefined;
-    if (existing && confirmedAppt && looksLikeCancellation(input.text)) {
+    const confirmedAppt = existing ? (await store.listAppointments()).find((a) => a.caseId === caseId && (a.status === "confirmed" || a.status === "proposed")) : undefined;
+    if (existing && confirmedAppt && (looksLikeCancellation(input.text) || (wantsApptChange && looksLikeReschedule(input.text)))) {
       await store.deleteAppointment(confirmedAppt.id);
       await removeAppointment(companyId, confirmedAppt.id);
-      await store.addEvent(caseId, "appointment", `Termin vom Kunden abgesagt: ${formatSlot(new Date(confirmedAppt.startsAt))}`);
+      await store.addEvent(caseId, "appointment", `Termin vom Kunden ${looksLikeCancellation(input.text) ? "abgesagt" : "verschoben"}: ${formatSlot(new Date(confirmedAppt.startsAt))}`);
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       // Schlägt der Kunde in derselben Nachricht gleich einen neuen Termin vor, direkt weitersuchen
       // (wieder nur "vorgeschlagen", wartet erneut auf Freigabe durchs Team) statt extra nachzufragen.
@@ -378,10 +400,11 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       await store.updateCase(caseId, { fields: { apptStage: "ask" } });
       replies.push(T("appointment.ask", { beispiel: availabilityExample(settings.workingDays) }));
     } else if (stage === "" && !isInteractive(input.channel) && (turn.appointmentRequested || checklist.missing.length === 0)) {
-      if (await autoBookNextSlot(store, refreshed.caseRecord)) {
+      const booking = await autoBookNextSlot(store, refreshed.caseRecord);
+      if (booking) {
         // Abschluss-Nachricht und Terminhinweis in einem Satz statt doppeltem "Vielen Dank … ein Mitarbeiter …".
-        if (completionIndex >= 0) replies[completionIndex] = await completionTextFor(store, refreshed.caseRecord.fields.service, { appointmentProposed: true });
-        else replies.push(withoutRepeatedThanks(replies, pendingDefault));
+        if (completionIndex >= 0) replies[completionIndex] = await completionTextFor(store, refreshed.caseRecord.fields.service, { appointmentProposed: true, confirmedText: booking.confirmedText });
+        else replies.push(booking.confirmedText ?? withoutRepeatedThanks(replies, pendingDefault));
       }
     }
     // stage "proposed"/"confirmed"/"failed": liegt beim Team bzw. ist bereits final – die KI sagt dazu nichts Neues mehr.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, RotateCw, Send } from "lucide-react";
+import { Phone, RotateCw, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -98,6 +98,24 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whats
   }
 
   const channelReady = mode === "phone_note" || hasEmail;
+  // KI-Entwurf: Stellen in [bitte ergänzen: …] müssen vor dem Senden ausgefüllt werden.
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const openGaps = mode !== "phone_note" && /\[bitte ergänzen/i.test(text);
+  async function draft() {
+    setDrafting(true);
+    setDraftError(null);
+    setInfo(null);
+    try {
+      const r = await apiFetch<{ text: string }>("POST", `/api/cases/${caseId}/reply-draft`);
+      setMode("email");
+      setText(r.text);
+    } catch (e) {
+      setDraftError(e instanceof Error ? e.message : "Entwurf fehlgeschlagen");
+    } finally {
+      setDrafting(false);
+    }
+  }
 
   return (
     <Card>
@@ -114,6 +132,11 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whats
                 <option value="phone_note">Telefonnotiz</option>
                 <option value="email">{whatsapp ? "Nachricht per WhatsApp" : "Nachricht per E-Mail"}</option>
               </Select>
+              {hasEmail && (
+                <Button type="button" variant="ghost" size="sm" onClick={draft} loading={drafting} className="ml-auto">
+                  <Sparkles className="size-3.5" /> KI-Entwurf
+                </Button>
+              )}
               {!channelReady && <span className="text-xs text-warning">{whatsapp ? "Dafür fehlt die WhatsApp-Nummer im Fall." : "Dafür fehlt eine E-Mail-Adresse im Fall."}</span>}
             </div>
             {mode === "email" && !whatsapp && (
@@ -135,14 +158,18 @@ export function CommunicationPanel({ caseId, messages, canWrite, hasEmail, whats
             />
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                {mode === "phone_note" ? "Interne Notiz – wird nicht an den Kunden gesendet." : "Wird nur versendet, wenn der Kanal verbunden ist – sonst nur gespeichert."}
+                {mode === "phone_note"
+                  ? "Interne Notiz – wird nicht an den Kunden gesendet."
+                  : openGaps
+                    ? "Bitte die Stellen in [bitte ergänzen: …] ausfüllen – dann können Sie senden."
+                    : "Wird nur versendet, wenn der Kanal verbunden ist – sonst nur gespeichert."}
               </p>
-              <Button type="submit" size="sm" className="shrink-0 whitespace-nowrap" loading={pending} disabled={!text.trim() || !channelReady}>
+              <Button type="submit" size="sm" className="shrink-0 whitespace-nowrap" loading={pending} disabled={!text.trim() || !channelReady || openGaps}>
                 {mode === "phone_note" ? <Phone className="size-3.5" /> : <Send className="size-3.5" />}
                 {mode === "phone_note" ? "Notiz speichern" : "Senden"}
               </Button>
             </div>
-            {error && <Notice tone="error">{error}</Notice>}
+            {(error || draftError) && <Notice tone="error">{error ?? draftError}</Notice>}
             {info && <Notice tone="info">{info}</Notice>}
           </form>
         )}

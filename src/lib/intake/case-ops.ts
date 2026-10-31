@@ -103,7 +103,9 @@ export async function matchServiceMaterials(
   const T = (key: string, vars: Record<string, string> = {}) => customerText(company.businessProfile?.texts, key, vars);
   const quoted = (list: string[]) => list.map((t) => `„${t}“`).join(", ");
   const parts: string[] = [];
-  if (introDue) parts.push(own || T("email.intro", { leistung: service }));
+  // Mehrere Leistungen in einer Anfrage (engine.ts: extraServices): eine Antwort, die alle abdeckt.
+  const allServices = [service, ...(c.fields.extraServices ?? "").split(",").map((s) => s.trim()).filter((s) => s && s !== service)];
+  if (introDue) parts.push(own || T("email.intro", { leistung: allServices.join("“ und „") }));
   // Erwähnt das Büro den Anhang schon selbst ("Anbei unser Formular …"), den eigenen Hinweis nicht doppelt anhängen:
   // nur noch kurz sagen, wie es zurückgeschickt wird – bzw. gar nichts, wenn auch das schon drinsteht.
   const ownMentionsAttachment = introDue && /\banbei\b|im anhang|beigefügt|angehängt|anhängend/i.test(own);
@@ -127,12 +129,12 @@ export async function matchServiceMaterials(
     // Betrieb mit Betriebsprofil: fehlende Pflichtangaben und die typischen Unterlagen aus dem Profil erfragen.
     if (company.businessProfile?.industry) {
       const missing = (await store.listQuestions())
-        .filter((q) => q.active && q.required && !["name", "email", "service", "description"].includes(q.key) && isRelevant(q, c.fields) && !isAnswered(c.fields, q.key))
+        .filter((q) => q.active && q.required && !["name", "email", "service", "description"].includes(q.key) && allServices.some((s) => isRelevant(q, { ...c.fields, service: s })) && !isAnswered(c.fields, q.key))
         .filter((q) => !own.toLowerCase().includes(q.label.toLowerCase()))
         .map((q) => q.label);
       // "Straße, Nr." am Ende + Punkt im Text ergäbe "Nr.." – den Punkt der Liste weglassen.
       if (missing.length) parts.push(T("email.missing", { liste: missing.join(", ").replace(/\.$/, "") }).replace(/\.\.$/, "."));
-      const docs = profileDocumentsFor(company.businessProfile, service).filter((d) => !own.toLowerCase().includes(d.toLowerCase()));
+      const docs = [...new Set(allServices.flatMap((s) => profileDocumentsFor(company.businessProfile, s)))].filter((d) => !own.toLowerCase().includes(d.toLowerCase()));
       if (docs.length) parts.push(T("email.helpful", { liste: docs.join(", ") }));
     }
     await store.updateCase(c.id, { fields: { serviceMessageSentFor: service } });
@@ -192,7 +194,7 @@ Schicken Sie es uns danach einfach als Foto oder PDF hier im Chat zurück.`
  * eine begrenzte Anzahl Termine pro Tag vergeben kann). Tut nichts, wenn Terminvergabe aus ist, bereits ein
  * Termin läuft, oder kein freier Slot gefunden wird. Gibt true zurück, wenn ein Termin vorgeschlagen wurde.
  */
-export async function autoBookNextSlot(store: Store, c: CaseRecord): Promise<boolean> {
+export async function autoBookNextSlot(store: Store, c: CaseRecord): Promise<false | { confirmedText: string | null }> {
   const settings = await store.getAssistant();
   if (!settings.appointmentBooking || (c.fields.apptStage ?? "") !== "") return false;
   const existing = await store.listAppointments();
@@ -209,7 +211,7 @@ export async function autoBookNextSlot(store: Store, c: CaseRecord): Promise<boo
     blocked: await outlookBusy(c.companyId),
   });
   if (!slot) return false;
-  await store.saveAppointment({
+  const appt = await store.saveAppointment({
     caseId: c.id,
     title: `Termin ${c.customerName}`,
     startsAt: slot.toISOString(),
@@ -219,7 +221,7 @@ export async function autoBookNextSlot(store: Store, c: CaseRecord): Promise<boo
   });
   await store.updateCase(c.id, { fields: { apptStage: "proposed" } });
   await store.addEvent(c.id, "appointment", `Termin vorgeschlagen, wartet auf Freigabe: ${formatSlot(slot)}`);
-  return true;
+  return { confirmedText: await autoConfirmIfEnabled(store, appt.id) };
 }
 
 /** Liefert einen gültigen Upload-Token für den Fall (erzeugt/erneuert ihn bei Bedarf). */
@@ -539,10 +541,11 @@ export async function emailSubjectFor(store: Store, service: string | undefined)
 }
 
 /** Text der Abschluss-Nachricht: eigener Text des Büros für diese Leistung, sonst Standard. */
-export async function completionTextFor(store: Store, service: string | undefined, opts: { appointmentProposed?: boolean } = {}): Promise<string> {
+export async function completionTextFor(store: Store, service: string | undefined, opts: { appointmentProposed?: boolean; confirmedText?: string | null } = {}): Promise<string> {
   const serviceMessages = await store.listServiceMessages();
   const own = serviceMessages.find((m) => m.service === service)?.appointmentNote?.trim();
   const texts = (await store.getCompany()).businessProfile?.texts;
+  if (opts.confirmedText) return `${own || customerText(texts, "email.completeConfirmed")} ${opts.confirmedText}`;
   if (opts.appointmentProposed) return own ? `${own} ${customerText(texts, "appointment.pending")}` : customerText(texts, "email.completeAppointment");
   return own || customerText(texts, "email.complete");
 }
@@ -569,8 +572,8 @@ export async function sendCompletionMessage(store: Store, refreshed: RefreshResu
   // "Automatische Antworten" aus: keine Abschluss-Mail und kein automatischer Terminvorschlag – das Büro meldet sich selbst.
   if (!(await store.getAssistant()).autoReply) return;
   const c = refreshed.caseRecord;
-  const booked = refreshed.checklist.missing.length === 0 && (await autoBookNextSlot(store, c));
-  const text = await frameEmail(store, await completionTextFor(store, c.fields.service, { appointmentProposed: booked }), c.fields.name);
+  const booking = refreshed.checklist.missing.length === 0 ? await autoBookNextSlot(store, c) : false;
+  const text = await frameEmail(store, await completionTextFor(store, c.fields.service, { appointmentProposed: Boolean(booking), confirmedText: booking ? booking.confirmedText : null }), c.fields.name);
   const result = await deliverToCustomer({ companyId: c.companyId, channel: "email", email: c.fields.email, phone: c.fields.phone, text, subject: await emailSubjectFor(store, c.fields.service) });
   await store.addMessage(c.id, "assistant", text, { channel: "email", delivery: result.delivered ? "delivered" : "not_sent" });
 }
@@ -776,7 +779,7 @@ export async function refreshCase(store: Store, caseId: string, opts: RefreshOpt
 
 
 export type ConfirmAppointmentResult =
-  | { ok: true; appointment: Appointment; delivered: boolean; reason: string }
+  | { ok: true; appointment: Appointment; delivered: boolean; reason: string; text: string }
   | { ok: false; status: number; message: string };
 
 /**
@@ -785,7 +788,7 @@ export type ConfirmAppointmentResult =
  * als bestätigt und der Kunde erfährt jetzt zum ersten Mal den genauen Zeitpunkt – vorher kannte er ihn
  * bewusst nicht (siehe engine.ts, appointmentPendingReviewText).
  */
-export async function confirmAppointment(store: Store, appointmentId: string, overrideStartsAt?: string): Promise<ConfirmAppointmentResult> {
+export async function confirmAppointment(store: Store, appointmentId: string, overrideStartsAt?: string, opts: { notifyCustomer?: boolean; auto?: boolean } = {}): Promise<ConfirmAppointmentResult> {
   const appt = (await store.listAppointments()).find((a) => a.id === appointmentId);
   if (!appt) return { ok: false, status: 404, message: "Termin nicht gefunden" };
   if (!appt.caseId) return { ok: false, status: 400, message: "Termin ist keinem Fall zugeordnet" };
@@ -797,7 +800,11 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
   await store.addEvent(
     c.id,
     "appointment",
-    overrideStartsAt ? `Vorschlag abgelehnt, Team hat stattdessen bestätigt: ${formatSlot(new Date(saved.startsAt))}` : `Termin vom Team bestätigt: ${formatSlot(new Date(saved.startsAt))}`,
+    opts.auto
+      ? `Termin automatisch bestätigt: ${formatSlot(new Date(saved.startsAt))}`
+      : overrideStartsAt
+        ? `Vorschlag abgelehnt, Team hat stattdessen bestätigt: ${formatSlot(new Date(saved.startsAt))}`
+        : `Termin vom Team bestätigt: ${formatSlot(new Date(saved.startsAt))}`,
   );
 
   // In den verbundenen Outlook-Kalender eintragen (ohne Verbindung passiert nichts).
@@ -817,9 +824,18 @@ export async function confirmAppointment(store: Store, appointmentId: string, ov
   const confirmed = own ? customerText({ "appointment.confirmed": own }, "appointment.confirmed", { termin: formatSlot(new Date(saved.startsAt)) }) : appointmentConfirmedText(new Date(saved.startsAt), settings.appointmentConfirmedTemplate);
   // WhatsApp-Kunden bekommen die Bestätigung per WhatsApp (oft ohne E-Mail-Adresse).
   const channel = c.source === "whatsapp" ? ("whatsapp" as const) : ("email" as const);
+  // Automatisch bestätigt: Der Text geht in der laufenden Antwort mit, keine zweite Nachricht.
+  if (opts.notifyCustomer === false) return { ok: true, appointment: saved, delivered: true, reason: "", text: confirmed };
   const text = channel === "email" ? await frameEmail(store, confirmed, c.fields.name) : confirmed;
   const result = await deliverToCustomer({ companyId: c.companyId, channel, email: c.fields.email, phone: c.fields.phone, text, subject: "Ihr Termin" });
   await store.addMessage(c.id, "staff", text, { channel, delivery: result.delivered ? "delivered" : "not_sent" });
 
-  return { ok: true, appointment: saved, delivered: result.delivered, reason: result.reason };
+  return { ok: true, appointment: saved, delivered: result.delivered, reason: result.reason, text: confirmed };
+}
+
+/** Termin sofort bestätigen, wenn der Betrieb „Termine automatisch bestätigen“ eingeschaltet hat – gibt dann den Bestätigungstext zurück. */
+export async function autoConfirmIfEnabled(store: Store, appointmentId: string): Promise<string | null> {
+  if (!(await store.getCompany()).businessProfile?.automation?.autoConfirm) return null;
+  const r = await confirmAppointment(store, appointmentId, undefined, { notifyCustomer: false, auto: true });
+  return r.ok ? r.text : null;
 }

@@ -5,6 +5,7 @@ import { gmailProvider } from "@/lib/integrations/gmail";
 import { microsoftProvider } from "@/lib/integrations/microsoft";
 import { syncMailbox } from "@/lib/integrations/mail-sync";
 import { purgeStaleCases } from "@/lib/intake/retention";
+import { sendReminders } from "@/lib/intake/reminders";
 import { purgeOldTrialUsage } from "@/lib/billing/trial-usage";
 import { processCanceledCompanies } from "@/lib/billing/account-deletion";
 import { syncAllSubscriptions } from "@/lib/billing/stripe-sync";
@@ -26,15 +27,25 @@ export async function GET(req: NextRequest) {
 
   // Mit wachsender Buero-Anzahl waere ein rein sequentieller Durchlauf zu langsam fuers Timeout –
   // mehrere Bueros gleichzeitig bearbeiten (begrenzte Parallelitaet, damit die DB nicht ueberlastet wird).
-  const totals = { companies: 0, purged: 0 };
+  const totals = { companies: 0, purged: 0, reminders: 0 };
   const stores = await listAllStores();
   const CONCURRENCY = 10;
   for (let i = 0; i < stores.length; i += CONCURRENCY) {
     const batch = stores.slice(i, i + CONCURRENCY);
-    const results = await Promise.all(batch.map(async (store) => ({ purged: await purgeStaleCases(store) })));
+    const results = await Promise.all(
+      batch.map(async (store) => ({
+        purged: await purgeStaleCases(store),
+        // Erinnerungen an Kunden, die fehlende Angaben/Unterlagen nicht schicken (Fehler eines Büros stoppt nicht alle).
+        reminders: await sendReminders(store).catch((err) => {
+          console.error("[reminders] fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
+          return 0;
+        }),
+      })),
+    );
     for (const r of results) {
       totals.companies++;
       totals.purged += r.purged;
+      totals.reminders += r.reminders;
     }
   }
 

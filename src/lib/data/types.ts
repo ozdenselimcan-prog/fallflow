@@ -62,6 +62,8 @@ export interface BusinessProfile {
   texts?: Record<string, string>;
   /** „Wissen & Preise“: feste Preise und häufige Fragen, mit denen die KI Kundenfragen beantworten darf (fehlt = noch nie gespeichert). */
   knowledge?: { prices: { item: string; price: string; note?: string }[]; faqs: { q: string; a: string }[] };
+  /** Automatik: Erinnerungen an Kunden (Standard an) und Termine ohne Freigabe bestätigen (Standard aus). */
+  automation?: { reminders?: boolean; autoConfirm?: boolean };
 }
 
 export interface WhatsAppQuestion {

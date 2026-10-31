@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookOpen, Building2, FileText, MessageCircle, MessageSquareText } from "lucide-react";
 import { AssistantForm } from "@/components/dashboard/assistant-form";
 import { AssistantPreview } from "@/components/dashboard/assistant-preview";
+import { AutomationCard } from "@/components/dashboard/automation-card";
 import { buttonStyles } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
@@ -43,7 +44,10 @@ export default async function AssistantPage() {
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <AssistantForm initial={assistant} canEdit={can(session.role, "assistant:manage")} />
-        <AssistantPreview name={assistant.name} greeting={assistant.greeting} />
+        <div className="space-y-6">
+          <AutomationCard canEdit={can(session.role, "assistant:manage")} />
+          <AssistantPreview name={assistant.name} greeting={assistant.greeting} />
+        </div>
       </div>
     </>
   );

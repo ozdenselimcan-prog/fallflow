@@ -20,27 +20,39 @@ describe("E-Mail: Aufmerksamkeit benötigt (keine automatische Antwort)", () => 
     await store.saveServiceMessage({ service: "iSFP", body: "Vielen Dank für Ihre iSFP-Anfrage. Bitte schicken Sie uns Ihren Grundriss.", appointmentNote: "", requiresFloorplan: true, requiresEnergyCertificate: false });
   });
 
-  it("Leistung nicht erkannt: keine Antwort an den Kunden, Fall markiert", async () => {
+  it("Leistung nicht erkannt: erst einmal nachfragen, beim zweiten Mal an den Betrieb", async () => {
     const turn = await email(store, "Guten Tag, ich habe ein Anliegen zu meinem Haus und würde mich über eine Rückmeldung freuen.");
-    expect(turn.replies).toEqual([]);
-    const c = await store.getCase(turn.sessionId);
-    expect(c?.fields.needsAttention).toBe("Leistung nicht erkannt");
-    expect((await store.listMessages(turn.sessionId)).filter((m) => m.role === "assistant")).toEqual([]);
+    expect(turn.replies.join(" ")).toContain("Worum geht es genau?");
+    expect((await store.getCase(turn.sessionId))?.fields.needsAttention ?? "").toBe("");
+    const again = await email(store, "Wie gesagt, es geht um mein Haus.", turn.sessionId);
+    expect((await store.getCase(again.sessionId))?.fields.needsAttention).toBe("Leistung nicht erkannt");
   });
 
   it("Kunde stellt eine Frage: keine Leistungs-Nachricht, der Energieberater antwortet selbst", async () => {
     const turn = await email(store, "Hallo, ich interessiere mich für einen iSFP. Wie lange dauert so etwas bei Ihnen ungefähr?");
-    expect(turn.replies).toEqual([]);
+    // Keine Leistungs-Nachricht – nur die Eingangsbestätigung.
+    expect(turn.replies).toHaveLength(1);
+    expect(turn.replies[0]).toContain("wir haben sie erhalten");
+    expect(turn.replies[0]).not.toContain("iSFP-Anfrage");
     const c = await store.getCase(turn.sessionId);
     expect(c?.fields.needsAttention).toMatch(/^Frage des Kunden: Wie lange dauert/);
   });
 
   it("Rückrufwunsch: keine automatische Antwort", async () => {
     const turn = await email(store, "Ich brauche einen iSFP. Bitte rufen Sie mich an: 0151 999888.");
-    expect(turn.replies).toEqual([]);
+    expect(turn.replies).toHaveLength(1);
+    expect(turn.replies[0]).toContain("wir haben sie erhalten");
     expect((await store.getCase(turn.sessionId))?.fields.needsAttention).toBe("Kunde wünscht persönlichen Kontakt");
     // Keine Dokumente angefordert, solange der Energieberater selbst antworten soll.
     expect(await store.listDocuments(turn.sessionId)).toEqual([]);
+  });
+
+  it("mehrere Leistungen: eine Antwort für alle statt Übergabe an den Betrieb", async () => {
+    const turn = await email(store, "Guten Tag, wir brauchen für unser Haus einen Energieausweis und außerdem einen iSFP.");
+    const c = await store.getCase(turn.sessionId);
+    expect(c?.fields.needsAttention ?? "").toBe("");
+    expect(c?.fields.extraServices).toBeTruthy();
+    expect(turn.replies.length).toBeGreaterThan(0);
   });
 
   it("normale Anfrage ohne Frage: KI antwortet wie gewohnt mit der Leistungs-Nachricht", async () => {
@@ -50,11 +62,13 @@ describe("E-Mail: Aufmerksamkeit benötigt (keine automatische Antwort)", () => 
   });
 
   it("nachgeschickte Unterlagen eines markierten Falls werden abgelegt, aber nicht automatisch beantwortet", async () => {
-    const turn = await email(store, "Guten Tag, ich habe ein Anliegen zu meinem Haus.");
+    const turn = await email(store, "Guten Tag, ich habe ein Anliegen zu meinem Haus. Bitte rufen Sie mich an.");
+    const before = (await store.listMessages(turn.sessionId)).filter((m) => m.role === "assistant").length;
     const pdf = new TextEncoder().encode("%PDF-1.4\n%test\n");
     await receiveEmailAttachments(store, turn.sessionId, [{ filename: "grundriss.pdf", mime: "application/pdf", bytes: pdf }]);
     expect((await store.listDocuments(turn.sessionId)).some((d) => d.status === "received")).toBe(true);
-    expect((await store.listMessages(turn.sessionId)).filter((m) => m.role === "assistant")).toEqual([]);
+    // Nur die Eingangsbestätigung von vorher – auf die Unterlagen antwortet die KI nicht automatisch.
+    expect((await store.listMessages(turn.sessionId)).filter((m) => m.role === "assistant")).toHaveLength(before);
   });
 });
 
