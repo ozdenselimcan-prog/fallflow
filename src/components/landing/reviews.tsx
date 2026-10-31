@@ -62,7 +62,7 @@ export function ReviewsSection() {
   return (
     <section className="py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Das sagen Energieberater über FallFlow</h2>
+        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Das sagen erste Nutzer über FallFlow</h2>
         <ul className="-mx-4 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0">
           {reviews.map((r) => (
             <li key={r.name} className="w-[85%] shrink-0 snap-center md:w-auto">

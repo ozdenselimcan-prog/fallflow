@@ -28,7 +28,7 @@ import {
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { MailDemo } from "@/components/landing/mail-demo";
-import { CaseFilm } from "@/components/landing/case-film";
+import { IndustryFilm } from "@/components/landing/industry-film";
 import { buttonStyles } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { faqs } from "@/lib/config/faq";
@@ -93,7 +93,7 @@ export function FlowSection() {
 export function MailFlowSection() {
   return (
     <Section title="So sieht ein echter Fall aus – in Echtzeit." intro="Von der ersten Kundenmail bis zum bestätigten Termin – in 25 Sekunden. Links Ihr Postfach, rechts die Fallakte, die FallFlow dabei automatisch füllt.">
-      <CaseFilm />
+      <IndustryFilm />
     </Section>
   );
 }
@@ -257,14 +257,14 @@ export function NoCrmSection() {
 }
 
 const audiences = [
-  { size: "Handwerk", text: "Dachdecker, Elektriker, Maler, Sanitär & Heizung, Tischler – Anfragen mit Fotos und allen Angaben, bevor Sie losfahren." },
-  { size: "Dienstleister", text: "Hausverwaltungen, Reinigungsfirmen, Gartenbau, Umzugsunternehmen – Schadensmeldungen und Aufträge sauber erfasst." },
-  { size: "Betriebe mit Terminen", text: "Werkstätten, Salons, Praxen und Studios – die KI sammelt die Angaben, Sie bestätigen nur noch den Termin." },
+  { size: "Handwerk", text: "Dachdecker, Elektriker, Maler, Sanitär & Heizung, Tischler, Fliesenleger, Photovoltaik – Anfragen mit Fotos und allen Angaben, bevor Sie losfahren." },
+  { size: "Dienstleister & Beratung", text: "Hausverwaltungen, Reinigung, Gartenbau, Umzug, Energieberater – Schadensmeldungen, Aufträge und Beratungsanfragen sauber erfasst." },
+  { size: "Betriebe mit Terminen", text: "Werkstätten, Friseure, Kosmetikstudios, Tierarztpraxen, Fotografen – die KI sammelt die Angaben, der Kunde bucht seinen Termin selbst." },
 ];
 
 export function AudienceSection() {
   return (
-    <Section tinted title="Für kleine Betriebe jeder Branche" intro="Mit fertigen Vorlagen für Dachdecker, Elektriker, Maler, SHK, Hausverwaltungen, Werkstätten, Friseure und viele mehr.">
+    <Section tinted title="Für kleine Betriebe jeder Branche" intro="Mit fertigen Vorlagen für 17 Branchen – von Dachdecker, Elektriker, Maler und SHK über Photovoltaik, Fliesenleger und Energieberater bis zu Hausverwaltungen, Werkstätten, Friseuren und Fotografen.">
       <ul className="grid gap-4 md:grid-cols-3">
         {audiences.map((a) => (
           <li key={a.size}>

@@ -1,5 +1,6 @@
 import { EMPTY_BUSINESS_PROFILE, withAppliesTo, type BusinessProfile } from "@/lib/data/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DEFAULT_ASSISTANT, LEGACY_GREETING } from "@/lib/cases/fields";
 import { buildSummary, computeCompleteness } from "@/lib/cases/completeness";
 import { applyCaseFilters, CHANNEL_ORDER, computeStats, withEffectiveStatus, type Store } from "./store";
 import type {
@@ -392,7 +393,7 @@ export function createSupabaseStore(db: SupabaseClient, companyId: string): Stor
       const r = data!;
       return {
         name: r.name,
-        greeting: r.greeting,
+        greeting: r.greeting === LEGACY_GREETING ? DEFAULT_ASSISTANT.greeting : r.greeting,
         tone: r.tone,
         autoReply: r.auto_reply,
         autoFollowUp: r.auto_followup,

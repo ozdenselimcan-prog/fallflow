@@ -101,9 +101,12 @@ export const DEFAULT_QUESTIONS: QuestionSeed[] = [
 /** Reihenfolge der Standardfragen (für das Nachziehen bestehender Büros in der Migration). */
 export const DEFAULT_QUESTION_KEYS = DEFAULT_QUESTIONS.map((q) => q.key);
 
+/** Frühere Standard-Begrüßung (aus der Energieberater-Zeit) – passt nicht für jede Branche und wird beim Lesen ersetzt. */
+export const LEGACY_GREETING = "Hallo! Wie können wir Ihnen bei Ihrem Gebäude helfen?";
+
 export const DEFAULT_ASSISTANT: AssistantSettings = {
   name: "Anna",
-  greeting: "Hallo! Wie können wir Ihnen bei Ihrem Gebäude helfen?",
+  greeting: "Hallo! Wie können wir Ihnen helfen?",
   tone: "friendly",
   autoReply: true,
   autoFollowUp: true,
