@@ -63,6 +63,41 @@ export function parseWebhook(body: any): { phoneNumberId: string; messages: What
   }
   return out;
 }
+
+/**
+ * Zusatz-Webhooks bei Nummern, die parallel in der WhatsApp-Business-App laufen („Coexistence“): Nachrichten, die der Betrieb
+ * selbst in der App schreibt (smb_message_echoes), sein Adressbuch (smb_app_state_sync) und frühere Chats (history).
+ */
+export interface CoexistenceEvents {
+  phoneNumberId: string;
+  echoes: { id: string; to: string; text: string }[];
+  contacts: { phone: string; remove: boolean }[];
+  /** Nummern, mit denen es schon Chats gab */
+  historyContacts: string[];
+}
+
+export function parseCoexistence(body: any): CoexistenceEvents[] {
+  const out: CoexistenceEvents[] = [];
+  for (const entry of body?.entry ?? []) {
+    for (const change of entry?.changes ?? []) {
+      const value = change?.value;
+      const phoneNumberId = String(value?.metadata?.phone_number_id ?? "");
+      if (!phoneNumberId) continue;
+      const ev: CoexistenceEvents = { phoneNumberId, echoes: [], contacts: [], historyContacts: [] };
+      for (const m of value?.message_echoes ?? []) {
+        const type = String(m?.type ?? "");
+        const text = type === "text" ? String(m.text?.body ?? "") : m?.[type]?.caption ? String(m[type].caption) : `[${type || "Nachricht"}]`;
+        if (m?.id && m?.to) ev.echoes.push({ id: String(m.id), to: String(m.to), text });
+      }
+      for (const s of value?.state_sync ?? []) {
+        if (s?.type === "contact" && s?.contact?.phone_number) ev.contacts.push({ phone: String(s.contact.phone_number), remove: s.action === "remove" });
+      }
+      for (const h of value?.history ?? []) for (const t of h?.threads ?? []) if (t?.id) ev.historyContacts.push(String(t.id));
+      if (ev.echoes.length || ev.contacts.length || ev.historyContacts.length) out.push(ev);
+    }
+  }
+  return out;
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 async function graph<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
@@ -169,7 +204,8 @@ export function signupDialogUrl(config: { appId: string; configId: string }, red
     state,
     response_type: "code",
     override_default_response_type: "true",
-    extras: JSON.stringify({ setup: {}, featureType: "", sessionInfoVersion: "3" }),
+    // Bestehende Nummer aus der WhatsApp-Business-App übernehmen, ohne sie dort zu entfernen („Coexistence“).
+    extras: JSON.stringify({ setup: {}, featureType: "whatsapp_business_app_onboarding", sessionInfoVersion: "3" }),
   });
   return `https://www.facebook.com/v25.0/dialog/oauth?${q}`;
 }
@@ -179,6 +215,17 @@ export async function registerNumber(token: string, phoneNumberId: string, pin: 
   await graph(token, `/${phoneNumberId}/register`, { method: "POST", body: JSON.stringify({ messaging_product: "whatsapp", pin }) }).catch((err) =>
     console.error("[whatsapp] Nummer nicht registriert (evtl. schon aktiv):", err instanceof Error ? err.message : "unbekannt"),
   );
+}
+
+/** Läuft die Nummer (auch) in der WhatsApp-Business-App? Dann darf sie nicht neu registriert werden. */
+export async function isOnBusinessApp(token: string, phoneNumberId: string): Promise<boolean> {
+  const r = await graph<{ is_on_biz_app?: boolean }>(token, `/${phoneNumberId}?fields=is_on_biz_app,platform_type`).catch(() => ({ is_on_biz_app: false }));
+  return r.is_on_biz_app === true;
+}
+
+/** Adressbuch bzw. frühere Chats aus der WhatsApp-Business-App anfordern (je einmal, innerhalb von 24 h nach der Einrichtung). */
+export async function requestBusinessAppSync(token: string, phoneNumberId: string, syncType: "smb_app_state_sync" | "history"): Promise<void> {
+  await graph(token, `/${phoneNumberId}/smb_app_data`, { method: "POST", body: JSON.stringify({ messaging_product: "whatsapp", sync_type: syncType }) });
 }
 
 /** App für Nachrichten eines bestimmten WhatsApp-Kontos anmelden. */

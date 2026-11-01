@@ -46,6 +46,11 @@ export function WhatsAppSignup() {
         Mit Facebook verbinden
       </Button>
       <p className="text-xs text-muted-foreground">Sie melden sich bei Meta an und wählen bzw. bestätigen Ihre WhatsApp-Nummer – dauert etwa 2 Minuten.</p>
+      <p className="text-xs text-muted-foreground">
+        Sie nutzen die Nummer schon in der WhatsApp-Business-App? Dann wählen Sie bei Meta „bestehendes WhatsApp-Business-Konto verbinden“ und scannen den QR-Code mit der
+        App. Die App bleibt nutzbar: Ihre bisherigen Kontakte beantworten Sie weiter selbst, neue Anfragen übernimmt FallFlow. Antworten Sie selbst in der App, hält sich
+        die KI in diesem Chat zurück.
+      </p>
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
     </div>
   );

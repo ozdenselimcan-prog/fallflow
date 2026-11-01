@@ -4,7 +4,7 @@ import { apiError, json, withSession } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
 import { encryptionAvailable } from "@/lib/crypto";
 import { saveConnection } from "@/lib/integrations/connections-store";
-import { checkWhatsAppNumber, embeddedSignupConfig, exchangeSignupCode, findSignupNumber, registerNumber, signupDialogUrl, subscribeWaba } from "@/lib/integrations/whatsapp";
+import { checkWhatsAppNumber, embeddedSignupConfig, exchangeSignupCode, findSignupNumber, isOnBusinessApp, registerNumber, requestBusinessAppSync, signupDialogUrl, subscribeWaba } from "@/lib/integrations/whatsapp";
 
 const STATE_COOKIE = "ff_oauth_whatsapp";
 const RETURN_COOKIE = "ff_oauth_whatsapp_return";
@@ -68,7 +68,9 @@ export const GET = withSession(async (req, { session }) => {
   });
   if (!ids) return done("whatsapp-no-number");
   const pin = String(randomInt(100000, 999999));
-  await registerNumber(token, ids.phoneNumberId, pin);
+  // Nummer läuft weiter in der WhatsApp-Business-App: nicht neu registrieren (sonst würde sie dort abgemeldet).
+  const coexistence = await isOnBusinessApp(token, ids.phoneNumberId);
+  if (!coexistence) await registerNumber(token, ids.phoneNumberId, pin);
   try {
     await subscribeWaba(token, ids.wabaId);
   } catch (err) {
@@ -85,8 +87,14 @@ export const GET = withSession(async (req, { session }) => {
     accessToken: token,
     refreshToken: null,
     expiresAt: null,
-    metadata: { phoneNumberId: ids.phoneNumberId, wabaId: ids.wabaId, pin, viaSignup: true },
+    metadata: { phoneNumberId: ids.phoneNumberId, wabaId: ids.wabaId, pin, viaSignup: true, coexistence },
     lastError: "",
   });
+  // Adressbuch und frühere Chats anfordern: Wer schon Kontakt hatte, beantwortet der Betrieb weiter selbst in der App.
+  if (coexistence) {
+    for (const type of ["smb_app_state_sync", "history"] as const) {
+      await requestBusinessAppSync(token, ids.phoneNumberId, type).catch((err) => console.error(`[whatsapp] ${type} nicht angefordert:`, err instanceof Error ? err.message : "unbekannt"));
+    }
+  }
   return done("whatsapp-connected");
 });
