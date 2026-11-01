@@ -112,3 +112,20 @@ export async function loadCompanyOverview(now = Date.now()): Promise<CompanyRow[
     };
   });
 }
+
+export interface WhatsAppRequestRow {
+  companyId: string;
+  company: string;
+  request: import("@/lib/data/types").WhatsAppAccessRequest;
+}
+
+/** Offene und erledigte WhatsApp-Freischaltungen (siehe lib/whatsapp-access.ts), neueste zuerst. */
+export async function loadWhatsAppRequests(): Promise<WhatsAppRequestRow[]> {
+  const admin = createAdminClient();
+  if (!admin) return [];
+  const { data, error } = await admin.from("companies").select("id, name, business_profile").not("business_profile->whatsappRequest", "is", null);
+  if (error) throw new Error(error.message);
+  return (data ?? [])
+    .map((c) => ({ companyId: c.id as string, company: c.name as string, request: (c.business_profile as { whatsappRequest: WhatsAppRequestRow["request"] }).whatsappRequest }))
+    .sort((a, b) => b.request.requestedAt.localeCompare(a.request.requestedAt));
+}

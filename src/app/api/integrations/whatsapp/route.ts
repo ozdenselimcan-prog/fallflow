@@ -2,12 +2,15 @@ import { z } from "zod";
 import { apiError, json, parseBody, withSession } from "@/lib/api";
 import { encryptionAvailable } from "@/lib/crypto";
 import { deleteConnection, getConnection, saveConnection } from "@/lib/integrations/connections-store";
+import { whatsappAccess } from "@/lib/whatsapp-access";
 import { checkWhatsAppNumber, embeddedSignupConfig, subscribeApp } from "@/lib/integrations/whatsapp";
 
 /** WhatsApp Business verbinden: Telefonnummer-ID + Zugangstoken (aus Meta), werden geprüft und verschlüsselt gespeichert. */
-export const GET = withSession(async (_req, { session }) => {
-  const c = await getConnection(session.companyId, "whatsapp").catch(() => null);
+export const GET = withSession(async (_req, { session, store }) => {
+  const [c, company] = await Promise.all([getConnection(session.companyId, "whatsapp").catch(() => null), store.getCompany()]);
   return json({
+    access: whatsappAccess(company.businessProfile, session.email),
+    request: company.businessProfile.whatsappRequest ?? null,
     available: Boolean(process.env.WHATSAPP_APP_SECRET && process.env.WHATSAPP_VERIFY_TOKEN),
     embedded: embeddedSignupConfig(),
     connection: c ? { status: c.status, number: c.accountName, name: c.accountEmail, lastError: c.lastError, lastSyncedAt: c.lastSyncedAt } : null,

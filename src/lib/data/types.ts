@@ -68,6 +68,20 @@ export interface BusinessProfile {
   push?: { endpoint: string; keys: { p256dh: string; auth: string }; userId: string; createdAt: string }[];
   /** Antworten im Einrichtungs-Fragebogen (config/setup-questions.ts), je Frage. */
   setupAnswers?: Record<string, { choice: "yes" | "no" | "other"; text?: string; extra?: string }>;
+  /** Anfrage auf WhatsApp-Freischaltung (solange die Meta-App noch nicht freigegeben ist, siehe lib/whatsapp-access.ts). */
+  whatsappRequest?: WhatsAppAccessRequest;
+}
+
+export interface WhatsAppAccessRequest {
+  name: string;
+  /** Facebook-Profil (Link oder Nutzername) – dafür wird der Betrieb in der Meta-App als Tester eingetragen. */
+  facebook: string;
+  phone: string;
+  contact: string;
+  /** Läuft die Nummer gerade in der WhatsApp-Business-App auf dem Handy? */
+  inApp: "yes" | "no" | "unknown";
+  requestedAt: string;
+  status: "open" | "approved";
 }
 
 export interface WhatsAppQuestion {

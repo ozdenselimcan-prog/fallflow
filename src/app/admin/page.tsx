@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CleanupTestAccountsButton } from "@/components/admin/cleanup-button";
+import { WhatsAppRequests } from "@/components/admin/whatsapp-requests";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Badge, Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
-import { isPlatformAdmin, loadCompanyOverview, mailHealth, type CompanyRow } from "@/lib/admin/overview";
+import { isPlatformAdmin, loadCompanyOverview, loadWhatsAppRequests, mailHealth, type CompanyRow } from "@/lib/admin/overview";
 import { aiHealth } from "@/lib/ai/provider";
 import { requireSession } from "@/lib/auth/session";
 import { getPlan } from "@/lib/config/pricing";
@@ -42,7 +43,7 @@ function mailboxCell(c: CompanyRow) {
 export default async function AdminPage() {
   const session = await requireSession();
   if (!isPlatformAdmin(session.email)) notFound();
-  const [rows, health, ai] = await Promise.all([loadCompanyOverview(), mailHealth(), aiHealth()]);
+  const [rows, health, ai, waRequests] = await Promise.all([loadCompanyOverview(), mailHealth(), aiHealth(), loadWhatsAppRequests().catch(() => [])]);
 
   const paying = rows.filter((r) => r.status === "active");
   const trial = rows.filter((r) => r.status === "trialing" && r.hasPayment);
@@ -85,6 +86,8 @@ export default async function AdminPage() {
           </li>
         ))}
       </ul>
+
+      <WhatsAppRequests rows={waRequests} />
 
       <div className="mt-6">
         <CleanupTestAccountsButton count={rows.filter((r) => /^claude-[^@]+@mailinator\.com$/i.test(r.owner)).length} />

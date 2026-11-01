@@ -8,10 +8,13 @@ import { Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { apiFetch } from "@/lib/use-api";
 import { WhatsAppShare } from "./whatsapp-share";
+import { WhatsAppAccessRequest, type AccessRequestView } from "./whatsapp-access-request";
 import { WhatsAppSignup } from "./whatsapp-signup";
 
 interface Status {
   available: boolean;
+  access?: "open" | "approved" | "requested" | "request";
+  request?: AccessRequestView | null;
   embedded: { appId: string; configId: string } | null;
   connection: { status: string; number: string; name: string; lastError: string } | null;
 }
@@ -81,8 +84,20 @@ export function WhatsAppCard({ canEdit }: { canEdit: boolean }) {
         </a>
         {connected && s?.connection?.number && <WhatsAppShare number={s.connection.number} />}
         {s && !s.available && <p className="text-muted-foreground">WhatsApp ist für diese Installation noch nicht eingerichtet.</p>}
-        {s?.available && !connected && canEdit && s.embedded && <WhatsAppSignup />}
-        {s?.available && !connected && canEdit && (
+        {s?.available && !connected && canEdit && (s.access === "request" || s.access === "requested") && (
+          <WhatsAppAccessRequest request={s.access === "requested" ? (s.request ?? null) : null} onSent={() => void load()} />
+        )}
+        {s?.available && !connected && canEdit && s.access === "approved" && (
+          <Notice tone="success">
+            WhatsApp ist für Sie freigeschaltet. Falls noch nicht geschehen: Einladung als Tester auf{" "}
+            <a href="https://developers.facebook.com/requests/" target="_blank" rel="noopener noreferrer" className="font-medium underline">
+              developers.facebook.com/requests
+            </a>{" "}
+            annehmen – dann unten verbinden.
+          </Notice>
+        )}
+        {s?.available && !connected && canEdit && s.embedded && (s.access === "open" || s.access === "approved") && <WhatsAppSignup />}
+        {s?.available && !connected && canEdit && (s.access === "open" || s.access === "approved") && (
           <details className="space-y-3" open={!s.embedded}>
             <summary className={s.embedded ? "cursor-pointer text-xs text-muted-foreground" : "hidden"}>Manuell verbinden (Telefonnummer-ID und Zugangstoken)</summary>
             <p className="text-muted-foreground">
