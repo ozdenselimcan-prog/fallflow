@@ -10,7 +10,7 @@ const SYSTEM = `Du hilfst einem deutschen Betrieb, Fotos einer Kundenanfrage sch
 Antworte AUSSCHLIESSLICH mit JSON: {"assessment": "…"}.
 Regeln:
 - 3 bis 5 kurze Stichpunkte, jeweils mit "• " am Anfang und durch Zeilenumbruch getrennt, insgesamt höchstens 600 Zeichen.
-- Beschreibe nur, was auf den Fotos wirklich zu sehen ist: Was ist betroffen, ungefähre Größe/Menge, Zustand, Auffälligkeiten.
+- Beschreibe nur, was auf den Fotos wirklich zu sehen ist: Was ist betroffen, Zustand, Auffälligkeiten. Größe/Menge nur grob und als Spanne mit „geschätzt“ (z. B. „geschätzt 5–10 Ziegel“) – nie eine scheinbar genaue Zahl.
 - Vorsichtig formulieren ("wirkt", "erkennbar", "vermutlich") – keine sicheren Diagnosen, keine Preise.
 - Letzter Punkt: was der Betrieb vor Ort oder beim Kunden noch klären sollte.
 - Zeigen die Bilder nichts Verwertbares (z. B. unscharf, Screenshot, nicht zur Anfrage passend), sag das in einem Satz.

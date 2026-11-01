@@ -103,7 +103,7 @@ export function KnowledgeEditor({ canEdit }: { canEdit: boolean }) {
       {error && <Notice tone="error">{error}</Notice>}
 
       <Card>
-        <CardHeader title="Preisliste" description={`Feste Preise, die die KI nennen darf (${filledPrices} ausgefüllt). Z. B. „Herrenschnitt – 25 €“ oder „Energieausweis – ab 299 €“.`} />
+        <CardHeader title="Preisliste" description={`Feste Preise, die die KI nennen darf (${filledPrices} ausgefüllt). Z. B. „Herrenschnitt – 25 €“ oder „Anfahrt – 39 €“.`} />
         <div className="space-y-2 p-5">
           {prices.map((p, i) => (
             <div key={i} className="grid gap-2 rounded-xl border border-border p-3 sm:grid-cols-[1.4fr_0.8fr_1.6fr_auto] sm:items-center sm:border-0 sm:p-0">
