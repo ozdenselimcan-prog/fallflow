@@ -1,5 +1,6 @@
 import { apiError, json, parseBody, withSession } from "@/lib/api";
 import { cardlessTrialEnd } from "@/lib/billing/access";
+import { planHasTrial } from "@/lib/config/pricing";
 import { siteConfig } from "@/lib/config/site";
 import { createCheckoutSession } from "@/lib/integrations/stripe";
 import { checkoutSchema } from "@/lib/validation";
@@ -25,8 +26,8 @@ export const POST = withSession(
         planId: body.data.plan,
         customerEmail: session.email,
         existingCustomerId: null,
-        // Restliche Testphase übernehmen; ist sie (fast) vorbei, startet das Abo direkt.
-        ...(endMs - Date.now() >= MIN_TRIAL_MS ? { trialEnd: Math.floor(endMs / 1000) } : {}),
+        // Restliche Testphase übernehmen (nur Starter – Pro/Business starten sofort); ist sie (fast) vorbei, startet das Abo direkt.
+        ...(planHasTrial(body.data.plan) && endMs - Date.now() >= MIN_TRIAL_MS ? { trialEnd: Math.floor(endMs / 1000) } : {}),
         // Rückkehr prüft den Checkout sofort selbst bei Stripe (unabhängig vom Webhook).
         successUrl: `${siteConfig.appUrl}/api/billing/confirm?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${siteConfig.appUrl}/dashboard`,

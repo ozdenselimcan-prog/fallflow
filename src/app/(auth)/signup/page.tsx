@@ -12,8 +12,9 @@ export const metadata: Metadata = { title: "Registrieren" };
 export default async function SignupPage({ searchParams }: PageProps<"/signup">) {
   const { plan: planParam, trial: trialParam, ref: refParam, buy: buyParam } = await searchParams;
   // "Direkt kaufen" auf der Preisseite: ohne Testphase, nach der Registrierung direkt zur Bezahlung.
-  const buy = buyParam === "1";
   const plan = plans.find((p) => p.id === planParam) ?? plans[0];
+  // Testphase nur mit Starter – Pro und Business werden direkt abonniert.
+  const buy = buyParam === "1" || !plan.trial;
   // Standard 7 Tage; ein individueller Testzeitraum (z. B. 14 Tage für einen einzelnen Kunden) läuft nur
   // über einen gezielt verschickten Link mit ?trial=14 (bis 60, z. B. ?trial=60 für Pilotkunden) – nirgends auf der Seite verlinkt.
   const parsedTrial = Number(trialParam);
@@ -31,8 +32,8 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
         {buy ? (
           <>
             {plan.name}-Plan für {plan.priceEur} €/Monat. Nach der Registrierung geht es direkt zur Bezahlung.{" "}
-            <Link href={`/signup?plan=${plan.id}`} className="underline">
-              Lieber erst kostenlos testen?
+            <Link href="/signup?plan=starter" className="underline">
+              {plan.trial ? "Lieber erst kostenlos testen?" : "Lieber erst 7 Tage kostenlos mit Starter testen?"}
             </Link>
           </>
         ) : (

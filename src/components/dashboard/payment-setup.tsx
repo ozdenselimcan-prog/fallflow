@@ -95,8 +95,9 @@ export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0, direct = 
                 <p className="font-semibold">{p.name}</p>
                 <p className="mt-1">
                   <span className="text-2xl font-semibold">{p.priceEur} €</span>
-                  <span className="text-sm text-muted-foreground"> / Monat{running ? " nach der Testphase" : ""}</span>
+                  <span className="text-sm text-muted-foreground"> / Monat{running && p.trial ? " nach der Testphase" : ""}</span>
                 </p>
+                {running && !p.trial && <p className="mt-1 text-xs text-muted-foreground">Startet sofort – die erste Zahlung ist direkt fällig.</p>}
                 <ul className="mt-3 flex-1 space-y-1.5 text-sm">
                   {p.features.map((f) => (
                     <li key={f} className="flex items-start gap-2">

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { normalizeReferralCode, REFERRAL_TRIAL_DAYS, referralCodeExists } from "@/lib/billing/referrals";
 import { hasUsedTrial } from "@/lib/billing/trial-usage";
+import { planHasTrial } from "@/lib/config/pricing";
 import { siteConfig } from "@/lib/config/site";
 import { rateLimit } from "@/lib/rate-limit";
 import { createAdminClient, createUserClient } from "@/lib/supabase/clients";
@@ -75,7 +76,8 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
   // Empfohlene Kollegen testen 14 statt 7 Tage.
   const trialDays = ref ? Math.max(baseTrialDays, REFERRAL_TRIAL_DAYS) : baseTrialDays;
   // "Direkt kaufen" auf der Preisseite: keine Testphase, nach der Registrierung sofort zur Bezahlung.
-  const buy = typeof input === "object" && input !== null && (input as Record<string, unknown>).buy === true;
+  // Testphase gibt es nur mit Starter – Pro und Business sind immer Direktkauf.
+  const buy = (typeof input === "object" && input !== null && (input as Record<string, unknown>).buy === true) || !planHasTrial(parsed.data.plan);
 
   if (isSupabaseConfigured()) {
     const db = await createUserClient();

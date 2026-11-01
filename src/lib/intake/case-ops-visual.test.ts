@@ -24,7 +24,8 @@ async function setup(store: Store) {
   return c;
 }
 
-describe("Zurückgeschicktes Formular ohne auslesbaren Text (Scan, Foto, Handschrift)", () => {
+// PDF-Seiten als Bild rendern dauert bei voller Testlast teils über 5 s – daher mehr Zeit.
+describe("Zurückgeschicktes Formular ohne auslesbaren Text (Scan, Foto, Handschrift)", { timeout: 20_000 }, () => {
   let store: Store;
   beforeEach(() => {
     store = freshStore();

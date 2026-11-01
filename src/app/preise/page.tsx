@@ -7,7 +7,7 @@ import { FaqSection, FinalCta, PricingSection } from "@/components/landing/secti
 /** Eigene Seite (z. B. als Ziel für Google-Ads-Sitelinks), mit denselben Abschnitten wie auf der Startseite. */
 export const metadata: Metadata = {
   title: "Preise",
-  description: "Preise von FallFlow: Starter, Pro und Business – monatlich kündbar, 7 Tage kostenlos testen.",
+  description: "Preise von FallFlow: Starter, Pro und Business – monatlich kündbar, Starter 7 Tage kostenlos testen.",
   alternates: { canonical: "/preise" },
 };
 

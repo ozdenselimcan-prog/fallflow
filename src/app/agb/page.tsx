@@ -45,7 +45,7 @@ export default function AgbPage() {
       <Section title="§ 4 Kostenlose Testphase">
         <Paragraphs
           items={[
-            "Neue Kunden können FallFlow zunächst kostenlos testen. Die Dauer der Testphase wird bei der Registrierung angezeigt (in der Regel 7 Tage).",
+            "Neue Kunden können FallFlow im Tarif Starter zunächst kostenlos testen. Die Dauer der Testphase wird bei der Registrierung angezeigt (in der Regel 7 Tage). Die Tarife Pro und Business werden ohne Testphase direkt abonniert.",
             "Für die Testphase wird eine Zahlungsmethode hinterlegt. Kündigt der Kunde bis zum Ende der Testphase, entstehen keine Kosten. Andernfalls geht der Vertrag mit Ablauf der Testphase automatisch in den gewählten kostenpflichtigen Tarif über.",
           ]}
         />

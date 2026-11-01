@@ -26,3 +26,13 @@ describe("Einrichtungs-Fragebogen", () => {
     expect(setupQuestion("reviews")!.apply("yes", "https://g.page/r/abc/review")).toEqual({ automation: { reviews: true, reviewLink: "https://g.page/r/abc/review" } });
   });
 });
+
+describe("Testphase", () => {
+  it("nur Starter darf kostenlos getestet werden", async () => {
+    const { planHasTrial } = await import("./pricing");
+    expect(planHasTrial("starter")).toBe(true);
+    expect(planHasTrial("pro")).toBe(false);
+    expect(planHasTrial("business")).toBe(false);
+    expect(planHasTrial(undefined)).toBe(true);
+  });
+});

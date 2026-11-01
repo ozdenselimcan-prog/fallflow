@@ -298,7 +298,9 @@ export function PricingSection({ h1 = false }: { h1?: boolean } = {}) {
               <span className="text-4xl font-semibold tracking-tight">{p.priceEur} €</span>
               <span className="text-muted-foreground">/Monat</span>
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">7 Tage kostenlos testen, ohne Kreditkarte – oder direkt starten. Monatlich kündbar. {VAT_NOTE}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {p.trial ? "7 Tage kostenlos testen, ohne Kreditkarte – oder direkt starten." : "Direkt abonnieren – die kostenlose Testphase gibt es mit Starter."} Monatlich kündbar. {VAT_NOTE}
+            </p>
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
               {p.features.map((f) => (
                 <li key={f} className={cn("flex items-start gap-2", p.extras.includes(f) && "font-semibold")}>
@@ -307,12 +309,20 @@ export function PricingSection({ h1 = false }: { h1?: boolean } = {}) {
                 </li>
               ))}
             </ul>
-            <Link href={`/signup?plan=${p.id}`} className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
-              7 Tage kostenlos testen
-            </Link>
-            <Link href={`/signup?plan=${p.id}&buy=1`} className={buttonStyles({ variant: "ghost", className: "mt-2 border border-border" })}>
-              Direkt kaufen
-            </Link>
+            {p.trial ? (
+              <>
+                <Link href={`/signup?plan=${p.id}`} className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
+                  7 Tage kostenlos testen
+                </Link>
+                <Link href={`/signup?plan=${p.id}&buy=1`} className={buttonStyles({ variant: "ghost", className: "mt-2 border border-border" })}>
+                  Direkt kaufen
+                </Link>
+              </>
+            ) : (
+              <Link href={`/signup?plan=${p.id}&buy=1`} className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
+                Jetzt abonnieren
+              </Link>
+            )}
           </Card>
         ))}
       </div>
