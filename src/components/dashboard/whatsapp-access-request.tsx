@@ -12,10 +12,11 @@ export interface AccessRequestView {
   status: "open" | "approved";
 }
 
-const IN_APP: { id: "yes" | "no" | "unknown"; label: string }[] = [
-  { id: "yes", label: "Ja" },
-  { id: "no", label: "Nein" },
-  { id: "unknown", label: "Weiß nicht" },
+type App = "business" | "personal" | "none";
+const APPS: { id: App; label: string }[] = [
+  { id: "business", label: "WhatsApp Business" },
+  { id: "personal", label: "Normales WhatsApp" },
+  { id: "none", label: "Noch gar nicht" },
 ];
 
 /**
@@ -24,7 +25,7 @@ const IN_APP: { id: "yes" | "no" | "unknown"; label: string }[] = [
  */
 export function WhatsAppAccessRequest({ request, onSent }: { request: AccessRequestView | null; onSent: () => void }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", facebook: "", phone: "", contact: "", inApp: "" as "" | "yes" | "no" | "unknown" });
+  const [form, setForm] = useState({ name: "", facebook: "", phone: "", contact: "", app: "" as "" | App });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +40,7 @@ export function WhatsAppAccessRequest({ request, onSent }: { request: AccessRequ
   }
 
   const send = async () => {
-    if (!form.inApp) return setError("Bitte angeben, ob die Nummer gerade in der WhatsApp-Business-App läuft.");
+    if (!form.app) return setError("Bitte angeben, welches WhatsApp Sie für diese Nummer nutzen.");
     setPending(true);
     setError(null);
     try {
@@ -76,27 +77,47 @@ export function WhatsAppAccessRequest({ request, onSent }: { request: AccessRequ
             </Field>
           </div>
           <div>
-            <p className="text-sm font-medium">Nutzen Sie diese Nummer gerade in der WhatsApp-Business-App auf dem Handy?</p>
+            <p className="text-sm font-medium">Welches WhatsApp nutzen Sie für diese Nummer?</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {IN_APP.map((o) => (
+              {APPS.map((o) => (
                 <button
                   key={o.id}
                   type="button"
-                  aria-pressed={form.inApp === o.id}
-                  onClick={() => setForm({ ...form, inApp: o.id })}
+                  aria-pressed={form.app === o.id}
+                  onClick={() => setForm({ ...form, app: o.id })}
                   className={cn(
-                    "min-w-20 rounded-full border px-4 py-1.5 text-sm font-medium",
-                    form.inApp === o.id ? "border-accent bg-accent text-white" : "border-border bg-background hover:border-accent/50",
+                    "rounded-full border px-4 py-1.5 text-sm font-medium",
+                    form.app === o.id ? "border-accent bg-accent text-white" : "border-border bg-background hover:border-accent/50",
                   )}
                 >
                   {o.label}
                 </button>
               ))}
             </div>
-            {form.inApp === "yes" && (
+            {form.app === "business" && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Gut zu wissen: Eine Nummer, die FallFlow beantwortet, läuft über die offizielle WhatsApp-Schnittstelle. Ob Sie sie parallel in der App behalten können
-                oder lieber eine zweite Nummer nutzen, besprechen wir mit Ihnen vor der Einrichtung.
+                Sehr gut – Sie behalten Ihre Nummer und können die WhatsApp-Business-App weiter nutzen. Ihre bisherigen Kontakte beantworten Sie weiter selbst, neue
+                Anfragen übernimmt FallFlow.
+              </p>
+            )}
+            {form.app === "personal" && (
+              <div className="mt-2 space-y-1.5 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="font-medium text-foreground">FallFlow braucht WhatsApp Business – der Umstieg dauert 5 Minuten, Ihre Nummer bleibt gleich:</p>
+                <ol className="list-decimal space-y-1 pl-4">
+                  <li>Im normalen WhatsApp ein Backup machen: Einstellungen → Chats → Chat-Backup.</li>
+                  <li>Die kostenlose App „WhatsApp Business“ aus dem App Store bzw. Play Store auf demselben Handy installieren.</li>
+                  <li>Beim Öffnen Ihre Nummer übernehmen und die Chats übertragen lassen – danach schreiben Sie über WhatsApp Business (wie gewohnt, nur mit Firmenprofil).</li>
+                </ol>
+                <p>
+                  Gut zu wissen: Nutzen Sie die Nummer auch privat, sehen Freunde und Familie danach Ihr Firmenprofil. FallFlow antwortet ihnen nicht – das bleibt Ihre Sache.
+                  Wer das trennen möchte, nimmt für den Betrieb eine zweite Nummer.
+                </p>
+              </div>
+            )}
+            {form.app === "none" && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Dann installieren Sie einfach die kostenlose App „WhatsApp Business“ und richten die Nummer dort ein – z. B. Ihre Festnetznummer (Bestätigung per Anruf) oder
+                eine zweite Handynummer.
               </p>
             )}
           </div>

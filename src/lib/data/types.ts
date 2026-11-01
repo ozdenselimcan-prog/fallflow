@@ -80,6 +80,8 @@ export interface WhatsAppAccessRequest {
   contact: string;
   /** Läuft die Nummer gerade in der WhatsApp-Business-App auf dem Handy? */
   inApp: "yes" | "no" | "unknown";
+  /** Welches WhatsApp nutzt der Betrieb für die Nummer (normales WhatsApp muss erst auf WhatsApp Business umsteigen)? */
+  app?: "business" | "personal" | "none";
   requestedAt: string;
   status: "open" | "approved";
 }

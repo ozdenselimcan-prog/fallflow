@@ -8,6 +8,7 @@ import { apiFetch, useMutation } from "@/lib/use-api";
 import { formatDateTime } from "@/lib/utils";
 
 const IN_APP = { yes: "läuft in der Business-App", no: "nicht in der App", unknown: "weiß nicht" } as const;
+const APP = { business: "WhatsApp Business", personal: "normales WhatsApp – muss umsteigen", none: "noch kein WhatsApp" } as const;
 
 /** Betreiber: WhatsApp-Freischaltungen – Betrieb in der Meta-App als Tester eintragen, dann hier freigeben. */
 export function WhatsAppRequests({ rows }: { rows: WhatsAppRequestRow[] }) {
@@ -36,7 +37,7 @@ export function WhatsAppRequests({ rows }: { rows: WhatsAppRequestRow[] }) {
                 {r.request.name} · Facebook: <span className="break-all text-foreground">{r.request.facebook}</span>
               </p>
               <p className="text-muted-foreground">
-                WhatsApp: {r.request.phone} ({IN_APP[r.request.inApp]}) · Rückfragen: {r.request.contact}
+                WhatsApp: {r.request.phone} ({r.request.app ? APP[r.request.app] : IN_APP[r.request.inApp]}) · Rückfragen: {r.request.contact}
               </p>
             </div>
             {r.request.status === "approved" ? (
