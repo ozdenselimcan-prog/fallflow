@@ -32,7 +32,7 @@ export async function draftQuoteFor(store: Store, c: CaseRecord): Promise<Quote 
   const draft = await draftQuote({ companyName: company.name, industry: company.businessProfile.industry, service: c.fields.service ?? "", facts: await caseFacts(store, c), knowledge: knowledgeOf(company.businessProfile) });
   if (!draft) return null;
   const existing = readQuote(c.fields);
-  return { intro: draft.intro, items: draft.items, vatRate: existing?.vatRate ?? 19, validDays: existing?.validDays ?? 30, number: existing?.number || quoteNumber(c.id), sentAt: null };
+  return { intro: draft.intro, items: draft.items, vatRate: existing?.vatRate ?? company.businessProfile.quoteDefaults?.vatRate ?? 19, validDays: existing?.validDays ?? 30, number: existing?.number || quoteNumber(c.id), sentAt: null };
 }
 
 export async function saveQuote(store: Store, c: CaseRecord, q: Quote): Promise<Quote> {

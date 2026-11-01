@@ -39,7 +39,7 @@ export const POST = withSession(
     const { choice, text = "", extra = "" } = body.data;
     if (choice === "other" && !text) return apiError("Bitte Ihre Antwort eintippen.", 400);
     const { decision, value } = choice === "other" ? await interpretSetupAnswer(q, text, q.current({ assistant, profile })) : { decision: choice, value: extra };
-    const patch = q.apply(decision, value);
+    const patch = q.apply(decision, value, { assistant, profile });
 
     if (patch.assistant) await store.saveAssistant({ ...assistant, ...patch.assistant });
     const texts = { ...(profile.texts ?? {}) };
@@ -48,10 +48,35 @@ export const POST = withSession(
       else delete texts[k];
     }
     const answer: SetupAnswer = { choice, ...(text ? { text } : {}), ...(extra ? { extra } : {}) };
+    // „Wissen & Preise“: häufige Frage setzen/entfernen, Preise ergänzen (gleiche Bezeichnung wird ersetzt).
+    let knowledge = profile.knowledge ?? { prices: [], faqs: [] };
+    if (patch.faq) {
+      const faqs = knowledge.faqs.filter((f) => f.q !== patch.faq!.q);
+      knowledge = { ...knowledge, faqs: patch.faq.a ? [...faqs, { q: patch.faq.q, a: patch.faq.a }] : faqs };
+    }
+    if (patch.prices?.length) {
+      const names = new Set(patch.prices.map((p) => p.item.toLowerCase()));
+      knowledge = { ...knowledge, prices: [...knowledge.prices.filter((p) => !names.has(p.item.toLowerCase())), ...patch.prices] };
+    }
+    // Fotos bei allen Leistungen anfordern bzw. nirgends mehr.
+    let documents = profile.documents;
+    let documentsByService = profile.documentsByService;
+    if (patch.photos !== undefined) {
+      const isPhoto = (d: string) => /foto|bild/i.test(d);
+      const photo = documents.find(isPhoto) ?? "Fotos vom Auftrag";
+      documents = patch.photos ? [...new Set([...documents, photo])] : documents.filter((d) => !isPhoto(d));
+      documentsByService = Object.fromEntries(
+        Object.entries(documentsByService ?? {}).map(([svc, docs]) => [svc, patch.photos ? [...new Set([...docs, photo])] : docs.filter((d) => !isPhoto(d))]),
+      );
+    }
     await store.updateCompany({
       businessProfile: {
         ...profile,
         texts,
+        knowledge,
+        documents,
+        documentsByService,
+        ...(patch.quoteVatRate !== undefined ? { quoteDefaults: { ...(profile.quoteDefaults ?? {}), vatRate: patch.quoteVatRate } } : {}),
         automation: { ...(profile.automation ?? {}), ...(patch.automation ?? {}) },
         ...(patch.needsAddress !== undefined ? { needsAddress: patch.needsAddress } : {}),
         setupAnswers: { ...(profile.setupAnswers ?? {}), [q.id]: answer },

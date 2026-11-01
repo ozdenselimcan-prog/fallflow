@@ -21,6 +21,13 @@ export interface SetupPatch {
   automation?: Partial<NonNullable<BusinessProfile["automation"]>>;
   texts?: Record<string, string>;
   needsAddress?: boolean;
+  /** Häufige Frage setzen (Antwort) bzw. entfernen (null) – landet in „Wissen & Preise“ */
+  faq?: { q: string; a: string | null };
+  /** Feste Preise ergänzen bzw. ersetzen (gleiche Bezeichnung) – „Wissen & Preise“ */
+  prices?: { item: string; price: string }[];
+  /** Fotos vom Kunden anfordern (bei allen Leistungen) */
+  photos?: boolean;
+  quoteVatRate?: 19 | 7 | 0;
 }
 
 interface State {
@@ -41,7 +48,7 @@ export interface SetupQuestion {
   extra?: { label: string; placeholder: string };
   /** Aktueller Stand aus den Einstellungen (für die Vorauswahl). */
   current: (s: State) => Decision;
-  apply: (decision: Decision, value: string) => SetupPatch;
+  apply: (decision: Decision, value: string, state: State) => SetupPatch;
 }
 
 const a = (s: State) => s.profile.automation ?? {};
@@ -53,6 +60,21 @@ const withPhone = (v: string) => {
   if (!t || t.includes("{telefon}")) return t;
   return `${t.replace(/[.!]+$/, "")} unter {telefon}.`;
 };
+const faqAnswer = (s: State, q: string) => s.profile.knowledge?.faqs.find((f) => f.q === q)?.a ?? "";
+
+/** „Anfahrt 39 €; Stundensatz 55 €“ bzw. „Anfahrt = 39 €“ → Preisliste. */
+export function parsePrices(v: string): { item: string; price: string }[] {
+  return v
+    .split(/[;\n]+/)
+    .map((part) => part.trim())
+    .map((part) => {
+      const m = part.match(/^(.+?)\s*(?:[:=–-]\s*|\s)((?:ab\s+|ca\.\s+)?\d[\d.,]*\s*(?:€|EUR|Euro).*)$/i);
+      return m ? { item: m[1].trim().replace(/[:=–-]$/, "").trim(), price: m[2].trim() } : null;
+    })
+    .filter((p): p is { item: string; price: string } => Boolean(p && p.item && p.price))
+    .slice(0, 30);
+}
+
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 export const SETUP_QUESTIONS: SetupQuestion[] = [
@@ -187,6 +209,123 @@ export const SETUP_QUESTIONS: SetupQuestion[] = [
     valueHint: "Der Google-Bewertungslink (beginnt mit https://), falls genannt – sonst leer.",
     current: (s) => yn(a(s).reviews === true),
     apply: (d, v) => (isUrl(v) ? { automation: { reviews: d === "yes", reviewLink: v.trim() } } : { automation: { reviews: false } }),
+  },
+  // Termine (Fortsetzung)
+  {
+    id: "saturday",
+    group: "Termine",
+    question: "Bieten Sie auch samstags Termine an?",
+    otherPlaceholder: "z. B. nur jeden zweiten Samstag",
+    current: (s) => yn(s.assistant.workingDays.includes(6)),
+    apply: (d, _v, s) => ({ assistant: { workingDays: d === "yes" ? [...new Set([...s.assistant.workingDays, 6])].sort() : s.assistant.workingDays.filter((x) => x !== 6) } }),
+  },
+  {
+    id: "duration",
+    group: "Termine",
+    question: "Dauert ein typischer Termin bei Ihnen etwa eine Stunde?",
+    hint: "Nein: 2 Stunden. Andere Dauer? „Sonstiges“, z. B. „30 Minuten“ oder „halber Tag“.",
+    otherPlaceholder: "z. B. 30 Minuten",
+    valueHint: "Die Dauer eines Termins in Minuten als reine Zahl (z. B. „30“, „90“, „240“ für einen halben Tag). Leer, wenn keine Dauer genannt.",
+    current: (s) => yn(s.assistant.slotMinutes === 60),
+    apply: (d, v) => {
+      const minutes = Number(v.match(/\d+/)?.[0] ?? NaN);
+      if (Number.isFinite(minutes) && minutes >= 15 && minutes <= 600) return { assistant: { slotMinutes: Math.round(minutes / 15) * 15 } };
+      return { assistant: { slotMinutes: d === "yes" ? 60 : 120 } };
+    },
+  },
+  {
+    id: "maxPerDay",
+    group: "Termine",
+    question: "Sollen pro Tag nur wenige Termine vergeben werden (höchstens 3)?",
+    hint: "Nein: so viele, wie in Ihre Zeiten passen.",
+    otherPlaceholder: "z. B. höchstens 2 pro Tag",
+    valueHint: "Die gewünschte Höchstzahl an Terminen pro Tag als reine Zahl. Leer, wenn keine Zahl genannt.",
+    current: (s) => yn(s.assistant.maxAppointmentsPerDay !== null && s.assistant.maxAppointmentsPerDay <= 3),
+    apply: (d, v) => {
+      const n = Number(v.match(/\d+/)?.[0] ?? NaN);
+      if (Number.isFinite(n) && n >= 1 && n <= 50) return { assistant: { maxAppointmentsPerDay: n } };
+      return { assistant: { maxAppointmentsPerDay: d === "yes" ? 3 : null } };
+    },
+  },
+  // Unterlagen
+  {
+    id: "photos",
+    group: "Unterlagen",
+    question: "Sollen Kunden Fotos schicken (z. B. vom Schaden oder vom Raum)?",
+    hint: "Ja: FallFlow bittet bei jeder Anfrage um Fotos – sie landen in der Fallakte und die KI schätzt sie für Sie ein.",
+    otherPlaceholder: "z. B. nur bei Reparaturen",
+    current: (s) => yn(s.profile.documents.some((d) => /foto|bild/i.test(d))),
+    apply: (d) => ({ photos: d === "yes" }),
+  },
+  // Preise & Fragen von Kunden
+  {
+    id: "prices",
+    group: "Preise & Fragen von Kunden",
+    question: "Haben Sie feste Preise, die FallFlow Kunden nennen darf?",
+    hint: "Z. B. Anfahrt oder Stundensatz. Alles andere fragt FallFlow nie selbst – Preise nennt die KI nur aus dieser Liste.",
+    extra: { label: "Ihre Preise (mit ; trennen)", placeholder: "Anfahrt 39 €; Stundensatz 55 €" },
+    otherPlaceholder: "z. B. Anfahrt 39 €, Stunde 55 €",
+    valueHint: "Die genannten Preise als Liste im Format „Bezeichnung = Preis“, getrennt durch „;“ (z. B. „Anfahrt = 39 €; Stundensatz = 55 €“). Leer, wenn keine Preise genannt.",
+    current: (s) => yn((s.profile.knowledge?.prices.length ?? 0) > 0),
+    apply: (_d, v) => ({ prices: parsePrices(v) }),
+  },
+  {
+    id: "hours",
+    group: "Preise & Fragen von Kunden",
+    question: "Darf FallFlow Kunden sagen, wann Sie erreichbar sind?",
+    extra: { label: "Ihre Zeiten", placeholder: "Mo–Fr 8–17 Uhr, Sa 9–12 Uhr" },
+    otherPlaceholder: "z. B. Mo–Fr 7–16 Uhr",
+    valueHint: "Die Erreichbarkeit bzw. Öffnungszeiten als kurzer Satz für Kunden (z. B. „Sie erreichen uns Mo–Fr von 7 bis 16 Uhr.“).",
+    current: (s) => yn(Boolean(faqAnswer(s, "Wann sind Sie erreichbar?"))),
+    apply: (d, v) => ({ faq: { q: "Wann sind Sie erreichbar?", a: d === "yes" && v.trim() ? v.trim() : null } }),
+  },
+  {
+    id: "area",
+    group: "Preise & Fragen von Kunden",
+    question: "Arbeiten Sie nur in einem bestimmten Gebiet?",
+    extra: { label: "Ihr Gebiet", placeholder: "Stuttgart und 30 km Umkreis" },
+    otherPlaceholder: "z. B. ganz Baden-Württemberg",
+    valueHint: "Das Einsatzgebiet als kurzer Satz für Kunden (z. B. „Wir sind in Stuttgart und im Umkreis von 30 km für Sie da.“).",
+    current: (s) => yn(Boolean(faqAnswer(s, "In welchem Gebiet sind Sie tätig?"))),
+    apply: (d, v) => ({ faq: { q: "In welchem Gebiet sind Sie tätig?", a: d === "yes" && v.trim() ? v.trim() : null } }),
+  },
+  {
+    id: "freeEstimate",
+    group: "Preise & Fragen von Kunden",
+    question: "Sind Besichtigung bzw. Kostenvoranschlag bei Ihnen kostenlos?",
+    otherPlaceholder: "z. B. kostenlos, wenn Sie den Auftrag erteilen",
+    valueHint: "Die Antwort als kurzer, freundlicher Satz für Kunden (z. B. „Die Besichtigung kostet 49 €, die wir bei Auftragserteilung verrechnen.“).",
+    current: (s) => yn(faqAnswer(s, "Ist der Kostenvoranschlag kostenlos?").startsWith("Ja")),
+    apply: (d, v) => ({
+      faq: {
+        q: "Ist der Kostenvoranschlag kostenlos?",
+        a: v.trim() || (d === "yes" ? "Ja, Besichtigung und Kostenvoranschlag sind für Sie kostenlos und unverbindlich." : "Für Besichtigung und Kostenvoranschlag berechnen wir eine Gebühr – die genauen Kosten nennen wir Ihnen gern vorab."),
+      },
+    }),
+  },
+  {
+    id: "payment",
+    group: "Preise & Fragen von Kunden",
+    question: "Soll FallFlow Kunden sagen, wie sie bei Ihnen bezahlen können?",
+    extra: { label: "Zahlungsarten", placeholder: "Überweisung, EC-Karte, bar" },
+    otherPlaceholder: "z. B. nur Überweisung",
+    valueHint: "Die Zahlungsarten als kurzer Satz für Kunden (z. B. „Sie können per Überweisung oder bar bezahlen.“).",
+    current: (s) => yn(Boolean(faqAnswer(s, "Wie kann ich bezahlen?"))),
+    apply: (d, v) => ({ faq: { q: "Wie kann ich bezahlen?", a: d === "yes" && v.trim() ? v.trim() : null } }),
+  },
+  {
+    id: "smallBusiness",
+    group: "Preise & Fragen von Kunden",
+    question: "Sind Sie Kleinunternehmer (Rechnungen ohne Umsatzsteuer)?",
+    hint: "Dann erstellt FallFlow Angebote ohne Umsatzsteuer, mit dem Hinweis nach § 19 UStG.",
+    otherPlaceholder: "z. B. 7 % Umsatzsteuer",
+    valueHint: "Der Umsatzsteuersatz als Zahl: „0“ (Kleinunternehmer), „7“ oder „19“. Leer, wenn nicht genannt.",
+    current: (s) => yn(s.profile.quoteDefaults?.vatRate === 0),
+    apply: (d, v) => {
+      const rate = Number(v.match(/\d+/)?.[0] ?? NaN);
+      if (rate === 0 || rate === 7 || rate === 19) return { quoteVatRate: rate };
+      return { quoteVatRate: d === "yes" ? 0 : 19 };
+    },
   },
   // Ton
   {

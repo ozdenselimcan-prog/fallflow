@@ -51,6 +51,7 @@ export function SetupQuestionnaire({ canEdit = true }: { canEdit?: boolean }) {
     setQuestions((qs) => qs?.map((x) => (x.id === q.id ? { ...x, answer } : x)) ?? qs);
     // „Sonstiges“ ohne Text und „Ja“ mit Zusatzfeld werden erst gespeichert, wenn etwas eingetippt ist.
     if (answer.choice === "other" && !answer.text?.trim()) return;
+    if (answer.choice === "yes" && q.extra && !answer.extra?.trim()) return;
     setBusy(q.id);
     setError(null);
     try {
@@ -89,8 +90,10 @@ export function SetupQuestionnaire({ canEdit = true }: { canEdit?: boolean }) {
                         disabled={!canEdit}
                         aria-pressed={q.answer.choice === c.id}
                         onClick={() => {
-                          setDrafts((d) => ({ ...d, [q.id]: "" }));
-                          void save(q, { choice: c.id });
+                          // Bei „Ja“ mit Zusatzfeld (Preise, Zeiten …) die bisherige Angabe behalten.
+                          const keep = c.id === "yes" && q.extra ? (q.answer.extra ?? "") : "";
+                          setDrafts((d) => ({ ...d, [q.id]: keep }));
+                          void save(q, c.id === "yes" && q.extra ? { choice: "yes", extra: keep } : { choice: c.id });
                         }}
                         className={cn(
                           "min-w-20 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors disabled:opacity-60",

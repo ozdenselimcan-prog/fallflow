@@ -68,6 +68,8 @@ export interface BusinessProfile {
   push?: { endpoint: string; keys: { p256dh: string; auth: string }; userId: string; createdAt: string }[];
   /** Antworten im Einrichtungs-Fragebogen (config/setup-questions.ts), je Frage. */
   setupAnswers?: Record<string, { choice: "yes" | "no" | "other"; text?: string; extra?: string }>;
+  /** Voreinstellungen für Angebote (z. B. Kleinunternehmer: 0 % Umsatzsteuer). */
+  quoteDefaults?: { vatRate?: 19 | 7 | 0 };
   /** Anfrage auf WhatsApp-Freischaltung (solange die Meta-App noch nicht freigegeben ist, siehe lib/whatsapp-access.ts). */
   whatsappRequest?: WhatsAppAccessRequest;
 }
