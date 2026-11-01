@@ -9,6 +9,7 @@ import { isPlatformAdmin, loadCompanyOverview, loadWhatsAppRequests, mailHealth,
 import { aiHealth } from "@/lib/ai/provider";
 import { requireSession } from "@/lib/auth/session";
 import { getPlan } from "@/lib/config/pricing";
+import { isTestAccount } from "@/lib/admin/test-accounts";
 import { formatDateTime, timeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Betreiber-Übersicht", robots: { index: false } };
@@ -90,7 +91,7 @@ export default async function AdminPage() {
       <WhatsAppRequests rows={waRequests} />
 
       <div className="mt-6">
-        <CleanupTestAccountsButton count={rows.filter((r) => /^claude-[^@]+@mailinator\.com$/i.test(r.owner)).length} />
+        <CleanupTestAccountsButton count={rows.filter((r) => isTestAccount(r.owner)).length} />
       </div>
 
       <Card className="mt-4 overflow-x-auto">

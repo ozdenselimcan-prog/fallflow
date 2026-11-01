@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiFetch, useMutation } from "@/lib/use-api";
 
-/** Löscht alle automatisch erzeugten Testkonten (claude-…@mailinator.com). */
+/** Löscht alle automatisch erzeugten Testkonten (Mailinator-Testkonten). */
 export function CleanupTestAccountsButton({ count }: { count: number }) {
   const { pending, error, run } = useMutation();
   const [result, setResult] = useState<string | null>(null);
@@ -17,7 +17,7 @@ export function CleanupTestAccountsButton({ count }: { count: number }) {
         size="sm"
         loading={pending}
         onClick={async () => {
-          if (!window.confirm(`${count} Testkonten (claude-…@mailinator.com) samt allen Daten endgültig löschen?`)) return;
+          if (!window.confirm(`${count} Testkonten (Mailinator-Testkonten) samt allen Daten endgültig löschen?`)) return;
           const res = await run(() => apiFetch<{ deleted: number; failed: number }>("POST", "/api/admin/cleanup-test-accounts"));
           if (res) setResult(`${res.deleted} Testkonten gelöscht${res.failed ? `, ${res.failed} fehlgeschlagen` : ""}.`);
         }}
