@@ -92,6 +92,7 @@ export function trackConversion(kind: ConversionKind) {
     // ohne Speicher trotzdem senden
   }
   loadGoogleTag();
-  window.gtag?.("event", "conversion", { send_to: `${GOOGLE_ADS_ID}/${label}` });
+  // Label darf das Konto mitbringen ("AW-123/abc") – sonst gilt das erste Konto.
+  window.gtag?.("event", "conversion", { send_to: label.includes("/") ? label : `${GOOGLE_ADS_ID}/${label}` });
   return true;
 }
