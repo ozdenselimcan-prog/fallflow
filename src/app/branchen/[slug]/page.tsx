@@ -6,6 +6,7 @@ import { Footer } from "@/components/landing/footer";
 import { MobileCta } from "@/components/landing/mobile-cta";
 import { Navbar } from "@/components/landing/navbar";
 import { CaseFilm } from "@/components/landing/case-film";
+import { UsageStats } from "@/components/landing/usage-stats";
 import { FeaturesSection, FinalCta, FlowSection, NoCrmSection, PricingSection, SolutionSection } from "@/components/landing/sections";
 import { INDUSTRY_FILMS } from "@/lib/config/industry-films";
 import { buttonStyles } from "@/components/ui/button";
@@ -88,11 +89,7 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
               <CaseFilm scenario={INDUSTRY_FILMS[page.slug]} />
             </div>
             <div className="mt-12 text-center">
-              <p className="text-lg font-bold text-zinc-900 sm:text-xl">Über 1.500 Betriebe nutzen bereits {siteConfig.name}.</p>
-              <div className="mx-auto mt-5 inline-flex w-full max-w-md flex-col items-center rounded-2xl border-2 border-zinc-900 bg-white px-10 py-7 shadow-lg">
-                <span className="text-sm font-medium text-zinc-500">Für Betriebe erledigte Anfragen</span>
-                <span className="mt-2 text-4xl font-black tracking-tight text-zinc-900 tabular-nums sm:text-5xl">126.789</span>
-              </div>
+              <UsageStats />
               <div className="mt-6 flex items-center justify-center gap-3">
                 <span className="flex items-center gap-1 text-lg font-semibold tracking-tight text-zinc-900">
                   <svg viewBox="0 0 24 24" className="size-6 fill-[#00B67A]" aria-hidden><path d={STAR_PATH} /></svg>

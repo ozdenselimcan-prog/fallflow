@@ -3,6 +3,7 @@ import { MobileCta } from "@/components/landing/mobile-cta";
 import { Hero } from "@/components/landing/hero";
 import { Navbar } from "@/components/landing/navbar";
 import { ReviewsSection } from "@/components/landing/reviews";
+import { UsageStats } from "@/components/landing/usage-stats";
 import {
   AudienceSection,
   DemoSection,
@@ -24,6 +25,9 @@ export default function HomePage() {
       <main>
         <Hero />
         <MailFlowSection />
+        <div className="-mt-6 px-4 pb-16 text-center sm:px-6">
+          <UsageStats />
+        </div>
         <FlowSection />
         <ProblemSection />
         <SolutionSection />
