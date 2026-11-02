@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, Check, CheckCircle2, MessageCircle, Sparkles, Star, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, MessageCircle, Sparkles, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Footer } from "@/components/landing/footer";
@@ -29,6 +29,24 @@ const HOW = [
   "Notfälle, Preisfragen und Reklamationen gehen sofort an Sie",
   "Fertige Fallakte mit allen Angaben, Fotos und Terminvorschlag",
 ];
+
+const STAR_PATH = "M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z";
+
+/** Sterne wie bei Google: gefüllt, ohne Umriss, der letzte anteilig (z. B. 4,8 → fünfter Stern zu 80 %). */
+function RatingStars({ value }: { value: number }) {
+  return (
+    <div className="flex" aria-hidden>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span key={i} className="relative size-6">
+          <svg viewBox="0 0 24 24" className="absolute inset-0 size-6 fill-zinc-300"><path d={STAR_PATH} /></svg>
+          <span className="absolute inset-0 overflow-hidden" style={{ width: `${Math.min(1, Math.max(0, value - i)) * 100}%` }}>
+            <svg viewBox="0 0 24 24" className="size-6 fill-[#FBBC04]"><path d={STAR_PATH} /></svg>
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 /** Branchenseite: eigene Texte je Branche, Leistungen und Fragen aus der passenden Branchen-Vorlage. */
 export default async function IndustryLandingPage({ params }: PageProps<"/branchen/[slug]">) {
@@ -76,11 +94,7 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
                 <span className="mt-2 text-4xl font-black tracking-tight text-zinc-900 tabular-nums sm:text-5xl">126.789</span>
               </div>
               <div className="mt-6 flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center sm:gap-3">
-                <div className="flex gap-0.5" aria-hidden>
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <Star key={i} className="size-5 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
+                <RatingStars value={4.8} />
                 <p className="text-base text-zinc-700">
                   <span className="font-bold text-zinc-900">4,8 von 5 Sternen</span> · über 180 Bewertungen
                 </p>
