@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CONSENT_EVENT, GOOGLE_ADS_ID, loadGoogleTag, OPEN_CONSENT_EVENT, readConsent, saveConsent, trackConversion } from "@/lib/tracking";
+import { CONSENT_EVENT, loadTrackingTags, OPEN_CONSENT_EVENT, readConsent, saveConsent, trackConversion, trackPageView, TRACKING_ENABLED } from "@/lib/tracking";
 
 /** Seiten, auf denen nie ein Banner erscheint (eingebettetes Chat-Widget, Upload-Link für Endkunden, Betreiber-Bereich). */
 const HIDDEN = /^\/(widget|upload|termin|admin)(\/|$)/;
@@ -17,7 +17,7 @@ export function ConsentBanner() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
-  const visible = Boolean(GOOGLE_ADS_ID) && open && !HIDDEN.test(pathname);
+  const visible = TRACKING_ENABLED && open && !HIDDEN.test(pathname);
 
   // Solange der Hinweis offen ist, bekommt die Seite unten so viel Platz, dass er keine Knöpfe (z. B. „Weiter“) verdeckt.
   useEffect(() => {
@@ -34,9 +34,9 @@ export function ConsentBanner() {
   }, [visible]);
 
   useEffect(() => {
-    if (!GOOGLE_ADS_ID) return;
+    if (!TRACKING_ENABLED) return;
     const choice = readConsent();
-    if (choice === "granted") loadGoogleTag();
+    if (choice === "granted") loadTrackingTags();
     // Erst nach dem ersten Rendern entscheiden (localStorage gibt es nur im Browser).
     const t = setTimeout(() => setOpen(choice === null), 0);
     const reopen = () => setOpen(true);
@@ -46,6 +46,14 @@ export function ConsentBanner() {
       window.removeEventListener(OPEN_CONSENT_EVENT, reopen);
     };
   }, []);
+
+  // Seitenaufruf für Meta – nur auf öffentlichen Seiten (nicht im Dashboard und nie im eingebetteten Widget).
+  useEffect(() => {
+    if (!TRACKING_ENABLED || HIDDEN.test(pathname) || /^\/(dashboard|onboarding)(\/|$)/.test(pathname)) return;
+    trackPageView();
+    window.addEventListener(CONSENT_EVENT, trackPageView);
+    return () => window.removeEventListener(CONSENT_EVENT, trackPageView);
+  }, [pathname]);
 
   if (!visible) return null;
 
@@ -76,9 +84,9 @@ export function ConsentBanner() {
   );
 }
 
-/** Link „Cookie-Einstellungen“ (z. B. im Footer) – öffnet den Hinweis erneut. Ohne Google Ads nicht sichtbar. */
+/** Link „Cookie-Einstellungen“ (z. B. im Footer) – öffnet den Hinweis erneut. Ohne Werbe-Tracking nicht sichtbar. */
 export function ConsentSettingsLink({ className }: { className?: string }) {
-  if (!GOOGLE_ADS_ID) return null;
+  if (!TRACKING_ENABLED) return null;
   return (
     <button type="button" className={className} onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_EVENT))}>
       Cookie-Einstellungen
@@ -95,7 +103,7 @@ export function CheckoutConversion() {
 /** Meldet beim Anzeigen einmalig eine Conversion (z. B. Registrierung). Wartet ggf. auf die Einwilligung. */
 export function ConversionPing({ kind }: { kind: "signup" | "trial" }) {
   useEffect(() => {
-    if (!GOOGLE_ADS_ID || trackConversion(kind)) return;
+    if (!TRACKING_ENABLED || trackConversion(kind)) return;
     // Noch keine Einwilligung: senden, sobald der Besucher im Banner zustimmt.
     const onConsent = () => trackConversion(kind);
     window.addEventListener(CONSENT_EVENT, onConsent);

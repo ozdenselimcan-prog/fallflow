@@ -29,7 +29,7 @@ const sections = [
   ["rollen", "2. Wer ist wofür verantwortlich?"],
   ["website", "3. Besuch der Website und Server-Logs"],
   ["cookies", "4. Cookies und Speicherung im Browser"],
-  ["google-ads", "5. Google Ads Conversion-Tracking"],
+  ["google-ads", "5. Google Ads und Meta-Pixel (Conversion-Tracking)"],
   ["schriften", "6. Schriftarten und externe Links"],
   ["kontakt", "7. Kontakt per E-Mail"],
   ["registrierung", "8. Registrierung und Benutzerkonto"],
@@ -166,14 +166,14 @@ export default function DatenschutzPage() {
             />
             <p>Rechtsgrundlage für die damit verbundene Verarbeitung ist Art. 6 Abs. 1 lit. b DSGVO (Login) bzw. Art. 6 Abs. 1 lit. f DSGVO (Speichern Ihrer Auswahl).</p>
             <h3>Nur mit Einwilligung (§ 25 Abs. 1 TDDDG, Art. 6 Abs. 1 lit. a DSGVO)</h3>
-            <List items={["Cookies von Google Ads für das Conversion-Tracking (siehe Abschnitt 5), z. B. „_gcl_au“, sowie ein localStorage-Eintrag, der verhindert, dass eine Registrierung doppelt gezählt wird."]} />
+            <List items={["Cookies von Google Ads und Meta für das Conversion-Tracking (siehe Abschnitt 5), z. B. „_gcl_au“ und „_fbp“, sowie ein localStorage-Eintrag, der verhindert, dass eine Registrierung doppelt gezählt wird."]} />
             <p>
               Das Chat-Widget, das Büros auf ihren Websites einbinden, setzt keine Cookies und speichert nichts im Browser. Sie können Cookies außerdem jederzeit in Ihrem Browser
               ansehen, löschen oder blockieren; ohne die notwendigen Cookies ist eine Anmeldung allerdings nicht möglich.
             </p>
           </Section>
 
-          <Section id="google-ads" title="5. Google Ads Conversion-Tracking">
+          <Section id="google-ads" title="5. Google Ads und Meta-Pixel (Conversion-Tracking)">
             <p>
               Nur wenn Sie im Cookie-Hinweis auf „Akzeptieren“ klicken, nutzen wir das Conversion-Tracking von Google Ads. Anbieter ist Google Ireland Limited, Gordon House, Barrow
               Street, Dublin 4, Irland („Google“).
@@ -193,6 +193,21 @@ export default function DatenschutzPage() {
             <p>
               <strong>Speicherdauer und Drittland:</strong> Die Google-Ads-Cookies werden in der Regel nach 90 Tagen ungültig. Google kann Daten auch in die USA übermitteln; Google
               ist nach dem EU-US Data Privacy Framework zertifiziert. Weitere Informationen: policies.google.com/privacy.
+            </p>
+            <h3>Meta-Pixel</h3>
+            <p>
+              Ebenfalls nur mit Ihrer Einwilligung nutzen wir das Meta-Pixel von Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Irland („Meta“), um zu messen, ob
+              Besucher, die über eine unserer Anzeigen auf Facebook oder Instagram zu uns gekommen sind, unsere Seiten aufrufen, sich registrieren oder eine Testphase starten. Dazu setzt
+              Meta Cookies (z. B. „_fbp“) und verarbeitet u. a. Ihre IP-Adresse, Informationen zu Browser und Gerät, die aufgerufenen Seiten und den Zeitpunkt der Conversion. Im
+              Dashboard und im Chat-Widget der Büros wird das Pixel nicht geladen. Wir übermitteln keine Namen oder E-Mail-Adressen an Meta und nutzen keine personalisierte Werbung
+              (Remarketing).
+            </p>
+            <p>
+              Für die Erhebung und Übermittlung der Daten an Meta sind wir gemeinsam mit Meta verantwortlich (Art. 26 DSGVO); dazu besteht eine Vereinbarung mit Meta
+              (facebook.com/legal/controller_addendum). Für die weitere Verarbeitung ist Meta allein verantwortlich. Ihre Rechte können Sie auch direkt gegenüber Meta geltend machen.
+              Rechtsgrundlage ist Ihre Einwilligung (§ 25 Abs. 1 TDDDG, Art. 6 Abs. 1 lit. a DSGVO), widerrufbar über „Cookie-Einstellungen“; die Meta-Cookies werden dann gelöscht.
+              Das Cookie „_fbp“ wird nach 90 Tagen ungültig. Meta kann Daten auch in die USA übermitteln; Meta ist nach dem EU-US Data Privacy Framework zertifiziert. Weitere
+              Informationen: facebook.com/privacy/policy.
             </p>
           </Section>
 
@@ -420,6 +435,7 @@ export default function DatenschutzPage() {
                 "Functional Software, Inc. / Sentry (USA) – Fehlerüberwachung, EU-Region (Frankfurt)",
                 "Stripe Payments Europe, Ltd. (Irland) – Zahlungsabwicklung (für eigene Zwecke teilweise eigenständig verantwortlich)",
                 "Google Ireland Limited (Irland) – Conversion-Tracking, nur mit Ihrer Einwilligung",
+                "Meta Platforms Ireland Ltd. (Irland) – Meta-Pixel (Conversion-Tracking), nur mit Ihrer Einwilligung (Abschnitt 5)",
               ]}
             />
             <p>
@@ -451,7 +467,7 @@ export default function DatenschutzPage() {
                 "Prüfwert zur einmaligen Testphase: drei Jahre",
                 "Rechnungen und buchungsrelevante Unterlagen: zehn Jahre (§ 147 AO, § 257 HGB)",
                 "Geschäftliche E-Mails: sechs bzw. zehn Jahre, soweit sie Handels- oder Geschäftsbriefe sind; sonst Löschung nach Erledigung",
-                "Ihre Auswahl im Cookie-Hinweis: bis Sie sie im Browser löschen; Google-Ads-Cookies: in der Regel 90 Tage",
+                "Ihre Auswahl im Cookie-Hinweis: bis Sie sie im Browser löschen; Google-Ads- und Meta-Cookies: in der Regel 90 Tage",
               ]}
             />
             <p>Sind Daten wegen gesetzlicher Pflichten aufzubewahren, schränken wir ihre Verarbeitung ein und löschen sie nach Ablauf der Frist.</p>
@@ -515,7 +531,7 @@ export default function DatenschutzPage() {
                 </>,
                 <>
                   <strong>Widerruf einer Einwilligung (Art. 7 Abs. 3 DSGVO):</strong> jederzeit mit Wirkung für die Zukunft; die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung
-                  bleibt unberührt. Die Einwilligung in das Google-Ads-Tracking widerrufen Sie über „Cookie-Einstellungen“ im Fußbereich der Website.
+                  bleibt unberührt. Die Einwilligung in das Tracking von Google Ads und Meta widerrufen Sie über „Cookie-Einstellungen“ im Fußbereich der Website.
                 </>,
               ]}
             />
