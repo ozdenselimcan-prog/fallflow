@@ -93,7 +93,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/dashboard/c
 
   return (
     <div className="space-y-6">
-      <LiveRefresh active={c.status === "NEW" || c.status === "QUALIFYING"} />
+      <LiveRefresh active={c.status === "NEW" || c.status === "QUALIFYING"} everyMs={10000} />
       <Link href="/dashboard/cases" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Alle Fälle
       </Link>

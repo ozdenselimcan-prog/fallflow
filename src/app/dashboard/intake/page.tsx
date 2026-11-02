@@ -72,7 +72,7 @@ export default async function IntakePage({ searchParams }: PageProps<"/dashboard
 
   return (
     <>
-      <LiveRefresh active={counts.NEW + counts.QUALIFYING > 0} everyMs={6000} />
+      <LiveRefresh active={counts.NEW + counts.QUALIFYING > 0} everyMs={15000} />
       <PageHeader
         title="Anfragen"
         description="Hier sehen Sie, woran die KI gerade arbeitet: Sie erkennt Angaben, fordert Fehlendes beim Kunden an und bereitet den Fall vor."

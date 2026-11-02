@@ -46,7 +46,7 @@ export default async function CasesPage({ searchParams }: PageProps<"/dashboard/
 
   return (
     <>
-      <LiveRefresh active everyMs={15000} />
+      <LiveRefresh active everyMs={30000} />
       <PageHeader title="Fälle" description={`${cases.length} ${cases.length === 1 ? "Fall" : "Fälle"}${hasFilters ? " (gefiltert)" : ""}`} />
 
       <form method="get" className="mb-5 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">

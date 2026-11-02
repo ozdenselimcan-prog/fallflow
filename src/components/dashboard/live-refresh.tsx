@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 /** Lädt die Server-Daten regelmäßig neu, solange ein Gespräch läuft – so erscheinen Angaben live in der Fallakte. */
-export function LiveRefresh({ active, everyMs = 4000 }: { active: boolean; everyMs?: number }) {
+export function LiveRefresh({ active, everyMs = 10000 }: { active: boolean; everyMs?: number }) {
   const router = useRouter();
   useEffect(() => {
     if (!active) return;

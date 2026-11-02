@@ -28,7 +28,10 @@ export async function GET(req: NextRequest) {
   // Mit wachsender Buero-Anzahl waere ein rein sequentieller Durchlauf zu langsam fuers Timeout –
   // mehrere Bueros gleichzeitig bearbeiten (begrenzte Parallelitaet, damit die DB nicht ueberlastet wird).
   const totals = { companies: 0, purged: 0, reminders: 0, reviews: 0, apptReminders: 0 };
-  const stores = await listAllStores();
+  // Der Durchlauf über alle Büros (Erinnerungen, Bewertungen, Aufräumen) kostet die meiste Rechenzeit und muss nicht
+  // bei jedem Mail-Abruf laufen – nur in den ersten Minuten jeder Stunde. Die Mails selbst werden weiter jedes Mal geholt.
+  const hourly = new Date().getUTCMinutes() < 5;
+  const stores = hourly ? await listAllStores() : [];
   const CONCURRENCY = 10;
   for (let i = 0; i < stores.length; i += CONCURRENCY) {
     const batch = stores.slice(i, i + CONCURRENCY);
@@ -66,8 +69,8 @@ export async function GET(req: NextRequest) {
   const billing = new Date().getUTCMinutes() < 10 ? await syncAllSubscriptions() : null;
 
   // Beendete Abos: 7 Tage vorher warnen, 30 Tage nach Vertragsende alle Daten löschen (AVV § 9).
-  const deletion = await processCanceledCompanies();
-  await purgeOldTrialUsage();
+  const deletion = hourly ? await processCanceledCompanies() : null;
+  if (hourly) await purgeOldTrialUsage();
 
   return NextResponse.json({ ...totals, mail: { gmail, microsoft }, billing, deletion });
 }

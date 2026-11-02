@@ -43,7 +43,7 @@ export default async function InboxPage() {
 
   return (
     <>
-      <LiveRefresh active everyMs={15000} />
+      <LiveRefresh active everyMs={30000} />
       <PageHeader title="Posteingang" description="E-Mails und Telefonnotizen – jede Nachricht wird automatisch dem richtigen Kunden und Fall zugeordnet." />
 
       <ul className="mb-5 flex flex-wrap gap-2" aria-label="Kanalstatus">
