@@ -34,7 +34,8 @@ export function ConsentBanner() {
   }, [visible]);
 
   useEffect(() => {
-    if (!TRACKING_ENABLED) return;
+    // Im eingebetteten Widget, auf Kunden-Links und im Admin-Bereich nie fremden Code laden.
+    if (!TRACKING_ENABLED || HIDDEN.test(window.location.pathname)) return;
     const choice = readConsent();
     if (choice === "granted") loadTrackingTags();
     // Erst nach dem ersten Rendern entscheiden (localStorage gibt es nur im Browser).
