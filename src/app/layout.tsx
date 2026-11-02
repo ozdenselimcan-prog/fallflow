@@ -30,8 +30,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <ConsentBanner />
-        {/* Besucherstatistik ohne Cookies und ohne persönliche Profile (siehe Datenschutzerklärung). */}
-        <Analytics />
+        {/* Besucherstatistik ohne Cookies und ohne persönliche Profile (siehe Datenschutzerklärung) – nur bei Vercel verfügbar. */}
+        {process.env.VERCEL ? <Analytics /> : null}
       </body>
     </html>
   );
