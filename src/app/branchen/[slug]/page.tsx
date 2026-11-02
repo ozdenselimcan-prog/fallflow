@@ -48,9 +48,7 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
       <main>
         <section className="hero-grid-bg border-b border-border">
           <div className="mx-auto max-w-5xl px-4 py-14 text-center sm:px-6 lg:py-20">
-            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">KI für {page.audience}</span>
-            <p className="mt-4 text-sm font-semibold text-zinc-700">Über 1.500 Betriebe nutzen bereits {siteConfig.name}.</p>
-            <h1 className="mt-5 text-balance text-[clamp(2rem,4.5vw+0.5rem,3.5rem)] font-black leading-[1.05] tracking-[-0.03em] text-zinc-900">{page.headline}</h1>
+            <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">KI für {page.audience}</span>            <h1 className="mt-5 text-balance text-[clamp(2rem,4.5vw+0.5rem,3.5rem)] font-black leading-[1.05] tracking-[-0.03em] text-zinc-900">{page.headline}</h1>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg">{page.intro}</p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link href="/signup" className={buttonStyles({ size: "lg" })}>
@@ -61,6 +59,7 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
               </Link>
             </div>
             <p className="mt-4 text-sm text-zinc-400">Ohne Kreditkarte. Mit fertiger Vorlage für {page.audience} – in 10 Minuten eingerichtet.</p>
+            <p className="mt-6 text-lg font-bold text-zinc-900 sm:text-xl">Über 1.500 Betriebe nutzen bereits {siteConfig.name}.</p>
           </div>
         </section>
 
