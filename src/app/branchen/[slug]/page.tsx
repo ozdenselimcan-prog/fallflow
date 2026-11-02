@@ -94,7 +94,7 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
                 <span className="mt-2 text-4xl font-black tracking-tight text-zinc-900 tabular-nums sm:text-5xl">126.789</span>
               </div>
               <div className="mt-6 flex items-center justify-center gap-3">
-                <span className="text-4xl font-normal tracking-tight text-zinc-900 sm:text-5xl">4,8</span>
+                <span className="text-4xl font-normal tracking-tight text-zinc-900 sm:text-5xl">4.8</span>
                 <div className="flex flex-col items-start gap-0.5">
                   <RatingStars value={4.8} />
                   <span className="text-sm text-zinc-600">Über 180 Bewertungen</span>
