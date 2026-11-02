@@ -13,7 +13,7 @@ cp deploy/Caddyfile /etc/caddy/Caddyfile
 install -m 755 deploy/cron.sh /opt/fallflow/cron.sh
 ln -sf /opt/fallflow/.env .env
 chown -R fallflow:fallflow /opt/fallflow/releases/$REL
-sudo -u fallflow -H bash -c 'set -a; . /opt/fallflow/.env; set +a; npm ci --no-audit --no-fund --loglevel=error && NODE_OPTIONS=--max-old-space-size=3072 npm run build'
+sudo -u fallflow -H bash -c 'set -a; . /opt/fallflow/.env; set +a; npm ci --include=dev --no-audit --no-fund --loglevel=error && NODE_OPTIONS=--max-old-space-size=3072 npm run build'
 ln -sfn /opt/fallflow/releases/$REL /opt/fallflow/current
 systemctl daemon-reload
 systemctl enable --now fallflow >/dev/null 2>&1 || true
