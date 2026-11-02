@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, Check, CheckCircle2, MessageCircle, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, MessageCircle, Sparkles, Star, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Footer } from "@/components/landing/footer";
@@ -74,6 +74,16 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
               <div className="mx-auto mt-5 inline-flex w-full max-w-md flex-col items-center rounded-2xl border-2 border-zinc-900 bg-white px-10 py-7 shadow-lg">
                 <span className="text-sm font-medium text-zinc-500">Für Betriebe erledigte Anfragen</span>
                 <span className="mt-2 text-4xl font-black tracking-tight text-zinc-900 tabular-nums sm:text-5xl">126.789</span>
+              </div>
+              <div className="mt-6 flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center sm:gap-3">
+                <div className="flex gap-0.5" aria-hidden>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <Star key={i} className="size-5 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-base text-zinc-700">
+                  <span className="font-bold text-zinc-900">4,8 von 5 Sternen</span> · über 180 Bewertungen
+                </p>
               </div>
             </div>
           </div>
