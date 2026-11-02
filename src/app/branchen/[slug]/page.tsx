@@ -59,11 +59,6 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
               </Link>
             </div>
             <p className="mt-4 text-sm text-zinc-400">Ohne Kreditkarte. Mit fertiger Vorlage für {page.audience} – in 10 Minuten eingerichtet.</p>
-            <p className="mt-6 text-lg font-bold text-zinc-900 sm:text-xl">Über 1.500 Betriebe nutzen bereits {siteConfig.name}.</p>
-            <div className="mx-auto mt-5 inline-flex w-full max-w-md flex-col items-center rounded-2xl border-2 border-zinc-900 bg-white px-10 py-7 shadow-lg">
-              <span className="text-sm font-medium text-zinc-500">Für Betriebe erledigte Anfragen</span>
-              <span className="mt-2 text-4xl font-black tracking-tight text-zinc-900 tabular-nums sm:text-5xl">126.789</span>
-            </div>
           </div>
         </section>
 
@@ -73,6 +68,13 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">Von der ersten Kundenmail bis zum bestätigten Termin – links Ihr Postfach, rechts die Fallakte, die {siteConfig.name} dabei automatisch füllt.</p>
             <div className="mt-10">
               <CaseFilm scenario={INDUSTRY_FILMS[page.slug]} />
+            </div>
+            <div className="mt-12 text-center">
+              <p className="text-lg font-bold text-zinc-900 sm:text-xl">Über 1.500 Betriebe nutzen bereits {siteConfig.name}.</p>
+              <div className="mx-auto mt-5 inline-flex w-full max-w-md flex-col items-center rounded-2xl border-2 border-zinc-900 bg-white px-10 py-7 shadow-lg">
+                <span className="text-sm font-medium text-zinc-500">Für Betriebe erledigte Anfragen</span>
+                <span className="mt-2 text-4xl font-black tracking-tight text-zinc-900 tabular-nums sm:text-5xl">126.789</span>
+              </div>
             </div>
           </div>
         </section>
