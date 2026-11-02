@@ -1,8 +1,13 @@
-fallflow.xyz {
+fallflow.eu {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
 }
 
-www.fallflow.xyz {
-	redir https://fallflow.xyz{uri} permanent
+www.fallflow.eu {
+	redir https://fallflow.eu{uri} permanent
+}
+
+# Alte Domain (DNS bis Dezember 2026 bei Vercel gesperrt) – leitet weiter, sobald sie auf diesen Server zeigt.
+fallflow.xyz, www.fallflow.xyz {
+	redir https://fallflow.eu{uri} permanent
 }
