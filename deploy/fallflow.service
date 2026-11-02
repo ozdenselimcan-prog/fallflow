@@ -1,0 +1,17 @@
+[Unit]
+Description=FallFlow (Next.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=fallflow
+WorkingDirectory=/opt/fallflow/current
+EnvironmentFile=/opt/fallflow/.env
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -p 3000 -H 127.0.0.1
+Restart=always
+RestartSec=5
+# Begrenzt, damit ein Fehler den Server nicht lahmlegt
+MemoryMax=2500M
+
+[Install]
+WantedBy=multi-user.target

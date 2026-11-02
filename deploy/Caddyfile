@@ -1,0 +1,8 @@
+fallflow.xyz {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+}
+
+www.fallflow.xyz {
+	redir https://fallflow.xyz{uri} permanent
+}
