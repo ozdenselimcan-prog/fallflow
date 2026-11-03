@@ -31,7 +31,10 @@ function sameOrigin(req: NextRequest) {
   const origin = req.headers.get("origin");
   if (!origin) return true; // Nicht-Browser-Clients / same-origin GET ohne Origin
   try {
-    return new URL(origin).host === req.nextUrl.host;
+    // Hinter einem Reverse-Proxy (Caddy auf dem eigenen Server) sieht Next.js als eigene Adresse nur 127.0.0.1:3000 –
+    // maßgeblich ist der Host, den der Browser aufgerufen hat (vom Proxy weitergereicht).
+    const host = new URL(origin).host;
+    return [req.nextUrl.host, req.headers.get("x-forwarded-host"), req.headers.get("host")].includes(host);
   } catch {
     return false;
   }
