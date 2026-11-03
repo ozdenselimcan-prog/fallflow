@@ -37,7 +37,7 @@ const SAMPLE: Record<string, string> = {
   datum: "15. November 2026",
   termin: "Di., 17.11.2026, 10:00 Uhr",
   frage: "Wie lautet die Adresse?",
-  link: "https://fallflow.xyz/upload/…",
+  link: "https://fallflow.eu/upload/…",
 };
 
 /** „KI-Assistent → Texte“: jeder automatische Kundentext mit Standard, eigener Fassung, Platzhaltern und Vorschau. */

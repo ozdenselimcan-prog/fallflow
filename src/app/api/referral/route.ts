@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/clients";
 
 const schema = z.object({ code: z.string().max(80) });
 
-/** Eigenen Empfehlungslink umbenennen (fallflow.xyz/signup?ref=<code>). Bisherige Empfehlungen bleiben erhalten. */
+/** Eigenen Empfehlungslink umbenennen (fallflow.eu/signup?ref=<code>). Bisherige Empfehlungen bleiben erhalten. */
 export const PUT = withSession(
   async (req, { session }) => {
     const body = await parseBody(req, schema);

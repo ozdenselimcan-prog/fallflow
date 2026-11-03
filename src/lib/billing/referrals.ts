@@ -4,7 +4,7 @@ import { getStripeClient } from "@/lib/integrations/stripe";
 import { createAdminClient } from "@/lib/supabase/clients";
 
 /**
- * Empfehlungsprogramm: Jedes Büro hat einen Link fallflow.xyz/signup?ref=CODE (Tabellen siehe Migration 0023).
+ * Empfehlungsprogramm: Jedes Büro hat einen Link fallflow.eu/signup?ref=CODE (Tabellen siehe Migration 0023).
  * - Der geworbene Kollege testet 14 statt 7 Tage kostenlos.
  * - Wird er nach der Testphase zahlender Kunde, bekommt das empfehlende Büro einen Monatsbeitrag als Guthaben bei
  *   Stripe gutgeschrieben – es wird mit der nächsten Rechnung verrechnet.

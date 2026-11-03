@@ -8,7 +8,7 @@ export const siteConfig = {
 };
 
 /** Nur die echte Domain darf bei Google erscheinen – Test-Adressen (z. B. *.vercel.app) nicht, sonst gilt die echte Seite später als Kopie. */
-export const indexable = /^https:\/\/(www\.)?fallflow\.xyz/.test(siteConfig.appUrl);
+export const indexable = /^https:\/\/(www\.)?fallflow\.(eu|xyz)/.test(siteConfig.appUrl);
 
 export const navLinks = [
   { label: "Produkt", href: "/#produkt" },
