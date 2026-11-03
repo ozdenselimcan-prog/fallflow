@@ -20,7 +20,8 @@ export const formatDate = (iso: string) => dateFmt.format(new Date(iso));
 export const formatDateTime = (iso: string) => dateTimeFmt.format(new Date(iso));
 
 export function greeting(now = new Date()) {
-  const h = Number(new Intl.DateTimeFormat("de-DE", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/Berlin" }).format(now));
+  // formatToParts statt format: je nach ICU-Version liefert format() "14 Uhr" – Number() ergäbe NaN und damit immer "Guten Abend".
+  const h = Number(new Intl.DateTimeFormat("de-DE", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/Berlin" }).formatToParts(now).find((p) => p.type === "hour")?.value ?? "12");
   if (h < 11) return "Guten Morgen";
   if (h < 18) return "Guten Tag";
   return "Guten Abend";
