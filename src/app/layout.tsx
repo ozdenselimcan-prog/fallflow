@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <ConsentBanner />
-        {/* Besucherstatistik ohne Cookies und ohne persönliche Profile (siehe Datenschutzerklärung) – nur bei Vercel verfügbar. */}
+        {/* Vercel Web Analytics nur, falls die App wieder bei Vercel läuft; auf dem eigenen Server zählt das Caddy-Zugriffsprotokoll (deploy/stats.sh). */}
         {process.env.VERCEL ? <Analytics /> : null}
       </body>
     </html>

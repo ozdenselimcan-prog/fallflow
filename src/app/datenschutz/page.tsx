@@ -139,15 +139,15 @@ export default function DatenschutzPage() {
               <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt im sicheren und fehlerfreien Betrieb der Website.
             </p>
             <p>
-              <strong>Hosting:</strong> Die Website und die Anwendung werden von Vercel Inc. (USA) betrieben; die Anwendung läuft in einem Rechenzentrum in der EU (Dublin, Irland).
-              Server-Logs werden nach den Vorgaben des Hosting-Anbieters nur kurz – in der Regel wenige Tage – gespeichert und danach gelöscht.
+              <strong>Hosting:</strong> Die Website und die Anwendung laufen auf einem Server der Hetzner Online GmbH (Gunzenhausen) in einem Rechenzentrum in Deutschland
+              (Falkenstein).
             </p>
             <p>
-              <strong>Besucherstatistik:</strong> Um zu verstehen, wie unsere Website genutzt wird (z. B. welche Seiten aufgerufen werden, von welcher Website
-              Besucher kommen, Gerätetyp und Land), nutzen wir Vercel Web Analytics. Dabei werden <strong>keine Cookies</strong> gesetzt und keine Daten im Browser
-              gespeichert; Besucher werden nicht seitenübergreifend verfolgt. Zur Unterscheidung von Besuchen wird aus der Anfrage ein Kennwert gebildet, der nach
-              24 Stunden verworfen wird. Wir erhalten nur zusammengefasste Zahlen. Rechtsgrundlage ist unser berechtigtes Interesse an der Verbesserung unseres
-              Angebots (Art. 6 Abs. 1 lit. f DSGVO).
+              <strong>Zugriffsprotokoll und Besucherstatistik:</strong> Um zu verstehen, wie unsere Website genutzt wird (welche Seiten aufgerufen werden und von welcher Website
+              oder Werbeanzeige Besucher kommen), speichert unser Server ein Zugriffsprotokoll mit Zeitpunkt, aufgerufener Seite, Statuscode, Browser-Angabe und Referrer.
+              Die <strong>IP-Adresse wird dabei nicht gespeichert</strong>, ebenso wenig Cookies oder Anmeldedaten. Es werden keine Cookies gesetzt und Besucher werden nicht
+              seitenübergreifend verfolgt; wir werten nur zusammengefasste Zahlen aus. Die Protokolle werden nach 30 Tagen gelöscht. Rechtsgrundlage ist unser berechtigtes
+              Interesse an der Verbesserung unseres Angebots und am sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
             </p>
           </Section>
 
@@ -425,7 +425,7 @@ export default function DatenschutzPage() {
             </p>
             <List
               items={[
-                "Vercel Inc. (USA) – Hosting der Website und Anwendung, Rechenzentrum in der EU (Dublin)",
+                "Hetzner Online GmbH (Deutschland) – Server für Website und Anwendung, Rechenzentrum in Deutschland (Falkenstein)",
                 "Supabase Inc. (USA) – Datenbank, Anmeldung und Dateispeicher, Rechenzentrum in der EU (Irland)",
                 "OpenAI (USA) – KI-Funktionen (Abschnitt 13)",
                 "Twilio Inc. (USA) – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (Abschnitt 14)",
@@ -460,7 +460,7 @@ export default function DatenschutzPage() {
             <p>Wir speichern personenbezogene Daten nur so lange, wie es für den jeweiligen Zweck erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen:</p>
             <List
               items={[
-                "Server-Logs: nach den Vorgaben des Hosting-Anbieters, in der Regel wenige Tage",
+                "Zugriffsprotokoll des Servers (ohne IP-Adresse): 30 Tage",
                 "Anfragen, die ein Büro nicht übernimmt: automatische Löschung nach 12 Monaten ohne Aktivität (samt Dokumenten, Nachrichten und Verlauf)",
                 "Vom Büro übernommene Fälle: bis das Büro sie löscht – das Büro entscheidet nach seinen eigenen Aufbewahrungspflichten",
                 "Benutzerkonto und alle Daten eines Büros: 30 Tage nach Ende des Abonnements werden sie vollständig gelöscht (7 Tage vorher erhält das Büro einen Hinweis und kann seine Daten exportieren)",

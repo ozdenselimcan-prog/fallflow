@@ -1,6 +1,29 @@
 fallflow.eu {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
+
+	# Besucherstatistik ohne personenbezogene Daten: IP, Port, Cookies und Login-Header werden vor dem Schreiben entfernt.
+	# Ausgewertet mit deploy/stats.sh; Dateien werden nach 30 Tagen gelöscht.
+	log {
+		output file /var/log/caddy/fallflow-access.log {
+			roll_size 20MiB
+			roll_keep_for 720h
+		}
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>X-Forwarded-For delete
+				request>headers>Stripe-Signature delete
+				resp_headers delete
+				user_id delete
+			}
+		}
+	}
 }
 
 www.fallflow.eu {

@@ -87,7 +87,7 @@ export default function AvvPage() {
         <List
           items={[
             "Supabase Inc. – Datenbank, Authentifizierung, Dateispeicher; Speicherort EU (Irland)",
-            "Vercel Inc. – Hosting und Auslieferung der Anwendung",
+            "Hetzner Online GmbH – Server für Hosting und Auslieferung der Anwendung; Rechenzentrum in Deutschland (Falkenstein)",
             "OpenAI, L.L.C. – KI-Auswertung von Texten, Fotos und Sprachnachrichten (Erkennung von Angaben, Zusammenfassungen, Prüfung zurückgeschickter Vorlagen, Antworten im Website-Chat, Abtippen von Sprachnachrichten, Foto-Einschätzung, Übersetzung, Entwürfe für Antworten und Angebote); nach den API-Bedingungen von OpenAI keine Nutzung zum Training, Speicherung höchstens 30 Tage zur Missbrauchserkennung",
             "Functional Software Inc. (Sentry) – Fehlerüberwachung; Verarbeitung in der EU (Frankfurt)",
             "Twilio Inc. – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (nur wenn der Auftraggeber ihn nutzt); keine Aufzeichnung der Gespräche als Audiodatei",
