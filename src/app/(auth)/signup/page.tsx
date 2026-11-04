@@ -27,8 +27,8 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
 
   return (
     <>
-      <h1 className="text-3xl font-semibold tracking-tight">{buy ? "Konto erstellen" : `${trialDays} Tage kostenlos testen`}</h1>
-      <p className="mt-2 text-muted-foreground">
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{buy ? "Konto erstellen" : `${trialDays} Tage kostenlos testen`}</h1>
+      <p className="mt-2 text-sm text-muted-foreground sm:text-base">
         {buy ? (
           <>
             {plan.name}-Plan für {plan.priceEur} €/Monat. Nach der Registrierung geht es direkt zur Bezahlung.{" "}
@@ -40,9 +40,9 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
           <>In wenigen Minuten zur ersten automatisch bearbeiteten Anfrage.</>
         )}
       </p>
-      <ul className="mb-8 mt-4 flex flex-wrap gap-2 text-xs font-medium">
+      <ul className="mb-5 mt-3 flex flex-wrap gap-1.5 text-xs font-medium sm:mb-8 sm:mt-4 sm:gap-2">
         {(buy ? [`${plan.name}-Plan`, "Monatlich kündbar", "Server in der EU"] : ["Ohne Kreditkarte", `Danach ${plan.priceEur} €/Monat (${plan.name})`, "Jederzeit kündbar"]).map((t) => (
-          <li key={t} className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5">
+          <li key={t} className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 sm:px-3 sm:py-1.5">
             <Check className="size-3.5" aria-hidden /> {t}
           </li>
         ))}

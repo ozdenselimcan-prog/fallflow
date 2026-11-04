@@ -14,7 +14,7 @@ const benefits = [
 ];
 
 const trust = [
-  { icon: ShieldCheck, text: "Server in der EU · DSGVO" },
+  { icon: ShieldCheck, text: "Server in Deutschland · DSGVO" },
   { icon: CreditCard, text: "Testen ohne Kreditkarte" },
   { icon: Clock, text: "In 10 Minuten eingerichtet" },
 ];
@@ -72,15 +72,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </ul>
       </aside>
 
-      <section className="flex flex-col items-center justify-center px-4 py-10 sm:px-8">
-        <Logo className="mb-8 lg:hidden" />
+      <section className="flex flex-col items-center justify-start px-4 py-5 sm:justify-center sm:px-8 sm:py-10">
+        <Logo className="mb-4 sm:mb-8 lg:hidden" />
         <div className="w-full max-w-md space-y-4">
           {!isSupabaseConfigured() && (
             <Notice>
               Demo-Modus: Supabase ist nicht konfiguriert. Anmeldung und Registrierung führen direkt in die Demo-Umgebung, die Daten liegen nur im Arbeitsspeicher.
             </Notice>
           )}
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8 lg:border-0 lg:p-0 lg:shadow-none">{children}</div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8 lg:border-0 lg:p-0 lg:shadow-none">{children}</div>
           <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 pt-2 text-xs text-muted-foreground lg:hidden">
             {trust.map(({ icon: I, text }) => (
               <li key={text} className="flex items-center gap-1.5">

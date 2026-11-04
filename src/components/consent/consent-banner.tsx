@@ -67,7 +67,8 @@ export function ConsentBanner() {
     <div ref={box} role="dialog" aria-label="Cookie-Einstellungen" className="fixed inset-x-0 bottom-0 z-50 p-2 sm:p-4">
       <div className="mx-auto flex max-w-3xl flex-col gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-lg sm:flex-row sm:items-center sm:gap-3 sm:p-4">
         <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-          Wir verwenden Cookies, um unsere Website zu verbessern und die Wirkung unserer Werbung zu messen. Notwendige Cookies sind immer aktiv.{" "}
+          <span className="sm:hidden">Cookies für Werbemessung erlauben? Notwendige sind immer aktiv.</span>
+          <span className="hidden sm:inline">Wir verwenden Cookies, um unsere Website zu verbessern und die Wirkung unserer Werbung zu messen. Notwendige Cookies sind immer aktiv.</span>{" "}
           <Link href="/datenschutz#cookies" className="underline">
             Mehr erfahren
           </Link>
