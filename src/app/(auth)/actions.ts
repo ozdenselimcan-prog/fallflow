@@ -98,6 +98,10 @@ export async function signupAction(input: unknown): Promise<ActionResult> {
     if (error?.code === "over_email_send_rate_limit" || error?.status === 429)
       return { message: `Wir haben Ihnen bereits eine E-Mail an ${email} geschickt. Bitte klicken Sie auf den Link darin, um Ihre E-Mail-Adresse zu bestätigen. (Keine Mail? Bitte auch im Spam-Ordner nachsehen – nach einigen Minuten können Sie es erneut versuchen.)` };
     if (error) return { error: "Die Registrierung war nicht möglich. Bitte prüfen Sie Ihre Angaben." };
+    // Adresse schon registriert: Supabase meldet dann keinen Fehler, verschickt aber auch keine Mail (Nutzer ohne Identitäten).
+    // Ohne diesen Hinweis wartet man vergeblich auf die Bestätigungsmail.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0)
+      return { error: `Für ${email} gibt es bereits ein FallFlow-Konto. Bitte melden Sie sich unten über „Anmelden“ an – falls Sie das Passwort nicht mehr wissen, über „Passwort vergessen“.` };
     // Testphase ohne Zahlungsmethode: Ende festhalten (7 Tage bzw. Testzeitraum aus dem Link). Danach zeigt FallFlow nur
     // noch die Bezahlseite (siehe lib/billing/access.ts). Fehler hier blockieren die Registrierung nicht (dann gilt Anlage + 7 Tage).
     if (data.user) await setTrialEnd(data.user.id, direct ? 0 : trialDays).catch((err) => console.error("[signup] Testphase:", err instanceof Error ? err.message : "Fehler"));
