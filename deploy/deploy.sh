@@ -9,6 +9,7 @@ ssh fallflow "bash -s" <<REMOTE
 set -euo pipefail
 cd /opt/fallflow/releases/$REL
 cp deploy/fallflow.service /etc/systemd/system/fallflow.service
+mkdir -p /var/log/caddy && chown -R caddy:caddy /var/log/caddy
 cp deploy/Caddyfile /etc/caddy/Caddyfile
 install -m 755 deploy/cron.sh /opt/fallflow/cron.sh
 ln -sf /opt/fallflow/.env .env
