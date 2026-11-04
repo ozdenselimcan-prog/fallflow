@@ -20,7 +20,10 @@ systemctl daemon-reload
 systemctl enable --now fallflow >/dev/null 2>&1 || true
 systemctl restart fallflow
 systemctl reload caddy || systemctl restart caddy
-( crontab -u fallflow -l 2>/dev/null | grep -v cron.sh; echo "*/2 * * * * /opt/fallflow/cron.sh" ) | crontab -u fallflow -
+# "|| true": Ist der alte Eintrag die einzige Zeile, findet grep nichts (Exit 1) – mit set -e würde das Skript sonst hier
+# abbrechen, bevor der neue Eintrag geschrieben ist (Folge: leere Crontab, kein Mail-Abruf mehr).
+{ crontab -u fallflow -l 2>/dev/null | grep -v cron.sh || true; echo "*/2 * * * * /opt/fallflow/cron.sh"; } | crontab -u fallflow -
+crontab -u fallflow -l | grep -q cron.sh || { echo "FEHLER: Cronjob nicht eingetragen"; exit 1; }
 cd /opt/fallflow/releases && ls -1t | tail -n +4 | xargs -r rm -rf
 sleep 6; curl -fsS -o /dev/null -w "Lokal: HTTP %{http_code}\n" http://127.0.0.1:3000/ || echo "Start fehlgeschlagen: journalctl -u fallflow"
 REMOTE
