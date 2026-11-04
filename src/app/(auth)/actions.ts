@@ -37,11 +37,30 @@ export async function loginAction(input: unknown): Promise<ActionResult> {
   if (isSupabaseConfigured()) {
     const db = await createUserClient();
     const { error } = await db.auth.signInWithPassword(parsed.data);
-    // Supabase meldet "nicht bestätigt" nur bei richtigem Passwort – sonst bewusst generisch (keine Auskunft, ob die E-Mail existiert).
-    if (error?.code === "email_not_confirmed") return { error: "Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse – den Link dazu haben wir Ihnen bei der Registrierung geschickt." };
-    if (error) return { error: "E-Mail oder Passwort ist nicht korrekt." };
+    // Supabase meldet "nicht bestätigt" nur bei richtigem Passwort: Link gleich noch einmal schicken, statt nur darauf zu verweisen.
+    if (error?.code === "email_not_confirmed") {
+      await db.auth.resend({ type: "signup", email: parsed.data.email, options: { emailRedirectTo: `${siteConfig.appUrl}/auth/confirm?next=/onboarding` } }).catch(() => undefined);
+      return { error: `Ihre E-Mail-Adresse ist noch nicht bestätigt. Wir haben Ihnen den Bestätigungslink gerade noch einmal an ${parsed.data.email} geschickt (bitte auch im Spam-Ordner nachsehen).` };
+    }
+    if (error) {
+      // Klare Hilfe statt "E-Mail oder Passwort falsch": Die Registrierung verrät ohnehin, ob es ein Konto gibt, und die
+      // Versuche sind pro IP begrenzt (throttle oben). Unbekannte E-Mail → Schreibweise prüfen bzw. registrieren.
+      if ((await accountExists(parsed.data.email)) === false)
+        return { error: `Für ${parsed.data.email} gibt es noch kein FallFlow-Konto. Bitte prüfen Sie die Schreibweise – oder registrieren Sie sich kostenlos.` };
+      return { error: "Das Passwort ist nicht korrekt. Über „Passwort vergessen?“ können Sie ein neues festlegen." };
+    }
   }
   redirect("/dashboard");
+}
+
+/** Gibt es zu dieser E-Mail ein Benutzerkonto? null = nicht prüfbar (ohne Service Role). Jedes Konto hat einen Eintrag in
+ * company_members mit seiner E-Mail (Inhaber oder eingeladenes Teammitglied). */
+async function accountExists(email: string): Promise<boolean | null> {
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const { data, error } = await admin.from("company_members").select("user_id").eq("email", email.trim().toLowerCase()).limit(1);
+  if (error) return null;
+  return (data ?? []).length > 0;
 }
 
 /** Speichert das Ende der kostenlosen Testphase beim gerade angelegten Büro (nur, solange noch kein Stripe-Abo besteht). */
