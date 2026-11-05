@@ -79,7 +79,7 @@ export function Hero() {
           </span>
         </h1>
         <p className="hero-reveal mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 [animation-delay:160ms] sm:text-lg">
-          Per E-Mail, WhatsApp, Website-Chat und Telefon: Die KI beantwortet Ihre Kundenanfragen, fragt fehlende Angaben ab und bereitet den Auftrag vor – damit Sie sich auf Ihre eigentliche Arbeit konzentrieren können.
+          Per E-Mail und WhatsApp: Die KI beantwortet Ihre Kundenanfragen, fragt fehlende Angaben ab und bereitet den Auftrag vor – damit Sie sich auf Ihre eigentliche Arbeit konzentrieren können. Fragen von Besuchern Ihrer Website beantwortet zusätzlich der Website-Chat.
         </p>
         <div className="hero-reveal mt-8 flex w-full max-w-sm flex-col gap-3 [animation-delay:240ms] sm:max-w-none sm:flex-row sm:justify-center">
           <Link href="/signup" className={buttonStyles({ size: "lg" })}>

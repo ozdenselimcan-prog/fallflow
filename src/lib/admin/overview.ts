@@ -47,9 +47,29 @@ const isStale = (lastSyncedAt: string | null, now: number) => !lastSyncedAt || n
 export async function mailHealth(now = Date.now()): Promise<MailHealth | null> {
   const admin = createAdminClient();
   if (!admin) return null;
-  const { data, error } = await admin.from("connections").select("status, last_synced_at").in("provider", ["gmail", "microsoft"]).in("status", ["connected", "error"]);
+  const { data, error } = await admin.from("connections").select("company_id, status, last_synced_at").in("provider", ["gmail", "microsoft"]).in("status", ["connected", "error"]);
   if (error) throw new Error(error.message);
-  const rows = data ?? [];
+  // Nur Postfächer bewerten, die der Mail-Abruf auch bearbeitet: Bei gekündigtem Abo oder abgelaufener Testphase ohne
+  // Zahlungsmethode überspringt er sie absichtlich (siehe mail-sync.ts) – sonst meldet der Check dauerhaft "veraltet".
+  const ids = [...new Set((data ?? []).map((r) => r.company_id as string))];
+  const [subs, comps] = ids.length
+    ? await Promise.all([
+        admin.from("subscriptions").select("company_id, status, stripe_customer_id, current_period_end").in("company_id", ids),
+        admin.from("companies").select("id, created_at").in("id", ids),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
+  if (subs.error || comps.error) throw new Error((subs.error ?? comps.error)!.message);
+  const subOf = new Map((subs.data ?? []).map((s) => [s.company_id as string, s]));
+  const createdOf = new Map((comps.data ?? []).map((c) => [c.id as string, c.created_at as string]));
+  const active = (companyId: string) => {
+    const s = subOf.get(companyId);
+    const createdAt = createdOf.get(companyId);
+    if (!s || !createdAt) return true;
+    if (s.status === "canceled") return false;
+    const sub = { status: s.status as Subscription["status"], stripeCustomerId: s.stripe_customer_id as string | null, currentPeriodEnd: s.current_period_end as string | null };
+    return !needsPaymentSetup({ createdAt }, sub, now);
+  };
+  const rows = (data ?? []).filter((r) => active(r.company_id as string));
   const errors = rows.filter((r) => r.status === "error").length;
   const stale = rows.filter((r) => r.status === "connected" && isStale(r.last_synced_at, now)).length;
   return { ok: errors === 0 && stale === 0, mailboxes: rows.length, errors, stale };

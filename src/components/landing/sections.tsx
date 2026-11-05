@@ -52,7 +52,7 @@ function Section({ id, title, intro, children, tinted, h1 }: { id?: string; titl
 }
 
 const flow = [
-  { title: "Kundenanfrage", text: "Per E-Mail, WhatsApp, Website-Chat oder Telefon" },
+  { title: "Kundenanfrage", text: "Per E-Mail oder WhatsApp" },
   { title: "KI-Qualifizierung", text: "Bekannte Angaben werden erkannt" },
   { title: "Fehlende Daten", text: "Die KI fordert per Mail nur an, was noch fehlt" },
   { title: "Unterlagen", text: "Formulare und Fotos kommen per Mail-Antwort" },

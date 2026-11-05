@@ -130,7 +130,7 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
           <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">So läuft eine Anfrage mit {siteConfig.name}</h2>
-              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">Per E-Mail, WhatsApp oder im Chat auf Ihrer Website – die KI antwortet mit Ihren Texten und fragt Schritt für Schritt nach.</p>
+              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">Per E-Mail oder WhatsApp – die KI antwortet mit Ihren Texten und fragt Schritt für Schritt nach. Fragen auf Ihrer Website beantwortet zusätzlich der Website-Chat.</p>
               <ul className="mt-6 space-y-3 text-sm">
                 {HOW.map((t) => (
                   <li key={t} className="flex items-start gap-2">
