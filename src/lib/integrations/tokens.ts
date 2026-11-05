@@ -11,7 +11,13 @@ const REFRESH_MARGIN_MS = 5 * 60_000;
  */
 export async function getValidTokens(provider: MailSyncProvider, companyId: string): Promise<{ tokens: ProviderTokens; connection: Connection } | null> {
   const connection = await getConnection(companyId, provider.id);
-  if (!connection || connection.status !== "connected" || !connection.accessToken) return null;
+  if (!connection || connection.status !== "connected") return null;
+  if (!connection.accessToken) {
+    // "Verbunden", aber kein lesbarer Zugang (z. B. nach einem Wechsel von CONNECTIONS_SECRET lassen sich die gespeicherten
+    // Zugangsdaten nicht mehr entschlüsseln): sichtbar als Fehler markieren, statt das Postfach stillschweigend zu überspringen.
+    await saveConnection({ companyId, provider: provider.id, status: "error", lastError: "Die gespeicherten Zugangsdaten sind nicht mehr lesbar – bitte das Postfach unter „Verbindungen“ neu verbinden." }).catch(() => {});
+    return null;
+  }
 
   const expiresAt = connection.expiresAt ? Date.parse(connection.expiresAt) : 0;
   if (!provider.refreshTokens || !connection.refreshToken || Date.now() < expiresAt - REFRESH_MARGIN_MS) {
