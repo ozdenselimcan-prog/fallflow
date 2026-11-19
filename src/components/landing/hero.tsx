@@ -70,16 +70,16 @@ export function Hero() {
       <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
       <div className="flex flex-col items-center">
         <span className="hero-reveal mb-5 inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">
-          KI für Kundenanfragen – für jeden Betrieb
+          Für Handwerker und kleine Betriebe
         </span>
         <h1 className="hero-reveal text-balance text-[clamp(2rem,5vw+0.5rem,3.75rem)] font-black leading-[1.05] tracking-[-0.03em] text-zinc-900 [animation-delay:80ms]">
-          Aus jeder Kundenanfrage
+          Keine Kundenanfrage
           <span className="mt-1 block text-zinc-400">
-            <TypedText text="ein fertiger Auftrag." />
+            <TypedText text="geht mehr verloren." />
           </span>
         </h1>
         <p className="hero-reveal mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 [animation-delay:160ms] sm:text-lg">
-          Per E-Mail und WhatsApp: Die KI beantwortet Ihre Kundenanfragen, fragt fehlende Angaben ab und bereitet den Auftrag vor – damit Sie sich auf Ihre eigentliche Arbeit konzentrieren können. Fragen von Besuchern Ihrer Website beantwortet zusätzlich der Website-Chat.
+          Jeder Kunde bekommt in wenigen Minuten eine Antwort – per E-Mail oder WhatsApp, auch abends und am Wochenende. Sie bekommen den fertig vorbereiteten Auftrag.
         </p>
         <div className="hero-reveal mt-8 flex w-full max-w-sm flex-col gap-3 [animation-delay:240ms] sm:max-w-none sm:flex-row sm:justify-center">
           <Link href="/signup" className={buttonStyles({ size: "lg" })}>
@@ -89,10 +89,10 @@ export function Hero() {
             Demo ansehen
           </Link>
         </div>
-        <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Kostenlos testen, ohne Kreditkarte. Kein weiteres CRM – Ihre gewohnten Abläufe bleiben erhalten.</p>
+        <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Ohne Kreditkarte · ab 49 €/Monat · monatlich kündbar</p>
       </div>
 
-      <div className="hero-reveal relative w-full max-w-xl text-left [animation-delay:420ms]" aria-label="Vorschau einer Fallakte">
+      <div className="hero-reveal relative hidden w-full max-w-xl text-left [animation-delay:420ms] sm:block" aria-label="Vorschau einer Fallakte">
         <div className="rounded-lg border border-border bg-card p-2 shadow-[0_8px_28px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
             <span className="size-2.5 rounded-full bg-border" />

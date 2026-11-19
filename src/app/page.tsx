@@ -3,21 +3,18 @@ import { MobileCta } from "@/components/landing/mobile-cta";
 import { Hero } from "@/components/landing/hero";
 import { Navbar } from "@/components/landing/navbar";
 import { ReviewsSection } from "@/components/landing/reviews";
-import { UsageStats } from "@/components/landing/usage-stats";
-import {
-  AudienceSection,
-  DemoSection,
-  FaqSection,
-  FeaturesSection,
-  FinalCta,
-  FlowSection,
-  MailFlowSection,
-  NoCrmSection,
-  PricingSection,
-  ProblemSection,
-  SolutionSection,
-} from "@/components/landing/sections";
+import { ControlSection, FaqSection, FinalCta, MailFlowSection, PricingSection, SimpleStepsSection } from "@/components/landing/sections";
 
+const HOME_FAQS = [
+  "Wie aufwendig ist die Einrichtung?",
+  "Schreibt die KI meinen Kunden eigene Texte?",
+  "Erfindet die KI Preise?",
+  "Funktioniert das auch mit WhatsApp und Telefon?",
+  "Für welche Betriebe ist FallFlow geeignet?",
+  "Wo werden Kundendaten gespeichert?",
+];
+
+/** Startseite bewusst kurz: ein Versprechen, der Film als Beweis, drei Schritte – Details stehen auf /funktionen und /branchen. */
 export default function HomePage() {
   return (
     <>
@@ -25,19 +22,11 @@ export default function HomePage() {
       <main>
         <Hero />
         <MailFlowSection />
-        <div className="-mt-6 px-4 pb-16 text-center sm:px-6">
-          <UsageStats />
-        </div>
-        <FlowSection />
-        <ProblemSection />
-        <SolutionSection />
-        <DemoSection />
-        <FeaturesSection />
-        <NoCrmSection />
-        <AudienceSection />
+        <SimpleStepsSection />
+        <ControlSection />
         <ReviewsSection />
         <PricingSection />
-        <FaqSection />
+        <FaqSection only={HOME_FAQS} />
         <FinalCta />
       </main>
       <Footer />

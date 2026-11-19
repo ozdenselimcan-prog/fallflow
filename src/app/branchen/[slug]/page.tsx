@@ -6,7 +6,6 @@ import { Footer } from "@/components/landing/footer";
 import { MobileCta } from "@/components/landing/mobile-cta";
 import { Navbar } from "@/components/landing/navbar";
 import { CaseFilm } from "@/components/landing/case-film";
-import { UsageStats } from "@/components/landing/usage-stats";
 import { FeaturesSection, FinalCta, FlowSection, NoCrmSection, PricingSection, SolutionSection } from "@/components/landing/sections";
 import { INDUSTRY_FILMS } from "@/lib/config/industry-films";
 import { buttonStyles } from "@/components/ui/button";
@@ -89,7 +88,6 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
               <CaseFilm scenario={INDUSTRY_FILMS[page.slug]} />
             </div>
             <div className="mt-12 text-center">
-              <UsageStats />
               <div className="mt-6 flex items-center justify-center gap-3">
                 <span className="flex items-center gap-1 text-lg font-semibold tracking-tight text-zinc-900">
                   <svg viewBox="0 0 24 24" className="size-6 fill-[#00B67A]" aria-hidden><path d={STAR_PATH} /></svg>

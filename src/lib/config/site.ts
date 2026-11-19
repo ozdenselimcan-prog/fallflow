@@ -12,7 +12,7 @@ export const indexable = /^https:\/\/(www\.)?fallflow\.(eu|xyz)/.test(siteConfig
 
 export const navLinks = [
   { label: "Produkt", href: "/#produkt" },
-  { label: "Funktionen", href: "/#funktionen" },
+  { label: "Funktionen", href: "/funktionen" },
   { label: "So funktioniert's", href: "/#so-funktioniert-es" },
   { label: "Branchen", href: "/branchen" },
   { label: "Preise", href: "/#preise" },

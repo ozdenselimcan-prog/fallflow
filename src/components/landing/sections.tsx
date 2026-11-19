@@ -100,6 +100,59 @@ export function MailFlowSection({ h1 = false }: { h1?: boolean } = {}) {
   );
 }
 
+const simpleSteps = [
+  { icon: Mail, title: "Postfach verbinden", text: "Einmal Ihr E-Mail-Postfach verbinden, auf Wunsch auch WhatsApp. Wählen Sie Ihre Branche – die Vorlagen sind schon da." },
+  { icon: MessageCircle, title: "Die KI antwortet sofort", text: "Jede Anfrage bekommt eine freundliche Antwort mit Ihren Texten. Fehlende Angaben, Fotos und Formulare fordert sie selbst an." },
+  { icon: ClipboardCheck, title: "Sie bekommen den Auftrag", text: "Alles Wichtige auf einen Blick, mit Terminvorschlag. Notfälle meldet FallFlow sofort aufs Handy." },
+];
+
+/** Startseite: der ganze Ablauf in drei einfachen Schritten. */
+export function SimpleStepsSection() {
+  return (
+    <Section id="so-funktioniert-es" tinted title="So einfach geht's." intro="Sie arbeiten weiter wie bisher. FallFlow kümmert sich um die Anfragen.">
+      <ol className="grid gap-4 md:grid-cols-3">
+        {simpleSteps.map(({ icon: I, title, text }, i) => (
+          <li key={title}>
+            <Card className="h-full p-6">
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
+                  <I className="size-5" />
+                </span>
+                <span className="font-mono text-sm font-semibold text-muted-foreground">Schritt {i + 1}</span>
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
+            </Card>
+          </li>
+        ))}
+      </ol>
+    </Section>
+  );
+}
+
+const control = [
+  "Die KI erfindet keine Preise – Fragen zu Preisen und Sonderfällen gehen an Sie.",
+  "Jeder Text, den Ihre Kunden bekommen, lässt sich ändern.",
+  "Kein neues Programm: Kunden schreiben wie gewohnt per E-Mail oder WhatsApp.",
+  "Server in Deutschland, DSGVO-konform. Monatlich kündbar.",
+];
+
+/** Startseite: die häufigsten Bedenken („Was schreibt die KI meinen Kunden?“) direkt beantworten. */
+export function ControlSection() {
+  return (
+    <Section title="Sie behalten die Kontrolle.">
+      <ul className="grid max-w-4xl gap-3 sm:grid-cols-2">
+        {control.map((t) => (
+          <li key={t} className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-sm leading-relaxed">
+            <Check className="mt-0.5 size-4 shrink-0 text-accent" />
+            {t}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
 const problems: { icon: Icon; title: string }[] = [
   { icon: FileQuestion, title: "Unvollständige Anfragen" },
   { icon: Mail, title: "Rückfragen per E-Mail" },
@@ -330,11 +383,13 @@ export function PricingSection({ h1 = false }: { h1?: boolean } = {}) {
   );
 }
 
-export function FaqSection({ h1 = false }: { h1?: boolean } = {}) {
+/** `only`: Auswahl an Fragen (Startseite) – mit Link auf alle Fragen unter /faq. */
+export function FaqSection({ h1 = false, only }: { h1?: boolean; only?: string[] } = {}) {
+  const list = only ? faqs.filter((f) => only.includes(f.q)) : faqs;
   return (
     <Section id="faq" h1={h1} tinted title="Häufige Fragen">
       <div className="max-w-3xl space-y-3">
-        {faqs.map((f) => (
+        {list.map((f) => (
           <details key={f.q} className="group rounded-lg border border-border bg-card px-5 py-4">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium [&::-webkit-details-marker]:hidden">
               {f.q}
@@ -344,6 +399,11 @@ export function FaqSection({ h1 = false }: { h1?: boolean } = {}) {
           </details>
         ))}
       </div>
+      {only && (
+        <Link href="/faq" className={buttonStyles({ variant: "secondary", className: "mt-6" })}>
+          Alle Fragen ansehen <ArrowRight className="size-4" />
+        </Link>
+      )}
     </Section>
   );
 }
