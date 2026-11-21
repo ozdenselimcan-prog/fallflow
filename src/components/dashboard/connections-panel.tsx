@@ -367,6 +367,43 @@ function EmailCard({ connection, canManage, microsoftAvailable, returnTo, integr
   );
 }
 
+/**
+ * Zwei gleichwertige Wege, E-Mails anzubinden: Weiterleitung (ohne Passwort, empfohlen) oder das Postfach direkt
+ * verbinden (Zugangsdaten bzw. Microsoft-Anmeldung, Antworten kommen dann von der eigenen Adresse).
+ */
+function EmailChoice({ gmail, canManage, microsoftAvailable, returnTo, integrationResult }: { gmail: ConnectionView | null; canManage: boolean; microsoftAvailable: boolean; returnTo: string; integrationResult?: string }) {
+  // Zurück von der Microsoft-Anmeldung oder Postfach mit Fehler: gleich die direkte Verbindung zeigen.
+  const [mode, setMode] = useState<"forward" | "direct">(integrationResult || gmail ? "direct" : "forward");
+  const options = [
+    { id: "forward" as const, title: "Weiterleitung", hint: "Empfohlen · ohne Passwort, in 2 Minuten" },
+    { id: "direct" as const, title: "Postfach verbinden", hint: "Mit Zugangsdaten · Antworten von Ihrer Adresse" },
+  ];
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Wie soll FallFlow Ihre E-Mails bekommen?">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === o.id}
+            onClick={() => setMode(o.id)}
+            className={`rounded-xl border p-3 text-left transition-colors ${mode === o.id ? "border-foreground bg-card ring-1 ring-foreground" : "border-border bg-card hover:bg-muted"}`}
+          >
+            <span className="block text-sm font-semibold">{o.title}</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">{o.hint}</span>
+          </button>
+        ))}
+      </div>
+      {mode === "forward" ? (
+        <ForwardingCard canManage={canManage} />
+      ) : (
+        <EmailCard connection={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
+      )}
+    </>
+  );
+}
+
 interface Props {
   appUrl: string;
   companyId: string;
@@ -412,16 +449,7 @@ export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsof
         {gmail?.status === "connected" ? (
           <EmailCard connection={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
         ) : (
-          <>
-            {/* Standard ist die Weiterleitung (ohne Passwort); das direkte Verbinden bleibt als Alternative aufklappbar. */}
-            <ForwardingCard canManage={canManage} />
-            <details className="rounded-xl border border-border bg-card" open={Boolean(integrationResult || gmail)}>
-              <summary className="cursor-pointer px-5 py-3 text-sm font-medium">Oder: Postfach direkt verbinden (mit Passwort oder Microsoft-Anmeldung)</summary>
-              <div className="border-t border-border">
-                <EmailCard connection={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
-              </div>
-            </details>
-          </>
+          <EmailChoice gmail={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
         )}
       </div>
     </div>
