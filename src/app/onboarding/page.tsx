@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ConversionPing } from "@/components/consent/consent-banner";
 import { OnboardingWizard } from "@/components/onboarding/wizard";
+import { SupportBanner } from "@/components/dashboard/support-banner";
 import { CORE_FIELD_KEYS } from "@/lib/ai/business-profile";
 import { Logo } from "@/components/ui/logo";
 import { requireSession } from "@/lib/auth/session";
@@ -30,6 +31,11 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-12">
       <Logo className="mb-8" href="/" />
+      {session.support && (
+        <div className="w-full max-w-3xl">
+          <SupportBanner companyName={session.support.companyName} />
+        </div>
+      )}
       {/* Google-Ads-Conversion "Registrierung" (einmal pro Browser, nur mit Einwilligung). */}
       <ConversionPing kind="signup" />
       <OnboardingWizard

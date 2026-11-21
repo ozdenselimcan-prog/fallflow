@@ -90,6 +90,12 @@ export function Hero() {
           </Link>
         </div>
         <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Ohne Kreditkarte · ab 49 €/Monat · monatlich kündbar</p>
+        <p className="hero-reveal mt-2 text-sm text-zinc-500 [animation-delay:360ms]">
+          Keine Zeit für Einstellungen?{" "}
+          <Link href="/einrichtung" className="font-medium text-zinc-900 underline underline-offset-2">
+            Wir richten es kostenlos für Sie ein
+          </Link>
+        </p>
       </div>
 
       <div className="hero-reveal relative hidden w-full max-w-xl text-left [animation-delay:420ms] sm:block" aria-label="Vorschau einer Fallakte">

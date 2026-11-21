@@ -10,6 +10,7 @@ import { Notice } from "@/components/ui/states";
 import { BusinessProfileEditor, EMPTY_DRAFT, type ProfileDraft } from "@/components/onboarding/business-profile-editor";
 import { SetupVideoButton } from "@/components/ui/setup-video";
 import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
+import { SupportAccessCard } from "@/components/dashboard/support-access-card";
 import type { ServiceMessageView, ServiceTemplateView } from "@/components/dashboard/service-messages-panel";
 import { WhatsAppCard } from "@/components/dashboard/whatsapp-card";
 import { WidgetSnippet } from "@/components/dashboard/widget-snippet";
@@ -114,6 +115,10 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
               In wenigen Schritten richten wir FallFlow für Ihren Betrieb ein: Firmendaten, Ihre Leistungen und was der Assistent erfragen soll, Ihre Vorlagen &amp; Nachrichten, die Terminvergabe, den Website-Chat, WhatsApp und Ihr E-Mail-Postfach. Alles lässt sich später in den Einstellungen ändern.
             </p>
             <SetupVideoButton label="Erst kurz ansehen, wie es geht" className="mt-4" />
+            {/* Wer sich das nicht selbst zutraut: Einrichtung durch uns, ohne Passwort weiterzugeben. */}
+            <div className="pt-4">
+              <SupportAccessCard canManage />
+            </div>
           </div>
         )}
 

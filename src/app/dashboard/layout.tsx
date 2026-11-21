@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CheckoutConversion } from "@/components/consent/consent-banner";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
+import { SupportBanner } from "@/components/dashboard/support-banner";
 import { isDirectPurchase, needsPaymentSetup, trialDaysLeft } from "@/lib/billing/access";
 import { TrialBanner } from "@/components/dashboard/trial-banner";
 import { DashboardShell } from "@/components/dashboard/shell";
@@ -31,6 +32,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
       <Suspense>
         <CheckoutConversion />
       </Suspense>
+      {session.support && <SupportBanner companyName={session.support.companyName} />}
       {/* Testphase ohne Zahlungsmethode abgelaufen: nur noch die Bezahlseite. Während der Testphase: Hinweis oben. */}
       {paywall ? (
         <Suspense>

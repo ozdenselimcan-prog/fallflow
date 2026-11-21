@@ -1,7 +1,10 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { connection } from "next/server";
-import { createUserClient } from "@/lib/supabase/clients";
+import { isPlatformAdmin } from "@/lib/admin/overview";
+import { createAdminClient, createUserClient } from "@/lib/supabase/clients";
+import { readSupportToken, SUPPORT_COOKIE, supportAccessActive, type SupportAccess } from "./support";
 import { isSupabaseConfigured } from "@/lib/utils";
 import { DEMO_COMPANY_ID, DEMO_USER_ID } from "@/lib/data/seed";
 import type { Role } from "@/lib/data/types";
@@ -20,6 +23,8 @@ export interface Session {
   trialDays?: number;
   /** Diese E-Mail-Adresse hatte schon einmal eine Testphase – deshalb ohne neue Testphase registriert. */
   trialUsedBefore?: boolean;
+  /** Support-Modus: Ein Betreiber richtet gerade das Konto dieses Betriebs ein (siehe lib/auth/support.ts). */
+  support?: { companyName: string; ownCompanyId: string };
 }
 
 export const getSession = cache(async (): Promise<Session | null> => {
@@ -48,7 +53,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
     db.from("profiles").select("first_name, last_name").eq("id", user.id).maybeSingle(),
   ]);
   if (!member) return null;
-  return {
+  const session: Session = {
     userId: user.id,
     email: user.email ?? "",
     firstName: profile?.first_name ?? "",
@@ -60,7 +65,24 @@ export const getSession = cache(async (): Promise<Session | null> => {
     trialDays: Number.isInteger(user.user_metadata?.trial_days) ? user.user_metadata.trial_days : undefined,
     trialUsedBefore: user.user_metadata?.trial_used_before === true,
   };
+  return (await supportSession(session)) ?? session;
 });
+
+/**
+ * Support-Modus: Hat ein Betreiber über /admin das Konto eines Betriebs geöffnet (signiertes Cookie) und erlaubt der
+ * Betrieb das noch, arbeitet die Sitzung in diesem Betrieb – als ADMIN, also ohne Zugriff auf die Abrechnung.
+ */
+async function supportSession(session: Session): Promise<Session | null> {
+  if (!isPlatformAdmin(session.email)) return null;
+  const target = readSupportToken((await cookies()).get(SUPPORT_COOKIE)?.value);
+  if (!target || target === session.companyId) return null;
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const { data } = await admin.from("companies").select("name, business_profile").eq("id", target).maybeSingle();
+  const access = (data?.business_profile as { supportAccess?: SupportAccess } | null)?.supportAccess;
+  if (!data || !supportAccessActive(access)) return null;
+  return { ...session, companyId: target, role: "ADMIN", support: { companyName: data.name as string, ownCompanyId: session.companyId } };
+}
 
 /** Für Server Components: leitet ohne Session auf /login um. */
 export async function requireSession(): Promise<Session> {

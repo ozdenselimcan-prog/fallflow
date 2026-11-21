@@ -72,6 +72,8 @@ export interface BusinessProfile {
   quoteDefaults?: { vatRate?: 19 | 7 | 0 };
   /** Anfrage auf WhatsApp-Freischaltung (solange die Meta-App noch nicht freigegeben ist, siehe lib/whatsapp-access.ts). */
   whatsappRequest?: WhatsAppAccessRequest;
+  /** Der Betrieb erlaubt dem FallFlow-Support zeitlich begrenzt, sein Konto einzurichten (siehe lib/auth/support.ts). */
+  supportAccess?: import("@/lib/auth/support").SupportAccess;
 }
 
 export interface WhatsAppAccessRequest {

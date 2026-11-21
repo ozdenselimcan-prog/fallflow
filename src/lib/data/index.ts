@@ -6,9 +6,16 @@ import type { Store } from "./store";
 import { createSupabaseStore } from "./supabase";
 import type { CaseRecord } from "./types";
 
-/** Store für den eingeloggten Benutzer (RLS). */
+/** Store für den eingeloggten Benutzer (RLS; im Support-Modus Service-Role für den freigegebenen Betrieb). */
 export async function getStore(session: Session): Promise<Store> {
   if (session.demo) return createMemoryStore();
+  // Support-Modus: Der Betreiber ist kein Mitglied dieses Betriebs, RLS würde alles sperren – Service-Role, fest auf den
+  // Betrieb begrenzt, den der Kunde freigegeben hat (geprüft in getSession).
+  if (session.support) {
+    const admin = createAdminClient();
+    if (!admin) throw new Error("Service-Role-Key fehlt – Support-Modus nicht verfügbar.");
+    return createSupabaseStore(admin, session.companyId);
+  }
   return createSupabaseStore(await createUserClient(), session.companyId);
 }
 

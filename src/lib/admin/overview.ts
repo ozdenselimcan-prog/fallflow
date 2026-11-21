@@ -32,6 +32,8 @@ export interface CompanyRow {
   cases30d: number;
   casesTotal: number;
   lastActivity: string | null;
+  /** Support-Zugriff erlaubt bis (siehe lib/auth/support.ts), null = nicht erlaubt. */
+  supportUntil: string | null;
 }
 
 export interface MailHealth {
@@ -81,7 +83,7 @@ export async function loadCompanyOverview(now = Date.now()): Promise<CompanyRow[
   if (!admin) return [];
   const since30 = new Date(now - 30 * 86_400_000).toISOString();
   const [companies, subs, members, conns, cases] = await Promise.all([
-    admin.from("companies").select("id, name, created_at, onboarding_completed").order("created_at", { ascending: false }),
+    admin.from("companies").select("id, name, created_at, onboarding_completed, supportAccess:business_profile->supportAccess").order("created_at", { ascending: false }),
     admin.from("subscriptions").select("company_id, plan, status, stripe_customer_id, current_period_end, canceled_at"),
     admin.from("company_members").select("company_id, email, role").eq("role", "OWNER"),
     admin.from("connections").select("company_id, provider, account_email, status, last_synced_at, last_error").in("provider", ["gmail", "microsoft"]),
@@ -129,6 +131,10 @@ export async function loadCompanyOverview(now = Date.now()): Promise<CompanyRow[
       cases30d: stats?.recent ?? 0,
       casesTotal: stats?.total ?? 0,
       lastActivity: stats?.last ?? null,
+      supportUntil: (() => {
+        const until = (c.supportAccess as { until?: string } | null)?.until;
+        return until && Date.parse(until) > now ? until : null;
+      })(),
     };
   });
 }

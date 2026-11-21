@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CleanupTestAccountsButton } from "@/components/admin/cleanup-button";
+import { OpenSupportButton } from "@/components/admin/open-support-button";
 import { WhatsAppRequests } from "@/components/admin/whatsapp-requests";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Badge, Card } from "@/components/ui/card";
@@ -113,6 +114,7 @@ export default async function AdminPage() {
                   <p className="font-medium">{c.name}</p>
                   <p className="text-xs text-muted-foreground">{c.owner || "–"}</p>
                   {!c.onboarded && <p className="text-xs text-warning">Onboarding nicht abgeschlossen</p>}
+                  {c.supportUntil && <OpenSupportButton companyId={c.id} until={c.supportUntil} />}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col items-start gap-1">

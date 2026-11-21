@@ -135,6 +135,7 @@ const control = [
   "Jeder Text, den Ihre Kunden bekommen, lässt sich ändern.",
   "Kein neues Programm: Kunden schreiben wie gewohnt per E-Mail oder WhatsApp.",
   "Server in Deutschland, DSGVO-konform. Monatlich kündbar.",
+  "Persönliche Einrichtung inklusive: Auf Wunsch richten wir alles in einem kurzen Telefonat mit Ihnen ein.",
 ];
 
 /** Startseite: die häufigsten Bedenken („Was schreibt die KI meinen Kunden?“) direkt beantworten. */
@@ -421,6 +422,12 @@ export function FinalCta() {
             Demo ansehen
           </Link>
         </div>
+        <p className="mt-6 text-sm text-zinc-300">
+          Lieber nicht selbst einrichten?{" "}
+          <Link href="/einrichtung" className="font-medium text-white underline underline-offset-2">
+            Wir machen das kostenlos mit Ihnen am Telefon.
+          </Link>
+        </p>
       </div>
     </section>
   );

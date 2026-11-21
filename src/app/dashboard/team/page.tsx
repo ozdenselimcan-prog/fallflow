@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SupportAccessCard } from "@/components/dashboard/support-access-card";
 import { TeamManager } from "@/components/dashboard/team-manager";
 import { PageHeader } from "@/components/ui/card";
 import { can } from "@/lib/auth/permissions";
@@ -16,6 +17,11 @@ export default async function TeamPage() {
     <>
       <PageHeader title="Team" description="Inhaber und Admins verwalten Mitarbeiter, Mitarbeiter bearbeiten Fälle und Termine." />
       <TeamManager members={members} canManage={can(session.role, "team:manage")} />
+      {!session.support && (
+        <div className="mt-6 max-w-2xl">
+          <SupportAccessCard canManage={can(session.role, "company:manage")} />
+        </div>
+      )}
     </>
   );
 }

@@ -228,6 +228,10 @@ export default function DatenschutzPage() {
               Wenn Sie uns per E-Mail schreiben, verarbeiten wir Ihre E-Mail-Adresse, Ihren Namen (sofern angegeben) und den Inhalt Ihrer Nachricht, um Ihre Anfrage zu beantworten.
             </p>
             <p>
+              Fragen Sie über das Formular auf der Seite „Persönliche Einrichtung“ einen Rückruf an, verarbeiten wir Ihren Namen, den Namen Ihres Betriebs, Telefonnummer,
+              E-Mail-Adresse und Ihre weiteren Angaben, um Sie für die Einrichtung zu kontaktieren. Das Formular wird uns über Resend (Abschnitt 15) als E-Mail zugestellt.
+            </p>
+            <p>
               <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO, wenn Ihre Anfrage mit einem Vertrag oder dessen Anbahnung zusammenhängt; sonst Art. 6 Abs. 1 lit. f DSGVO
               (unser berechtigtes Interesse, Anfragen zu beantworten).
             </p>
