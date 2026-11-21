@@ -1,5 +1,5 @@
 import { ImapFlow } from "imapflow";
-import { simpleParser } from "mailparser";
+import { simpleParser, type ParsedMail } from "mailparser";
 import nodemailer from "nodemailer";
 import { replySubject, stripHtml, type InboundAttachment, type InboundEmail, type MailSyncProvider, type ProviderTokens } from "./email";
 
@@ -128,48 +128,53 @@ async function readMailbox(client: ImapFlow, path: string, junk: boolean, since:
     for await (const msg of client.fetch(recent, { source: true, uid: true }, { uid: true })) {
       if (!msg.source) continue;
       const parsed = await simpleParser(msg.source);
-      // Übernommen werden PDFs sowie echte Foto-Anhänge (z. B. Grundriss/Energieausweis als Foto) in
-      // vernünftiger Größe – Bilder in Signaturen (inline, klein) und große Dateien werden ignoriert.
-      const isImage = (a: { contentType: string; contentDisposition?: string; content?: Buffer }) =>
-        ["image/jpeg", "image/png", "image/webp"].includes(a.contentType) && a.contentDisposition === "attachment" && (a.content?.length ?? 0) >= 20_000;
-      // Manche Mailprogramme schicken PDFs als "application/octet-stream" o. Ä. – daher auch am Dateiinhalt
-      // ("%PDF") bzw. an der Endung .pdf erkennen, sonst landet die PDF des Kunden nicht in der Fallakte.
-      const isPdf = (a: { contentType: string; filename?: string; content?: Buffer }) =>
-        a.contentType === "application/pdf" || /\.pdf$/i.test(a.filename ?? "") || a.content?.subarray(0, 5).toString("latin1") === "%PDF-";
-      const accepted = (a: { contentType: string; contentDisposition?: string; filename?: string; content?: Buffer }) =>
-        (isPdf(a) || isImage(a)) && Boolean(a.content) && (a.content?.length ?? 0) > 0 && (a.content?.length ?? 0) <= MAX_ATTACHMENT_BYTES;
-      // Vom Kunden bewusst angehängte Dateien, die nicht übernommen werden können (HEIC-Fotos, Word, zu groß …) –
-      // das Büro bekommt in der Fallakte einen Hinweis. Kleine Bilder (Logos in Signaturen) zählen nicht.
-      const skippedAttachments = (parsed.attachments ?? [])
-        .filter((a) => !accepted(a) && (a.content?.length ?? 0) >= 20_000 && (a.contentDisposition === "attachment" || !a.contentType.startsWith("image/")))
-        .map((a) => a.filename || "Datei ohne Namen");
-      const attachments: InboundAttachment[] = (parsed.attachments ?? [])
-        .filter(accepted)
-        .map((a) => {
-          const pdf = isPdf(a);
-          return { filename: a.filename || (pdf ? "dokument.pdf" : "foto"), mime: pdf ? "application/pdf" : a.contentType, bytes: new Uint8Array(a.content) };
-        });
-      // RFC 3834: "Auto-Submitted: no" (oder fehlend) = normale Mail eines Menschen; jeder andere Wert
-      // (z. B. "auto-replied", "auto-generated") kommt von einem automatisch antwortenden System – das darf
-      // niemals wieder automatisch beantwortet werden, sonst entsteht eine Endlosschleife (z. B. mit einer
-      // Abwesenheitsnotiz oder einem anderen Büro, das ebenfalls FallFlow nutzt).
-      const autoSubmittedHeader = parsed.headers.get("auto-submitted");
-      const autoSubmitted = (typeof autoSubmittedHeader === "string" && autoSubmittedHeader.toLowerCase() !== "no") || parsed.headers.has("x-fallflow-auto");
-      out.push({
-        // UIDs gelten nur je Ordner – Junk-Mails bekommen ein eigenes Präfix, damit sie nicht mit dem Posteingang kollidieren.
-        externalId: junk ? `junk:${msg.uid}` : String(msg.uid),
-        messageId: parsed.messageId || undefined,
-        junk,
-        from: parsed.from?.text ?? "",
-        subject: parsed.subject ?? "",
-        body: (parsed.text ?? stripHtml(typeof parsed.html === "string" ? parsed.html : "")).slice(0, 4000),
-        receivedAt: (parsed.date ?? new Date()).toISOString(),
-        attachments,
-        skippedAttachments,
-        autoSubmitted,
-      });
+      // UIDs gelten nur je Ordner – Junk-Mails bekommen ein eigenes Präfix, damit sie nicht mit dem Posteingang kollidieren.
+      out.push(toInboundEmail(parsed, junk ? `junk:${msg.uid}` : String(msg.uid), junk));
     }
   } finally {
     lock.release();
   }
+}
+
+/** Wandelt eine geparste Mail in das gemeinsame Format für den Postfach-Abruf und die Weiterleitung (siehe forwarding.ts). */
+export function toInboundEmail(parsed: ParsedMail, externalId: string, junk = false): InboundEmail {
+  // Übernommen werden PDFs sowie echte Foto-Anhänge (z. B. Grundriss/Energieausweis als Foto) in
+  // vernünftiger Größe – Bilder in Signaturen (inline, klein) und große Dateien werden ignoriert.
+  const isImage = (a: { contentType: string; contentDisposition?: string; content?: Buffer }) =>
+    ["image/jpeg", "image/png", "image/webp"].includes(a.contentType) && a.contentDisposition === "attachment" && (a.content?.length ?? 0) >= 20_000;
+  // Manche Mailprogramme schicken PDFs als "application/octet-stream" o. Ä. – daher auch am Dateiinhalt
+  // ("%PDF") bzw. an der Endung .pdf erkennen, sonst landet die PDF des Kunden nicht in der Fallakte.
+  const isPdf = (a: { contentType: string; filename?: string; content?: Buffer }) =>
+    a.contentType === "application/pdf" || /\.pdf$/i.test(a.filename ?? "") || a.content?.subarray(0, 5).toString("latin1") === "%PDF-";
+  const accepted = (a: { contentType: string; contentDisposition?: string; filename?: string; content?: Buffer }) =>
+    (isPdf(a) || isImage(a)) && Boolean(a.content) && (a.content?.length ?? 0) > 0 && (a.content?.length ?? 0) <= MAX_ATTACHMENT_BYTES;
+  // Vom Kunden bewusst angehängte Dateien, die nicht übernommen werden können (HEIC-Fotos, Word, zu groß …) –
+  // das Büro bekommt in der Fallakte einen Hinweis. Kleine Bilder (Logos in Signaturen) zählen nicht.
+  const skippedAttachments = (parsed.attachments ?? [])
+    .filter((a) => !accepted(a) && (a.content?.length ?? 0) >= 20_000 && (a.contentDisposition === "attachment" || !a.contentType.startsWith("image/")))
+    .map((a) => a.filename || "Datei ohne Namen");
+  const attachments: InboundAttachment[] = (parsed.attachments ?? [])
+    .filter(accepted)
+    .map((a) => {
+      const pdf = isPdf(a);
+      return { filename: a.filename || (pdf ? "dokument.pdf" : "foto"), mime: pdf ? "application/pdf" : a.contentType, bytes: new Uint8Array(a.content) };
+    });
+  // RFC 3834: "Auto-Submitted: no" (oder fehlend) = normale Mail eines Menschen; jeder andere Wert
+  // (z. B. "auto-replied", "auto-generated") kommt von einem automatisch antwortenden System – das darf
+  // niemals wieder automatisch beantwortet werden, sonst entsteht eine Endlosschleife (z. B. mit einer
+  // Abwesenheitsnotiz oder einem anderen Büro, das ebenfalls FallFlow nutzt).
+  const autoSubmittedHeader = parsed.headers.get("auto-submitted");
+  const autoSubmitted = (typeof autoSubmittedHeader === "string" && autoSubmittedHeader.toLowerCase() !== "no") || parsed.headers.has("x-fallflow-auto");
+  return {
+    externalId,
+    messageId: parsed.messageId || undefined,
+    junk,
+    from: parsed.from?.text ?? "",
+    subject: parsed.subject ?? "",
+    body: (parsed.text ?? stripHtml(typeof parsed.html === "string" ? parsed.html : "")).slice(0, 4000),
+    receivedAt: (parsed.date ?? new Date()).toISOString(),
+    attachments,
+    skippedAttachments,
+    autoSubmitted,
+  };
 }

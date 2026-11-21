@@ -9,6 +9,7 @@ import { Field, Input, Select } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
 import { apiFetch, useMutation } from "@/lib/use-api";
 import { formatDateTime } from "@/lib/utils";
+import { ForwardingCard } from "./forwarding-card";
 import { WidgetSnippet } from "./widget-snippet";
 
 export interface ConnectionView {
@@ -407,8 +408,21 @@ export function ConnectionsPanel({ appUrl, companyId, canManage, gmail, microsof
         </Card>
       )}
 
-      <div className="max-w-xl">
-        <EmailCard connection={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
+      <div className="max-w-xl space-y-4">
+        {gmail?.status === "connected" ? (
+          <EmailCard connection={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
+        ) : (
+          <>
+            {/* Standard ist die Weiterleitung (ohne Passwort); das direkte Verbinden bleibt als Alternative aufklappbar. */}
+            <ForwardingCard canManage={canManage} />
+            <details className="rounded-xl border border-border bg-card" open={Boolean(integrationResult || gmail)}>
+              <summary className="cursor-pointer px-5 py-3 text-sm font-medium">Oder: Postfach direkt verbinden (mit Passwort oder Microsoft-Anmeldung)</summary>
+              <div className="border-t border-border">
+                <EmailCard connection={gmail} canManage={canManage} microsoftAvailable={microsoftAvailable} returnTo={returnTo} integrationResult={integrationResult} />
+              </div>
+            </details>
+          </>
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import type { MessageChannel } from "@/lib/data/types";
 import { DEFAULT_EMAIL_SUBJECT } from "@/lib/cases/fields";
 import { getValidTokens } from "./tokens";
 import { friendlyMailError, IntegrationNotReadyError, type InboundAttachment, type ReplyTarget } from "./email";
+import { sendAsCompany } from "./forward-send";
 import { gmailProvider } from "./gmail";
 import { microsoftProvider } from "./microsoft";
 
@@ -68,6 +69,15 @@ export async function deliverToCustomer(input: {
       const target = replyContext.getStore();
       const reply = target && target.from === input.email.trim().toLowerCase() ? target : undefined;
       await provider.sendReply(found.tokens, input.email, input.subject || DEFAULT_EMAIL_SUBJECT, input.text, input.attachments, reply);
+      return { delivered: true, reason: "" };
+    }
+    // Kein Postfach verbunden, aber Weiterleitung eingeschaltet: FallFlow verschickt selbst, im Namen des Betriebs.
+    const forward = await getConnection(input.companyId, "forward");
+    if (forward?.status === "connected") {
+      if (!input.email) return { delivered: false, reason: "Keine E-Mail-Adresse vorhanden." };
+      const target = replyContext.getStore();
+      const reply = target && target.from === input.email.trim().toLowerCase() ? target : undefined;
+      await sendAsCompany(forward, forward.accountName, { to: input.email, subject: input.subject || DEFAULT_EMAIL_SUBJECT, body: input.text, attachments: input.attachments, reply });
       return { delivered: true, reason: "" };
     }
     return { delivered: false, reason: "Für dieses Büro ist kein E-Mail-Postfach verbunden." };

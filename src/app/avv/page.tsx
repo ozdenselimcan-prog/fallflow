@@ -92,6 +92,7 @@ export default function AvvPage() {
             "Functional Software Inc. (Sentry) – Fehlerüberwachung; Verarbeitung in der EU (Frankfurt)",
             "Twilio Inc. – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (nur wenn der Auftraggeber ihn nutzt); keine Aufzeichnung der Gespräche als Audiodatei",
             "Meta Platforms Ireland Ltd. – WhatsApp Business Platform (nur wenn der Auftraggeber WhatsApp verbindet): Empfang und Versand der WhatsApp-Nachrichten",
+            "Plus Five Five, Inc. (Resend) – Versand der Antworten an Kunden, nur wenn der Auftraggeber die Weiterleitung an seine FallFlow-Adresse statt eines verbundenen Postfachs nutzt; Server in der EU (Irland)",
           ]}
         />
         <Paragraphs

@@ -1,5 +1,8 @@
 fallflow.eu {
 	encode zstd gzip
+	# Mails liefert nur der eigene Mailserver direkt an die App (127.0.0.1) – von außen gibt es diesen Pfad nicht.
+	@inbound path /api/inbound/*
+	respond @inbound 404
 	reverse_proxy 127.0.0.1:3000
 
 	# Besucherstatistik ohne personenbezogene Daten: IP, Port, Cookies und Login-Header werden vor dem Schreiben entfernt.
@@ -33,4 +36,10 @@ www.fallflow.eu {
 # Alte Domain (DNS bis Dezember 2026 bei Vercel gesperrt) – leitet weiter, sobald sie auf diesen Server zeigt.
 fallflow.xyz, www.fallflow.xyz {
 	redir https://fallflow.eu{uri} permanent
+}
+
+# Domain der Weiterleitungs-Adressen (MX zeigt hierher). Der Block ist nur da, damit Caddy ein Zertifikat holt –
+# der Mailserver (deploy/mail-inbound.mjs) bekommt es über deploy/mail-tls.sh.
+in.fallflow.eu {
+	respond "FallFlow Mail" 200
 }

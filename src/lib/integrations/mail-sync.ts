@@ -5,7 +5,8 @@ import { CaseLimitReachedError } from "@/lib/intake/engine";
 import { findCaseByIdentity } from "@/lib/intake/identity";
 import { needsPaymentSetup } from "@/lib/billing/access";
 import { listActiveConnections, saveConnection } from "./connections-store";
-import { friendlyMailError, type MailSyncProvider } from "./email";
+import { friendlyMailError, type InboundEmail, type MailSyncProvider } from "./email";
+import type { Store } from "@/lib/data/store";
 import { unwrapForwardedMail } from "./forwarded";
 import { runAsReplyTo } from "./outbound";
 import { handleInboundMail } from "./inbound-mail";
@@ -81,69 +82,16 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
           continue;
         }
         keys.forEach((k) => seenIds.add(k));
-        let { email: from, name: fromName } = parseFromHeader(mail.from);
-        // Weiterleitung (z. B. Outlook → Gmail) per „WG:“-Regel: die Mail kommt scheinbar von der eigenen Büro-Adresse,
-        // der echte Kunde steht im Text – herausholen. Lässt sich keiner finden, ist es eine eigene Mail des Büros.
-        const replyTo = typeof connection.metadata.replyTo === "string" ? connection.metadata.replyTo.toLowerCase() : "";
-        if (replyTo && from === replyTo) {
-          const original = unwrapForwardedMail(mail.subject, mail.body);
-          if (!original || original.from === replyTo || original.from === connection.accountEmail.trim().toLowerCase()) continue;
-          from = original.from;
-          fromName = original.fromName;
-          mail.subject = original.subject;
-          mail.body = original.body;
-        }
-        // Sicherheitsnetz gegen Endlosschleifen: eine Mail, die vom eigenen verbundenen Postfach kommt (z. B. eine
-        // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
-        if (from === connection.accountEmail.trim().toLowerCase()) continue;
-        if (/no.?reply|do.?not.?reply|mailer-daemon|postmaster/i.test(from)) continue;
-        // Markiert sich die Mail selbst als automatisch versendet (RFC 3834), nie beantworten – sonst entsteht
-        // eine Endlosschleife, z. B. mit einer Abwesenheitsnotiz oder einem ANDEREN Büro, das ebenfalls
-        // FallFlow nutzt und dessen Antwort hier sonst fälschlich als neue Kundenanfrage ankäme.
-        if (mail.autoSubmitted) {
-          skipped++;
-          await persistSeenIds();
-          continue;
-        }
-        // Zusätzliches Sicherheitsnetz, falls die Gegenseite den Auto-Submitted-Header nicht setzt (nicht
-        // jedes System hält sich daran): Hat der zugehörige Fall in den letzten 10 Minuten schon auffällig
-        // viele automatische Antworten bekommen, nicht weiter automatisch antworten – vermutlich eine
-        // Mail-Schleife. Das Team wird per Ereignis informiert und übernimmt manuell.
-        const existing = findCaseByIdentity(await store.listCases(), { email: from });
-        if (existing) {
-          const tenMinutesAgo = Date.now() - 10 * 60_000;
-          const recentAutoReplies = (await store.listMessages(existing.id)).filter((m) => m.role === "assistant" && Date.parse(m.createdAt) > tenMinutesAgo).length;
-          if (recentAutoReplies >= 5) {
-            await store.addEvent(existing.id, "note", "Auffällig viele automatische Antworten in kurzer Zeit erkannt (möglicherweise eine Mail-Schleife) – automatische Antworten für diesen Fall vorerst pausiert, bitte manuell prüfen.");
-            skipped++;
-            await persistSeenIds();
-            continue;
-          }
-        }
-        try {
-          // Alle automatischen Antworten an diesen Absender gehen als Antwort auf genau diese Mail raus (siehe outbound.ts).
-          const target = { from, subject: mail.subject, messageId: mail.messageId, providerMessageId: provider.id === "microsoft" ? mail.externalId : undefined };
-          const outcome = await runAsReplyTo(target, () =>
-            handleInboundMail(
-              store,
-              connection.companyId,
-              { from, fromName, subject: mail.subject, body: mail.body, attachments: mail.attachments, skippedAttachments: mail.skippedAttachments },
-              { junk: mail.junk },
-            ),
-          );
-          if (outcome.handled) messages++;
-          else skipped++;
-        } catch (err) {
-          if (err instanceof CaseLimitReachedError) {
-            // Mails aus dem Junk-Ordner bekommen nie eine automatische Antwort (könnte Spam sein).
-            if (!mail.junk) {
-              const limitText = await frameEmail(store, customerText((await store.getCompany()).businessProfile?.texts, "other.caseLimit"));
-              await provider.sendReply(found.tokens, from, "Re: Ihre Anfrage", limitText).catch(() => {});
-            }
-          } else {
-            console.error(`[${provider.id}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
-          }
-        }
+        const replyTo = typeof connection.metadata.replyTo === "string" ? connection.metadata.replyTo : "";
+        const result = await processInboundMail(store, connection.companyId, mail, {
+          ownAddresses: [connection.accountEmail],
+          unwrapFrom: replyTo,
+          providerMessageId: provider.id === "microsoft" ? mail.externalId : undefined,
+          sendLimitReply: (to, text) => provider.sendReply(found.tokens, to, "Re: Ihre Anfrage", text),
+          label: provider.id,
+        });
+        if (result === "handled") messages++;
+        else if (result === "skipped") skipped++;
         await persistSeenIds();
       }
       // Auch ohne neue Mails festhalten, dass der Abruf geklappt hat ("Zuletzt synchronisiert", Betreiber-Übersicht).
@@ -159,4 +107,79 @@ export async function syncMailbox(provider: MailSyncProvider): Promise<{ connect
     }
   }
   return { connections: connections.length, messages, skipped, errors };
+}
+
+export interface ProcessMailOptions {
+  /** Eigene Adressen des Büros: Mails von dort sind keine Kundenanfragen (z. B. selbst versendete Antworten). */
+  ownAddresses: string[];
+  /** Weiterleitung per „WG:“-Regel: Mails scheinbar von dieser Adresse enthalten den echten Kunden im Text. */
+  unwrapFrom?: string;
+  /** ID der Mail beim Anbieter (Microsoft Graph), um direkt darauf zu antworten. */
+  providerMessageId?: string;
+  /** Hinweis an den Kunden, wenn das Fall-Limit des Tarifs erreicht ist. */
+  sendLimitReply: (to: string, text: string) => Promise<unknown>;
+  /** Für Fehlermeldungen im Log, z. B. "gmail" oder "forward". */
+  label: string;
+}
+
+/**
+ * Eine eingegangene Mail prüfen und bearbeiten – gemeinsam für den Postfach-Abruf (oben) und die Weiterleitung an die
+ * FallFlow-Adresse (siehe forwarding.ts). "handled" = als Anfrage bearbeitet, "skipped" = bewusst nicht beantwortet
+ * (automatische Mail, Verdacht auf Schleife, keine Anfrage), "ignored" = eigene Mail des Büros oder eines Systems.
+ */
+export async function processInboundMail(store: Store, companyId: string, mail: InboundEmail, opts: ProcessMailOptions): Promise<"handled" | "skipped" | "ignored"> {
+  const own = opts.ownAddresses.map((a) => a.trim().toLowerCase()).filter(Boolean);
+  let { email: from, name: fromName } = parseFromHeader(mail.from);
+  let { subject, body } = mail;
+  // Weiterleitung (z. B. Outlook → Gmail) per „WG:“-Regel: die Mail kommt scheinbar von der eigenen Büro-Adresse,
+  // der echte Kunde steht im Text – herausholen. Lässt sich keiner finden, ist es eine eigene Mail des Büros.
+  const unwrapFrom = opts.unwrapFrom?.trim().toLowerCase() ?? "";
+  if (unwrapFrom && from === unwrapFrom) {
+    const original = unwrapForwardedMail(subject, body);
+    if (!original || original.from === unwrapFrom || own.includes(original.from)) return "ignored";
+    from = original.from;
+    fromName = original.fromName;
+    subject = original.subject;
+    body = original.body;
+  }
+  // Sicherheitsnetz gegen Endlosschleifen: eine Mail, die vom eigenen verbundenen Postfach kommt (z. B. eine
+  // selbst versendete Antwort, die in Sent/Inbox auftaucht), ist keine Kundenanfrage.
+  if (own.includes(from)) return "ignored";
+  if (/no.?reply|do.?not.?reply|mailer-daemon|postmaster/i.test(from)) return "ignored";
+  // Markiert sich die Mail selbst als automatisch versendet (RFC 3834), nie beantworten – sonst entsteht
+  // eine Endlosschleife, z. B. mit einer Abwesenheitsnotiz oder einem ANDEREN Büro, das ebenfalls
+  // FallFlow nutzt und dessen Antwort hier sonst fälschlich als neue Kundenanfrage ankäme.
+  if (mail.autoSubmitted) return "skipped";
+  // Zusätzliches Sicherheitsnetz, falls die Gegenseite den Auto-Submitted-Header nicht setzt (nicht
+  // jedes System hält sich daran): Hat der zugehörige Fall in den letzten 10 Minuten schon auffällig
+  // viele automatische Antworten bekommen, nicht weiter automatisch antworten – vermutlich eine
+  // Mail-Schleife. Das Team wird per Ereignis informiert und übernimmt manuell.
+  const existing = findCaseByIdentity(await store.listCases(), { email: from });
+  if (existing) {
+    const tenMinutesAgo = Date.now() - 10 * 60_000;
+    const recentAutoReplies = (await store.listMessages(existing.id)).filter((m) => m.role === "assistant" && Date.parse(m.createdAt) > tenMinutesAgo).length;
+    if (recentAutoReplies >= 5) {
+      await store.addEvent(existing.id, "note", "Auffällig viele automatische Antworten in kurzer Zeit erkannt (möglicherweise eine Mail-Schleife) – automatische Antworten für diesen Fall vorerst pausiert, bitte manuell prüfen.");
+      return "skipped";
+    }
+  }
+  try {
+    // Alle automatischen Antworten an diesen Absender gehen als Antwort auf genau diese Mail raus (siehe outbound.ts).
+    const target = { from, subject, messageId: mail.messageId, providerMessageId: opts.providerMessageId };
+    const outcome = await runAsReplyTo(target, () =>
+      handleInboundMail(store, companyId, { from, fromName, subject, body, attachments: mail.attachments, skippedAttachments: mail.skippedAttachments }, { junk: mail.junk }),
+    );
+    return outcome.handled ? "handled" : "skipped";
+  } catch (err) {
+    if (err instanceof CaseLimitReachedError) {
+      // Mails aus dem Junk-Ordner bekommen nie eine automatische Antwort (könnte Spam sein).
+      if (!mail.junk) {
+        const limitText = await frameEmail(store, customerText((await store.getCompany()).businessProfile?.texts, "other.caseLimit"));
+        await opts.sendLimitReply(from, limitText).catch(() => {});
+      }
+    } else {
+      console.error(`[${opts.label}] Nachricht konnte nicht verarbeitet werden:`, err instanceof Error ? err.message : "unbekannt");
+    }
+    return "skipped";
+  }
 }

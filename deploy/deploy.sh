@@ -9,6 +9,10 @@ ssh fallflow "bash -s" <<REMOTE
 set -euo pipefail
 cd /opt/fallflow/releases/$REL
 cp deploy/fallflow.service /etc/systemd/system/fallflow.service
+cp deploy/fallflow-mail.service /etc/systemd/system/fallflow-mail.service
+install -m 755 deploy/mail-tls.sh /etc/cron.daily/fallflow-mail-tls
+# Port 25 für den Mailserver der Weiterleitungs-Adressen (deploy/mail-inbound.mjs)
+ufw allow 25/tcp >/dev/null
 mkdir -p /var/log/caddy && chown -R caddy:caddy /var/log/caddy
 cp deploy/Caddyfile /etc/caddy/Caddyfile
 install -m 755 deploy/cron.sh /opt/fallflow/cron.sh
@@ -19,6 +23,9 @@ ln -sfn /opt/fallflow/releases/$REL /opt/fallflow/current
 systemctl daemon-reload
 systemctl enable --now fallflow >/dev/null 2>&1 || true
 systemctl restart fallflow
+systemctl enable fallflow-mail >/dev/null 2>&1 || true
+/etc/cron.daily/fallflow-mail-tls || true
+systemctl restart fallflow-mail
 systemctl reload caddy || systemctl restart caddy
 # "|| true": Ist der alte Eintrag die einzige Zeile, findet grep nichts (Exit 1) – mit set -e würde das Skript sonst hier
 # abbrechen, bevor der neue Eintrag geschrieben ist (Folge: leere Crontab, kein Mail-Abruf mehr).
