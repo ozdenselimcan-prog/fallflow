@@ -100,6 +100,9 @@ describe("Adresse in einer Antwort", () => {
     expect(splitAddress("Am Bach 12a 70565 Stuttgart")).toEqual({ street: "Am Bach 12a", postalCode: "70565", city: "Stuttgart" });
     expect(splitAddress("80331 München, Musterstraße 1")).toEqual({ street: "Musterstraße 1", postalCode: "80331", city: "München" });
     expect(splitAddress("Musterstraße 1")).toEqual({ street: "Musterstraße 1", postalCode: "", city: "" });
+    // Einleitung und weitere Sätze gehören nicht in Straße und Ort.
+    expect(splitAddress("Die Adresse ist Lindenweg 7, 82166 Gräfelfing. Foto vom Wohnzimmer hängt an.")).toEqual({ street: "Lindenweg 7", postalCode: "82166", city: "Gräfelfing" });
+    expect(splitAddress("Unsere Anschrift: Hauptstr. 3, 82166 Gräfelfing")).toEqual({ street: "Hauptstr. 3", postalCode: "82166", city: "Gräfelfing" });
   });
 });
 

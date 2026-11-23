@@ -207,9 +207,16 @@ export const looksLikeStreet = (v: string) =>
   /\d/.test(v) || /(stra(ß|ss)e|str\.|weg|platz|allee|ring|gasse|damm|ufer|markt|chaussee|steig|pfad|zeile|stieg)\b/i.test(v);
 
 export function splitAddress(raw: string): { street: string; postalCode: string; city: string } {
-  const t = raw.replace(/\s+/g, " ").trim().replace(/[.!]$/, "");
+  // Einleitung weglassen ("Die Adresse ist Lindenweg 7, …" → "Lindenweg 7, …").
+  const t = raw
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!]$/, "")
+    .replace(/^.*?\b(?:adresse|anschrift)\b\s*(?:ist|lautet|:)?\s*/i, "");
+  // Der Ort endet am Satzende – "82166 Gräfelfing. Foto hängt an" → "Gräfelfing".
+  const cityOnly = (c: string) => c.split(/[.!?;]/)[0].trim();
   const streetFirst = t.match(/^(.*?\d+\s*[a-z]?)[,\s]+(\d{5})\s*([^\d,]*)$/i);
-  if (streetFirst) return { street: streetFirst[1].trim(), postalCode: streetFirst[2], city: streetFirst[3].trim() };
+  if (streetFirst) return { street: streetFirst[1].trim(), postalCode: streetFirst[2], city: cityOnly(streetFirst[3]) };
   const cityFirst = t.match(/^(\d{5})\s+([^,\d]+?),\s*(.+)$/);
   if (cityFirst) return { street: cityFirst[3].trim(), postalCode: cityFirst[1], city: cityFirst[2].trim() };
   const plz = t.match(/(?<!\d)\d{5}(?!\d)/)?.[0] ?? "";
@@ -355,8 +362,11 @@ export function applyTurn(input: TurnInput): TurnResult {
       fields[pendingBefore.key] = parsed.value;
       recognized.push(pendingBefore.key);
       // Adresse in einer Antwort ("Lindenweg 7, 82166 Gräfelfing"): Straße, PLZ und Ort getrennt übernehmen.
-      if (pendingBefore.key === "street" && /\d{5}/.test(text)) {
-        const a = splitAddress(text);
+      // Nur eine kurze Antwort als Ganzes zerlegen – bei einer längeren E-Mail stünden sonst Betreff und andere Sätze in
+      // Straße und Ort; dort gilt der Wert, den die KI als Adresse herausgelesen hat.
+      const addressText = /\d{5}/.test(parsed.value) ? parsed.value : wholeMessage ? "" : text;
+      if (pendingBefore.key === "street" && /\d{5}/.test(addressText)) {
+        const a = splitAddress(addressText);
         if (a.street) fields.street = a.street;
         if (a.postalCode && !isAnswered(fields, "postalCode")) {
           fields.postalCode = a.postalCode;

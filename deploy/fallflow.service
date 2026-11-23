@@ -9,6 +9,8 @@ WorkingDirectory=/opt/fallflow/current
 EnvironmentFile=/opt/fallflow/.env
 ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -p 3000 -H 127.0.0.1
 Restart=always
+# Beim Neustart (Deploy) beendet systemd Node mit SIGTERM – Exit-Code 143 ist dann kein Fehler.
+SuccessExitStatus=143
 RestartSec=5
 # Begrenzt, damit ein Fehler den Server nicht lahmlegt
 MemoryMax=2500M

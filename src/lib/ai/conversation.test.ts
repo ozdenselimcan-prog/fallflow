@@ -266,3 +266,30 @@ describe("Adressfrage", () => {
     expect(looksLikeStreet("Anna Weinberg")).toBe(false);
   });
 });
+
+describe("Adresse in einer längeren E-Mail", () => {
+  const ADDRESS_QUESTIONS: Question[] = [
+    q({ key: "service", label: "Leistung", prompt: "Welche Leistung?", type: "choice", options: ["Innenanstrich", "Sonstiges"], position: 0 }),
+    q({ key: "name", label: "Name", prompt: "Wie heißen Sie?", type: "text", position: 1 }),
+    q({ key: "street", label: "Adresse", prompt: "Ihre Adresse?", type: "text", position: 2 }),
+  ];
+
+  it("übernimmt die von der KI erkannte Adresse statt Betreff und anderer Sätze", () => {
+    const res = applyTurn(
+      turn({
+        questions: ADDRESS_QUESTIONS,
+        fields: { service: "Innenanstrich", name: "Erika Beispiel" },
+        text: "Re: Anfrage Wohnzimmer streichen\n\nDie Adresse ist Lindenweg 7, 82166 Gräfelfing. Foto vom Wohnzimmer hängt an.",
+        extracted: { street: "Lindenweg 7", postalCode: "82166" },
+      }),
+    );
+    expect(res.fields.street).toBe("Lindenweg 7");
+    expect(res.fields.postalCode).toBe("82166");
+    expect(res.fields.city ?? "").not.toMatch(/Foto/);
+  });
+
+  it("zerlegt eine kurze Antwort wie bisher in Straße, PLZ und Ort", () => {
+    const res = applyTurn(turn({ questions: ADDRESS_QUESTIONS, fields: { service: "Innenanstrich", name: "Erika Beispiel" }, text: "Lindenweg 7, 82166 Gräfelfing" }));
+    expect(res.fields).toMatchObject({ street: "Lindenweg 7", postalCode: "82166", city: "Gräfelfing" });
+  });
+});
