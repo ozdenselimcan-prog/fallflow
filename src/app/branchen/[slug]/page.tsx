@@ -30,23 +30,7 @@ const HOW = [
   "Fertige Fallakte mit allen Angaben, Fotos und Terminvorschlag",
 ];
 
-const STAR_PATH = "M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z";
 
-/** Sterne wie bei Google: gefüllt, ohne Umriss, der letzte anteilig (z. B. 4,8 → fünfter Stern zu 80 %). */
-function RatingStars({ value }: { value: number }) {
-  return (
-    <div className="flex" aria-hidden>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <span key={i} className="relative size-6">
-          <svg viewBox="0 0 24 24" className="absolute inset-0 size-6 fill-zinc-300"><path d={STAR_PATH} /></svg>
-          <span className="absolute inset-0 overflow-hidden" style={{ width: `${Math.min(1, Math.max(0, value - i)) * 100}%` }}>
-            <svg viewBox="0 0 24 24" className="size-6 fill-[#FBBC04]"><path d={STAR_PATH} /></svg>
-          </span>
-        </span>
-      ))}
-    </div>
-  );
-}
 
 /** Branchenseite: eigene Texte je Branche, Leistungen und Fragen aus der passenden Branchen-Vorlage. */
 export default async function IndustryLandingPage({ params }: PageProps<"/branchen/[slug]">) {
@@ -83,22 +67,9 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">So sieht ein echter Fall bei {page.audience} aus – in Echtzeit.</h2>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">Von der ersten Kundenmail bis zum bestätigten Termin – links Ihr Postfach, rechts die Fallakte, die {siteConfig.name} dabei automatisch füllt.</p>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">Von der ersten Kundenmail bis zum bestätigten Termin – links Ihr Postfach, rechts die Übersicht zum Auftrag, die {siteConfig.name} dabei automatisch füllt.</p>
             <div className="mt-10">
               <CaseFilm scenario={INDUSTRY_FILMS[page.slug]} />
-            </div>
-            <div className="mt-12 text-center">
-              <div className="mt-6 flex items-center justify-center gap-3">
-                <span className="flex items-center gap-1 text-lg font-semibold tracking-tight text-zinc-900">
-                  <svg viewBox="0 0 24 24" className="size-6 fill-[#00B67A]" aria-hidden><path d={STAR_PATH} /></svg>
-                  Trustpilot
-                </span>
-                <span className="text-4xl font-normal tracking-tight text-zinc-900 sm:text-5xl">4.8</span>
-                <div className="flex flex-col items-start gap-0.5">
-                  <RatingStars value={4.8} />
-                  <span className="text-sm text-zinc-600">Über 180 Bewertungen</span>
-                </div>
-              </div>
             </div>
           </div>
         </section>

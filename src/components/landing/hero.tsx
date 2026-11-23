@@ -85,26 +85,26 @@ export function Hero() {
           <Link href="/signup" className={buttonStyles({ size: "lg" })}>
             7 Tage kostenlos testen <ArrowRight className="size-4" />
           </Link>
-          <Link href="/demo" className={buttonStyles({ variant: "ghost", size: "lg", className: "border border-zinc-200 bg-white hover:bg-zinc-50" })}>
-            Demo ansehen
+          <Link href="/einrichtung" className={buttonStyles({ variant: "ghost", size: "lg", className: "border border-zinc-200 bg-white hover:bg-zinc-50" })}>
+            Kostenlos einrichten lassen
           </Link>
         </div>
         <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Ohne Kreditkarte · ab 49 €/Monat · monatlich kündbar</p>
         <p className="hero-reveal mt-2 text-sm text-zinc-500 [animation-delay:360ms]">
-          Keine Zeit für Einstellungen?{" "}
-          <Link href="/einrichtung" className="font-medium text-zinc-900 underline underline-offset-2">
-            Wir richten es kostenlos für Sie ein
+          Erst ausprobieren?{" "}
+          <Link href="/demo" className="font-medium text-zinc-900 underline underline-offset-2">
+            Demo ohne Anmeldung ansehen
           </Link>
         </p>
       </div>
 
-      <div className="hero-reveal relative hidden w-full max-w-xl text-left [animation-delay:420ms] sm:block" aria-label="Vorschau einer Fallakte">
+      <div className="hero-reveal relative hidden w-full max-w-xl text-left [animation-delay:420ms] sm:block" aria-label="Vorschau eines vorbereiteten Auftrags">
         <div className="rounded-lg border border-border bg-card p-2 shadow-[0_8px_28px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
             <span className="size-2.5 rounded-full bg-border" />
             <span className="size-2.5 rounded-full bg-border" />
             <span className="size-2.5 rounded-full bg-border" />
-            <span className="ml-3 text-xs text-muted-foreground">Fallakte · Beispiel</span>
+            <span className="ml-3 text-xs text-muted-foreground">Auftrag · Beispiel</span>
           </div>
           <div className="p-5">
             <div className="flex items-center justify-between">

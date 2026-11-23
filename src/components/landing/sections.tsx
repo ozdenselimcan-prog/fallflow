@@ -32,6 +32,7 @@ import { IndustryFilm } from "@/components/landing/industry-film";
 import { buttonStyles } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { faqs } from "@/lib/config/faq";
+import { siteConfig } from "@/lib/config/site";
 import { plans, VAT_NOTE } from "@/lib/config/pricing";
 import { cn } from "@/lib/utils";
 
@@ -94,7 +95,7 @@ export function FlowSection() {
  * selbsterklärendes "Kurzvideo" ohne echte Videodatei, direkt unter dem Hero. */
 export function MailFlowSection({ h1 = false }: { h1?: boolean } = {}) {
   return (
-    <Section h1={h1} title="So sieht ein echter Fall aus – in Echtzeit." intro="Von der ersten Kundenmail bis zum bestätigten Termin – in 25 Sekunden. Links Ihr Postfach, rechts die Fallakte, die FallFlow dabei automatisch füllt.">
+    <Section h1={h1} title="So sieht ein echter Fall aus – in Echtzeit." intro="Von der ersten Kundenmail bis zum bestätigten Termin – in 25 Sekunden. Links Ihr Postfach, rechts die Übersicht zum Auftrag, die FallFlow dabei automatisch füllt.">
       <IndustryFilm />
     </Section>
   );
@@ -132,6 +133,7 @@ export function SimpleStepsSection() {
 
 const control = [
   "Die KI erfindet keine Preise – Fragen zu Preisen und Sonderfällen gehen an Sie.",
+  "Sie entscheiden: FallFlow antwortet selbst – oder bereitet nur vor und schlägt Ihnen eine Antwort vor, die Sie prüfen und abschicken.",
   "Jeder Text, den Ihre Kunden bekommen, lässt sich ändern.",
   "Kein neues Programm: Kunden schreiben wie gewohnt per E-Mail oder WhatsApp.",
   "Server in Deutschland, DSGVO-konform. Monatlich kündbar.",
@@ -151,6 +153,45 @@ export function ControlSection() {
         ))}
       </ul>
     </Section>
+  );
+}
+
+/** Startseite: wer hinter FallFlow steht – ein Ansprechpartner statt einer anonymen Software (Name und Telefon wie im Impressum). */
+export function PersonalSection() {
+  const tel = siteConfig.phone.replace(/s/g, "");
+  return (
+    <section className="py-16 sm:py-20">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        <div className="rounded-2xl border border-border bg-card p-6 sm:p-10">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            <span aria-hidden className="flex size-16 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xl font-bold text-white">
+              SÖ
+            </span>
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-tight text-balance sm:text-3xl">Persönlich für Sie da – kein Callcenter.</h2>
+              <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
+                FallFlow kommt aus München. Ich bin Selimcan Özden und kümmere mich selbst um jeden Betrieb: Auf Wunsch richte ich FallFlow in einem kurzen Telefonat mit
+                Ihnen ein – Leistungen, Texte, Postfach. Bei Fragen rufen Sie mich einfach an.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link href="/einrichtung" className={buttonStyles({ size: "lg" })}>
+                  Kostenlos einrichten lassen
+                </Link>
+                <a href={`tel:${tel}`} className={buttonStyles({ variant: "secondary", size: "lg" })}>
+                  <Phone className="size-4" /> {siteConfig.phone}
+                </a>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Oder per E-Mail:{" "}
+                <a href={`mailto:${siteConfig.supportEmail}`} className="underline underline-offset-2">
+                  {siteConfig.supportEmail}
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

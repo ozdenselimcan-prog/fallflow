@@ -5,7 +5,7 @@ export const faqs = [
   },
   {
     q: "Wie aufwendig ist die Einrichtung?",
-    a: "Etwa 10 Minuten. FallFlow führt Sie Schritt für Schritt durch Firmendaten, Ihren Betrieb, Ihre Texte und Formulare, Termine und die Verbindung mit Ihrem E-Mail-Postfach.",
+    a: "Etwa 10 Minuten. FallFlow führt Sie Schritt für Schritt durch Firmendaten, Ihren Betrieb, Ihre Texte und Formulare, Termine und die Verbindung mit Ihrem E-Mail-Postfach. Keine Zeit oder Lust darauf? Dann richten wir FallFlow kostenlos in einem kurzen Telefonat gemeinsam mit Ihnen ein – Sie müssen nichts vorbereiten.",
   },
   {
     q: "Schreibt die KI meinen Kunden eigene Texte?",
@@ -21,7 +21,7 @@ export const faqs = [
   },
   {
     q: "Funktioniert das auch mit WhatsApp und Telefon?",
-    a: "Ja. Verbinden Sie Ihre WhatsApp-Business-Nummer, beantwortet die KI auch WhatsApp-Nachrichten – Schritt für Schritt, mit den Fragen, die Sie auf der Seite „WhatsApp-Fragen“ festlegen; Fotos landen direkt in der Fallakte. Antworten Sie selbst im Chat, hält sich die KI dort zurück. Der Telefon-Assistent (ab Tarif Pro, bald verfügbar) nimmt Anrufe an, wenn Sie nicht rangehen (per Rufumleitung auf Ihre Assistenten-Nummer), weist darauf hin, dass eine KI spricht, und legt den Fall an. Gespräche werden nicht aufgezeichnet.",
+    a: "WhatsApp: ja. Verbinden Sie Ihre WhatsApp-Business-Nummer, beantwortet die KI auch WhatsApp-Nachrichten – Schritt für Schritt, mit den Fragen, die Sie auf der Seite „WhatsApp-Fragen“ festlegen; Fotos landen direkt in der Fallakte. Antworten Sie selbst im Chat, hält sich die KI dort zurück. Telefon: noch nicht – der Telefon-Assistent (ab Tarif Pro) ist in Vorbereitung. Er wird Anrufe annehmen, wenn Sie nicht rangehen (per Rufumleitung auf Ihre Assistenten-Nummer), darauf hinweisen, dass eine KI spricht, und den Fall anlegen. Gespräche werden dabei nicht aufgezeichnet.",
   },
   {
     q: "Kann ich meine bestehende Website weiterverwenden?",

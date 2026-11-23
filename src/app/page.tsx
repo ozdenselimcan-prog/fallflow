@@ -2,8 +2,7 @@ import { Footer } from "@/components/landing/footer";
 import { MobileCta } from "@/components/landing/mobile-cta";
 import { Hero } from "@/components/landing/hero";
 import { Navbar } from "@/components/landing/navbar";
-import { ReviewsSection } from "@/components/landing/reviews";
-import { ControlSection, FaqSection, FinalCta, MailFlowSection, PricingSection, SimpleStepsSection } from "@/components/landing/sections";
+import { ControlSection, FaqSection, FinalCta, MailFlowSection, PersonalSection, PricingSection, SimpleStepsSection } from "@/components/landing/sections";
 
 const HOME_FAQS = [
   "Wie aufwendig ist die Einrichtung?",
@@ -14,7 +13,7 @@ const HOME_FAQS = [
   "Wo werden Kundendaten gespeichert?",
 ];
 
-/** Startseite bewusst kurz: ein Versprechen, der Film als Beweis, drei Schritte – Details stehen auf /funktionen und /branchen. */
+/** Startseite bewusst kurz: ein Versprechen, der Film als Beweis, drei Schritte, ein persönlicher Ansprechpartner – Details stehen auf /funktionen und /branchen. */
 export default function HomePage() {
   return (
     <>
@@ -24,7 +23,7 @@ export default function HomePage() {
         <MailFlowSection />
         <SimpleStepsSection />
         <ControlSection />
-        <ReviewsSection />
+        <PersonalSection />
         <PricingSection />
         <FaqSection only={HOME_FAQS} />
         <FinalCta />
