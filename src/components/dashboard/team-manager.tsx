@@ -42,7 +42,7 @@ export function TeamManager({ members, canManage }: { members: Member[]; canMana
             </Button>
           </form>
           <p className="mt-3 text-xs text-muted-foreground">
-            Die Einladung wird gespeichert und automatisch angenommen, sobald sich die Person mit dieser E-Mail-Adresse registriert. Es wird keine E-Mail versendet.
+            Die Person bekommt eine E-Mail mit der Einladung. Sobald sie sich mit dieser E-Mail-Adresse registriert, ist sie automatisch im Team.
           </p>
         </Card>
       )}

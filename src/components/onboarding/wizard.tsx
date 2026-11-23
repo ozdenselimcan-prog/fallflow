@@ -70,6 +70,12 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
   // Vor dem letzten Schritt (Kanäle verbinden) vorab speichern, damit bis dahin eingegebene Angaben
   // nicht verloren gehen, falls der nächste Schritt die Seite verlässt (z. B. Gmail-Test).
   const next = async () => {
+    // "Unternehmensdaten" gleich speichern – wer die Einrichtung unterbricht, soll Telefon und Adresse nicht neu eingeben
+    // müssen (sonst fehlen sie z. B. im Website-Chat und in den Kundentexten).
+    if (step === 1) {
+      const ok = await run(() => apiFetch("PUT", "/api/company", company), { refresh: false });
+      if (!ok) return;
+    }
     // "Ihr Betrieb": Profil speichern – danach arbeitet der Assistent mit genau diesen Leistungen und Angaben.
     if (step === 2) {
       const ok = await run(() => apiFetch("PUT", "/api/business-profile", profile), { refresh: false });
