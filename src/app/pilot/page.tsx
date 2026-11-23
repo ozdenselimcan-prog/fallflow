@@ -8,17 +8,17 @@ import { buttonStyles } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 
 /**
- * Zielseite für die Pilot-Briefe (QR-Code): 2 Monate kostenlos mit persönlicher Einrichtung. Nicht für Suchmaschinen –
- * das Angebot gilt nur für angeschriebene Betriebe. Selbst starten über /signup?trial=60 (siehe signup/page.tsx).
+ * Zielseite für die Pilot-Briefe (QR-Code): 1 Monat kostenlos mit persönlicher Einrichtung. Nicht für Suchmaschinen –
+ * das Angebot gilt nur für angeschriebene Betriebe. Selbst starten über /signup?trial=30 (siehe signup/page.tsx).
  */
 export const metadata: Metadata = {
   title: "Pilotbetrieb werden",
-  description: "2 Monate kostenlos testen – FallFlow beantwortet Ihre Kundenanfragen, die Einrichtung übernehmen wir persönlich.",
+  description: "1 Monat kostenlos testen – FallFlow beantwortet Ihre Kundenanfragen, die Einrichtung übernehmen wir persönlich.",
   robots: { index: false, follow: false },
 };
 
 const points = [
-  "2 Monate kostenlos, ohne Kreditkarte, endet automatisch",
+  "1 Monat kostenlos, ohne Kreditkarte, endet automatisch",
   "Wir richten alles persönlich mit Ihnen ein – am Telefon oder vor Ort",
   "Läuft über Ihr bestehendes E-Mail-Postfach, kein neues Programm",
   "Preise und Sonderfälle beantworten weiter Sie, nicht die KI",
@@ -51,8 +51,8 @@ export default function PilotPage() {
               <a href={`tel:${tel}`} className={buttonStyles({ size: "lg" })}>
                 <Phone className="size-4" /> {siteConfig.phone}
               </a>
-              <Link href="/signup?trial=60" className={buttonStyles({ variant: "secondary", size: "lg" })}>
-                Selbst starten – 2 Monate kostenlos
+              <Link href="/signup?trial=30" className={buttonStyles({ variant: "secondary", size: "lg" })}>
+                Selbst starten – 1 Monat kostenlos
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">Selimcan Özden, FallFlow · {siteConfig.supportEmail}</p>
