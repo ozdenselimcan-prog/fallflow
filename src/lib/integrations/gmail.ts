@@ -136,7 +136,7 @@ async function readMailbox(client: ImapFlow, path: string, junk: boolean, since:
   }
 }
 
-/** Wandelt eine geparste Mail in das gemeinsame Format für den Postfach-Abruf und die Weiterleitung (siehe forwarding.ts). */
+/** Wandelt eine geparste Mail in das Format, das der Postfach-Abruf (mail-sync.ts) verarbeitet. */
 export function toInboundEmail(parsed: ParsedMail, externalId: string, junk = false): InboundEmail {
   // Übernommen werden PDFs sowie echte Foto-Anhänge (z. B. Grundriss/Energieausweis als Foto) in
   // vernünftiger Größe – Bilder in Signaturen (inline, klein) und große Dateien werden ignoriert.

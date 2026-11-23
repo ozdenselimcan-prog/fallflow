@@ -118,13 +118,13 @@ export interface ProcessMailOptions {
   providerMessageId?: string;
   /** Hinweis an den Kunden, wenn das Fall-Limit des Tarifs erreicht ist. */
   sendLimitReply: (to: string, text: string) => Promise<unknown>;
-  /** Für Fehlermeldungen im Log, z. B. "gmail" oder "forward". */
+  /** Für Fehlermeldungen im Log, z. B. "gmail" oder "microsoft". */
   label: string;
 }
 
 /**
- * Eine eingegangene Mail prüfen und bearbeiten – gemeinsam für den Postfach-Abruf (oben) und die Weiterleitung an die
- * FallFlow-Adresse (siehe forwarding.ts). "handled" = als Anfrage bearbeitet, "skipped" = bewusst nicht beantwortet
+ * Eine eingegangene Mail prüfen und bearbeiten (Postfach-Abruf oben).
+ * "handled" = als Anfrage bearbeitet, "skipped" = bewusst nicht beantwortet
  * (automatische Mail, Verdacht auf Schleife, keine Anfrage), "ignored" = eigene Mail des Büros oder eines Systems.
  */
 export async function processInboundMail(store: Store, companyId: string, mail: InboundEmail, opts: ProcessMailOptions): Promise<"handled" | "skipped" | "ignored"> {

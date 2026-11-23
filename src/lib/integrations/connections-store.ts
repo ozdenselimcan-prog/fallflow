@@ -12,7 +12,7 @@ import { decryptSecret, encryptionAvailable, encryptSecret } from "@/lib/crypto"
 /** "gmail" = Postfach per IMAP/SMTP (historischer Name), "microsoft" = Anmeldung über Microsoft (Outlook / Microsoft 365). */
 export type ConnectionProvider = "gmail" | "microsoft";
 /** Auch die Kalender-Verbindung liegt in derselben Tabelle (eigene Zeile, nicht im Postfach-Status sichtbar). */
-export type StoredProvider = ConnectionProvider | "outlook_calendar" | "whatsapp" | "forward";
+export type StoredProvider = ConnectionProvider | "outlook_calendar" | "whatsapp";
 
 export interface Connection {
   id: string;

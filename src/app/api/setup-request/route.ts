@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { apiError, json, parseBody, publicRoute } from "@/lib/api";
 import { siteConfig } from "@/lib/config/site";
-import { sendResendMail } from "@/lib/integrations/forward-send";
+import { sendResendMail } from "@/lib/integrations/resend";
 
 /** Anfrage für eine persönliche Einrichtung am Telefon (Seite /einrichtung) – geht per Mail an den Support. */
 const schema = z.object({

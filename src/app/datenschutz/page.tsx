@@ -411,12 +411,7 @@ export default function DatenschutzPage() {
               Resend (Plus Five Five, Inc., USA) über einen Server in der EU (Irland). Verarbeitet werden Ihre E-Mail-Adresse, der Inhalt der Nachricht und technische Versanddaten
               (z. B. Zustellstatus). Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.
             </p>
-            <p>
-              E-Mails an die Kunden eines Büros versendet FallFlow grundsätzlich über das verbundene Postfach des Büros selbst. Nutzt ein Büro stattdessen die Weiterleitung an seine
-              FallFlow-Adresse (Abschnitt 12), nimmt FallFlow die weitergeleiteten Mails auf dem eigenen Server in Deutschland (Hetzner) an und verschickt die Antworten an die Kunden
-              über Resend, mit dem Namen des Büros als Absender und der Adresse des Büros als Antwortadresse. Verantwortlich ist auch dann das jeweilige Büro; wir verarbeiten die
-              Daten in dessen Auftrag.
-            </p>
+            <p>E-Mails an die Kunden eines Büros versendet FallFlow nicht über diesen Dienst, sondern immer über das verbundene Postfach des Büros selbst.</p>
           </Section>
 
           <Section id="sentry" title="16. Fehlerüberwachung">
@@ -439,7 +434,7 @@ export default function DatenschutzPage() {
                 "OpenAI (USA) – KI-Funktionen (Abschnitt 13)",
                 "Twilio Inc. (USA) – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (Abschnitt 14)",
                 "Meta Platforms Ireland Ltd. (Irland) – WhatsApp Business Platform, nur wenn ein Büro WhatsApp verbindet (Abschnitt 14)",
-                "Resend / Plus Five Five, Inc. (USA) – Versand von System-E-Mails und, bei Weiterleitung, der Antworten an Kunden der Büros; Server in der EU (Irland)",
+                "Resend / Plus Five Five, Inc. (USA) – Versand von System-E-Mails, Server in der EU (Irland)",
                 "Zoho Corporation B.V. (Niederlande) – unser eigenes E-Mail-Postfach, Rechenzentrum in der EU",
                 "Functional Software, Inc. / Sentry (USA) – Fehlerüberwachung, EU-Region (Frankfurt)",
                 "Stripe Payments Europe, Ltd. (Irland) – Zahlungsabwicklung (für eigene Zwecke teilweise eigenständig verantwortlich)",

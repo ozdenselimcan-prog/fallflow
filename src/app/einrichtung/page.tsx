@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const points = [
   "Kostenlos und unverbindlich, etwa 20 Minuten am Telefon",
   "Wir richten Leistungen, Texte und Vorlagen für Ihren Betrieb ein",
-  "E-Mail-Weiterleitung gemeinsam einschalten – ohne Passwort-Weitergabe",
+  "Ihr E-Mail-Postfach gemeinsam verbinden – Sie melden sich selbst an",
   "Sie müssen nichts vorbereiten",
 ];
 
