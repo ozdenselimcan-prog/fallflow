@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./connections-store", () => ({ getConnection: async () => ({ status: "connected" }) }));
 vi.mock("./tokens", () => ({ getValidTokens: async () => ({ tokens: { accessToken: "token", refreshToken: null, expiresAt: null } }) }));
@@ -59,6 +59,12 @@ describe("Outlook-Kalender", () => {
 
 describe("Terminsuche mit belegten Kalenderzeiten", () => {
   const base = { workingDays: [1, 2, 3, 4, 5], customerDays: [1, 2, 3, 4, 5], slotStart: "09:00", slotEnd: "12:00", slotMinutes: 60, existing: [], from: new Date("2026-11-02T06:00:00Z") };
+  // Die Suche lässt Zeiten in der Vergangenheit aus – "jetzt" deshalb auf den Suchbeginn festlegen, sonst hängt der Test vom Datum ab.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(base.from);
+  });
+  afterEach(() => vi.useRealTimers());
   it("überspringt belegte Zeiten", () => {
     const free = findNextSlot(base)!;
     const blocked = findNextSlot({ ...base, blocked: [{ startsAt: free.toISOString(), durationMin: 60 }] })!;
