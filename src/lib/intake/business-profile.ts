@@ -37,7 +37,9 @@ export async function saveBusinessProfile(store: Store, input: BusinessProfileIn
     businessProfile: { ...previousProfile, industry: input.industry, description: input.description, documents: input.documents, humanTopics: input.humanTopics, documentsByService, needsAddress, fieldServices },
   });
 
-  const existing = await store.listQuestions();
+  // Nur echte Fragen aus der Tabelle – die WhatsApp-Fragen hängt listQuestions nur virtuell an (id "wa-…", kein Datensatz),
+  // sie würden sonst hier "gelöscht" und das Speichern scheitern.
+  const existing = (await store.listQuestions()).filter((q) => !q.whatsappOnly);
   const core = new Set<string>(CORE_FIELD_KEYS);
   // Adresse: nur Pflicht, wenn der Betrieb beim Kunden arbeitet (sonst fragt z. B. ein Friseur nach der PLZ).
   const ADDRESS_PROMPTS: Record<string, string> = {
