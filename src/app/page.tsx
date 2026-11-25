@@ -2,7 +2,16 @@ import { Footer } from "@/components/landing/footer";
 import { MobileCta } from "@/components/landing/mobile-cta";
 import { Hero } from "@/components/landing/hero";
 import { Navbar } from "@/components/landing/navbar";
+import type { Metadata } from "next";
+import { faqs } from "@/lib/config/faq";
+import { faqLd, ldJson, organizationLd, softwareLd } from "@/lib/seo";
 import { ControlSection, FaqSection, FinalCta, MailFlowSection, PersonalSection, PricingSection, SimpleStepsSection } from "@/components/landing/sections";
+
+export const metadata: Metadata = {
+  title: { absolute: "FallFlow – Kundenanfragen automatisch beantworten für Handwerker" },
+  description: "Keine Anfrage geht mehr verloren: FallFlow beantwortet Kundenanfragen per E-Mail und WhatsApp in wenigen Minuten, fragt fehlende Angaben und Fotos ab und legt Ihnen den fertigen Auftrag hin. 7 Tage kostenlos.",
+  alternates: { canonical: "/" },
+};
 
 const HOME_FAQS = [
   "Wie aufwendig ist die Einrichtung?",
@@ -30,6 +39,9 @@ export default function HomePage() {
       </main>
       <Footer />
       <MobileCta />
+      <script type="application/ld+json" dangerouslySetInnerHTML={ldJson(organizationLd())} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={ldJson(softwareLd())} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={ldJson(faqLd(faqs.filter((f) => HOME_FAQS.includes(f.q))))} />
     </>
   );
 }

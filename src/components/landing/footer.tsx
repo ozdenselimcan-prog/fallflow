@@ -9,6 +9,7 @@ const links = [
   { label: "FAQ", href: "/#faq" },
   { label: "Anleitung", href: "/anleitung" },
   { label: "Branchen", href: "/branchen" },
+  { label: "Ratgeber", href: "/ratgeber" },
   { label: "AGB", href: "/agb" },
   { label: "AVV", href: "/avv" },
   { label: "Datenschutz", href: "/datenschutz" },

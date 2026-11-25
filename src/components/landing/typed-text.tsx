@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 /**
  * Tippt einen Text beim Laden Buchstabe für Buchstabe ein (mit blinkendem Cursor). Der volle Text ist von Anfang an da –
- * unsichtbar, damit nichts springt, und für Screenreader/Suchmaschinen lesbar. Bei "Bewegung reduzieren" sofort komplett.
+ * unsichtbar (per CSS), damit nichts springt, und für Screenreader/Suchmaschinen lesbar. Bei "Bewegung reduzieren" sofort komplett.
  */
 export function TypedText({ text, startDelay = 250, speed = 32 }: { text: string; startDelay?: number; speed?: number }) {
   const [count, setCount] = useState(0);
@@ -38,7 +38,8 @@ export function TypedText({ text, startDelay = 250, speed = 32 }: { text: string
             <span className={`typed-cursor ${done ? "typed-cursor-done" : ""}`} />
           </span>
         )}
-        <span className="invisible">{text.slice(count)}</span>
+        {/* Rest nur über CSS (::after) – so steht der Text für Suchmaschinen genau einmal im HTML (sr-only unten). */}
+        <span className="typed-rest invisible" data-rest={text.slice(count)} />
       </span>
       <span className="sr-only">{text}</span>
     </span>

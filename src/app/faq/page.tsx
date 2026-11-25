@@ -3,6 +3,8 @@ import { Footer } from "@/components/landing/footer";
 import { MobileCta } from "@/components/landing/mobile-cta";
 import { Navbar } from "@/components/landing/navbar";
 import { FaqSection, FinalCta, PricingSection } from "@/components/landing/sections";
+import { faqs } from "@/lib/config/faq";
+import { faqLd, ldJson } from "@/lib/seo";
 
 /** Eigene Seite (z. B. als Ziel für Google-Ads-Sitelinks), mit denselben Abschnitten wie auf der Startseite. */
 export const metadata: Metadata = {
@@ -22,6 +24,7 @@ export default function Page() {
       </main>
       <Footer />
       <MobileCta />
+      <script type="application/ld+json" dangerouslySetInnerHTML={ldJson(faqLd(faqs))} />
     </>
   );
 }

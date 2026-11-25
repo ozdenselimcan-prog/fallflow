@@ -147,6 +147,9 @@ h3 {
     opacity: 0;
   }
 }
+.typed-rest::after {
+  content: attr(data-rest);
+}
 .typed-cursor {
   position: absolute;
   left: 0.04em;

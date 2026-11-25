@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { INDUSTRY_PAGES } from "@/lib/config/industry-pages";
+import { ARTICLES } from "@/lib/config/ratgeber";
 import { siteConfig } from "@/lib/config/site";
 
 /** Öffentliche Seiten für Google & Co. */
@@ -14,6 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/faq", priority: 0.6, changeFrequency: "monthly" },
     { path: "/branchen", priority: 0.8, changeFrequency: "monthly" },
     ...INDUSTRY_PAGES.map((p) => ({ path: `/branchen/${p.slug}`, priority: 0.8, changeFrequency: "monthly" as const })),
+    { path: "/ratgeber", priority: 0.7, changeFrequency: "weekly" },
+    ...ARTICLES.map((a) => ({ path: a.href, priority: 0.7, changeFrequency: "monthly" as const })),
     { path: "/anleitung", priority: 0.6, changeFrequency: "monthly" },
     { path: "/signup", priority: 0.7, changeFrequency: "monthly" },
     { path: "/agb", priority: 0.2, changeFrequency: "yearly" },
