@@ -376,6 +376,11 @@ export function applyTurn(input: TurnInput): TurnResult {
       }
       // Längere Nachrichten enthalten oft weitere Angaben – auch diese übernehmen.
       if (text.trim().length > 40) recognized.push(...mergeExtracted(fields, input.extracted, { allowFreeText: false }, questions));
+      // Adresse in einer längeren Mail: Den Ort hinter der PLZ trotzdem übernehmen ("… 82166 Gräfelfing. Foto …").
+      if (pendingBefore.key === "street" && !fields.city && /^\d{5}$/.test(fields.postalCode ?? "")) {
+        const city = text.match(new RegExp(`${fields.postalCode}\\s+(\\p{Lu}[\\p{L}-]+(?:\\s\\p{Lu}[\\p{L}-]+)?)`, "u"))?.[1];
+        if (city) fields.city = city;
+      }
     } else {
       const gained = mergeExtracted(fields, input.extracted, { allowFreeText: false }, questions);
       if (gained.length === 0) {

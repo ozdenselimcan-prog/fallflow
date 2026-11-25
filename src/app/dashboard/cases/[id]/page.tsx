@@ -4,6 +4,7 @@ import { AiPauseNotice } from "@/components/dashboard/ai-pause-notice";
 import { AI_PAUSED_KEY } from "@/lib/intake/engine";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { caseIdSchema } from "@/lib/validation";
 import { ArrowLeft, Download, Eye } from "lucide-react";
 import { ReadinessBadge, StatusBadge } from "@/components/dashboard/badges";
 import { CaseActions } from "@/components/dashboard/case-actions";
@@ -38,6 +39,8 @@ const SOURCE_LABELS = { widget: "Website-Chat", email: "E-Mail", phone: "Telefon
 
 export default async function CaseDetailPage({ params }: PageProps<"/dashboard/cases/[id]">) {
   const { id } = await params;
+  // Ungültige Fall-Nummer (z. B. abgeschnittener Link): gleich "nicht gefunden" statt Datenbankfehler.
+  if (!caseIdSchema.safeParse(id).success) notFound();
   const session = await requireSession();
   const store = await getStore(session);
   // Keine dieser Abfragen hängt vom Ergebnis der anderen ab, alle brauchen nur die id – parallel statt

@@ -285,7 +285,7 @@ describe("Adresse in einer längeren E-Mail", () => {
     );
     expect(res.fields.street).toBe("Lindenweg 7");
     expect(res.fields.postalCode).toBe("82166");
-    expect(res.fields.city ?? "").not.toMatch(/Foto/);
+    expect(res.fields.city).toBe("Gräfelfing");
   });
 
   it("zerlegt eine kurze Antwort wie bisher in Straße, PLZ und Ort", () => {
