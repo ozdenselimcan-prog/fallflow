@@ -26,4 +26,14 @@ describe("writeServiceTexts", () => {
     const withStrength = await writeServiceTexts({ ...base, profile: { industry: "Malerbetrieb", description: "", humanTopics: [], interview: { strengths: ["Kostenlose Besichtigung"] } } });
     expect(withStrength?.Innenanstrich).toBe("die Besichtigung ist für Sie kostenlos.");
   });
+
+  it("lässt bei einer Werbefloskel neu schreiben und nimmt dann den sauberen Text", async () => {
+    completeJson.mockReset();
+    completeJson
+      .mockResolvedValueOnce({ texts: { Innenanstrich: "wir sind Ihr kompetenter Partner für Innenanstriche.", Fassadenanstrich: "vielen Dank für Ihre Anfrage zur Fassade." } })
+      .mockResolvedValueOnce({ texts: { Innenanstrich: "vielen Dank für Ihre Anfrage – als Meisterbetrieb schauen wir uns das gern an.", Fassadenanstrich: "egal" } });
+    const r = await writeServiceTexts({ ...base, profile: { industry: "Malerbetrieb", description: "", humanTopics: [] } });
+    expect(r).toEqual({ Innenanstrich: "vielen Dank für Ihre Anfrage – als Meisterbetrieb schauen wir uns das gern an.", Fassadenanstrich: "vielen Dank für Ihre Anfrage zur Fassade." });
+    expect(completeJson).toHaveBeenCalledTimes(2);
+  });
 });
