@@ -66,7 +66,7 @@ export default async function IndustryLandingPage({ params }: PageProps<"/branch
 
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">So sieht ein echter Fall bei {page.audience} aus – in Echtzeit.</h2>
+            <h2 className="max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Ein echter Fall für {page.audience} – in Echtzeit.</h2>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">Von der ersten Kundenmail bis zum bestätigten Termin – links Ihr Postfach, rechts die Übersicht zum Auftrag, die {siteConfig.name} dabei automatisch füllt.</p>
             <div className="mt-10">
               <CaseFilm scenario={INDUSTRY_FILMS[page.slug]} />

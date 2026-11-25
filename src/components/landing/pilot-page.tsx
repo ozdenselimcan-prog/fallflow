@@ -60,7 +60,7 @@ export function PilotPage({ audience, film }: { audience?: string; film?: FilmSc
         </div>
         {film && (
           <section className="mt-14" aria-label="So läuft ein Fall ab">
-            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">So sieht ein Fall bei {audience} aus – in 25 Sekunden.</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Ein typischer Fall für {audience} – in 25 Sekunden.</h2>
             <p className="mt-2 mb-6 text-muted-foreground">Links das Postfach, rechts die Übersicht zum Auftrag, die FallFlow dabei automatisch füllt.</p>
             <CaseFilm scenario={film} />
           </section>
