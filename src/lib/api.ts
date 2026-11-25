@@ -56,7 +56,9 @@ export function withSession<A extends unknown[]>(
       const session = await getSession();
       if (!session) return apiError("Nicht angemeldet", 401);
       if (opts.permission && !can(session.role, opts.permission)) return apiError("Keine Berechtigung", 403);
-      if (!rateLimit(`api:${session.userId}:${req.method}`, opts.limit ?? 120, 60_000)) return apiError("Zu viele Anfragen", 429);
+      // Je Route zählen: Sonst verbraucht z. B. das schnelle Durchklicken des Fragebogens (viele POSTs) das kleine Kontingent
+      // einer teuren Route (KI-Texte, limit 10) – die dann mit 429 scheitert, obwohl sie selbst kaum aufgerufen wurde.
+      if (!rateLimit(`api:${session.userId}:${req.method}:${req.nextUrl.pathname}`, opts.limit ?? 120, 60_000)) return apiError("Zu viele Anfragen", 429);
       return await handler(req, { session, store: await getStore(session) }, ...rest);
     } catch (err) {
       console.error("[api]", req.method, req.nextUrl.pathname, err instanceof Error ? err.message : "Fehler");
