@@ -1,13 +1,15 @@
 "use client";
 
-import { SetupQuestionnaire } from "@/components/dashboard/setup-questionnaire";
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleDashed } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
 import { Notice } from "@/components/ui/states";
-import { BusinessProfileEditor, EMPTY_DRAFT, type ProfileDraft } from "@/components/onboarding/business-profile-editor";
+import { EMPTY_DRAFT, type ProfileDraft } from "@/components/onboarding/business-profile-editor";
+import { Interview, type InterviewInitial } from "@/components/onboarding/interview";
+import { SetupSteps } from "@/components/onboarding/setup-steps";
+import { TextsStep } from "@/components/onboarding/texts-step";
 import { SetupVideoButton } from "@/components/ui/setup-video";
 import { ConnectionsPanel, type ConnectionView } from "@/components/dashboard/connections-panel";
 import { SupportAccessCard } from "@/components/dashboard/support-access-card";
@@ -33,6 +35,8 @@ interface Props {
   /** Bereits gespeichertes Betriebsprofil (z. B. nach Microsoft-Anmeldung zurück in der Einrichtung) */
   initialProfile?: ProfileDraft;
   assistant: AssistantSettings;
+  /** Bisherige Antworten aus dem Einrichtungs-Gespräch (zum Fortsetzen). */
+  interviewInitial: InterviewInitial;
 }
 
 interface Availability {
@@ -47,9 +51,11 @@ const DEFAULT_AVAILABILITY: Availability = { workingDays: [1, 2, 3, 4, 5], slotS
 /** Anzeigereihenfolge Mo–So; intern 0 (So) – 6 (Sa) wie JS Date.getDay(). */
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-const STEPS = ["Willkommen", "Unternehmen", "Ihr Betrieb", "Kurze Fragen", "Terminvergabe", "Website verbinden", "WhatsApp", "E-Mail verbinden"];
+const STEPS = ["Willkommen", "Unternehmen", "Ihr Betrieb", "Einstellungen", "Ihre Texte", "Terminvergabe", "Website verbinden", "WhatsApp", "E-Mail verbinden"];
+/** Diese Schritte führen ihre Fragen selbst (eine pro Bildschirm, mit eigenem Zurück/Weiter). */
+const GUIDED_STEPS = [2, 3, 4];
 
-export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, integrationResult, initialProfile }: Props) {
+export function OnboardingWizard({ firstName, companyId, appUrl, initial, widgetReceived, connections, integrationResult, initialProfile, interviewInitial }: Props) {
   // Zurück von der Microsoft-Anmeldung: Angaben davor sind schon gespeichert, weiter beim letzten Schritt.
   const [step, setStep] = useState(integrationResult ? STEPS.length - 1 : 0);
   const [company, setCompany] = useState({ name: initial.name, website: initial.website, phone: initial.phone, address: initial.address });
@@ -75,12 +81,6 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
     if (step === 1) {
       const ok = await run(() => apiFetch("PUT", "/api/company", company), { refresh: false });
       if (!ok) return;
-    }
-    // "Ihr Betrieb": Profil speichern – danach arbeitet der Assistent mit genau diesen Leistungen und Angaben.
-    if (step === 2) {
-      const ok = await run(() => apiFetch("PUT", "/api/business-profile", profile), { refresh: false });
-      if (!ok) return;
-      setServices(profile.services);
     }
     if (step === STEPS.length - 2 && !saved) {
       const ok = await save();
@@ -147,28 +147,25 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
-            <h1 className="text-2xl font-semibold tracking-tight">Ihr Betrieb</h1>
-            <p className="text-sm text-muted-foreground">
-              Damit der Assistent Ihre Anfragen richtig versteht, beschreiben Sie kurz Ihren Betrieb. Die KI schlägt daraus Ihre Leistungen, die nötigen
-              Angaben und Unterlagen vor – Sie prüfen und ändern alles nach Belieben.
-            </p>
-            <BusinessProfileEditor value={profile} onChange={setProfile} website={company.website} />
-          </div>
+          <Interview
+            profile={profile}
+            onProfile={setProfile}
+            company={company}
+            firstName={firstName}
+            initial={interviewInitial}
+            onBack={() => setStep(1)}
+            onDone={() => {
+              setServices(profile.services);
+              setStep(3);
+            }}
+          />
         )}
 
-        {step === 3 && (
-          <div className="space-y-4">
-            <h1 className="text-2xl font-semibold tracking-tight">Ein paar kurze Fragen</h1>
-            <p className="text-sm text-muted-foreground">
-              Antworten Sie einfach mit Ja oder Nein – FallFlow stellt danach alles automatisch ein. Passt keins von beiden, wählen Sie „Sonstiges“ und schreiben Sie es mit
-              eigenen Worten. Jede Antwort wird sofort übernommen und lässt sich später unter KI-Assistent → Fragebogen ändern.
-            </p>
-            <SetupQuestionnaire />
-          </div>
-        )}
+        {step === 3 && <SetupSteps onBack={() => setStep(2)} onDone={() => setStep(4)} />}
 
-        {step === 4 && (
+        {step === 4 && <TextsStep onBack={() => setStep(3)} onDone={() => setStep(5)} />}
+
+        {step === 5 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Wann können Sie Termine anbieten?</h1>
             <p className="text-sm text-muted-foreground">
@@ -217,7 +214,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">Website verbinden</h1>
             <p className="text-sm text-muted-foreground">Optional. Sie können diesen Schritt auch später in den Einstellungen erledigen.</p>
@@ -242,7 +239,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
           </div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">WhatsApp (optional)</h1>
             <p className="text-sm text-muted-foreground">
@@ -257,7 +254,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
           </div>
         )}
 
-        {step === 7 && (
+        {step === 8 && (
           <div className="space-y-4">
             <h1 className="text-2xl font-semibold tracking-tight">E-Mail verbinden</h1>
             <p className="text-sm text-muted-foreground">
@@ -293,12 +290,13 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
 
         {error && <Notice tone="error" className="mt-4">{error}</Notice>}
 
+        {!GUIDED_STEPS.includes(step) && (
         <div className="mt-8 flex items-center justify-between">
           <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={step === 0 || pending}>
             <ArrowLeft className="size-4" /> Zurück
           </Button>
           {step < STEPS.length - 1 ? (
-            <Button onClick={next} loading={pending && step === STEPS.length - 2} disabled={(step === 1 && !company.name.trim()) || (step === 2 && (!profile.industry.trim() || profile.services.length === 0))}>
+            <Button onClick={next} loading={pending && step === STEPS.length - 2} disabled={step === 1 && !company.name.trim()}>
               Weiter <ArrowRight className="size-4" />
             </Button>
           ) : (
@@ -307,6 +305,7 @@ export function OnboardingWizard({ firstName, companyId, appUrl, initial, widget
             </Button>
           )}
         </div>
+        )}
       </Card>
     </div>
   );

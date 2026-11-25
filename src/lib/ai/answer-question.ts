@@ -18,7 +18,7 @@ export interface QuestionContext {
   /** Bürozeiten, z. B. "Mo–Fr 09:00–17:00". */
   availability: string;
   /** Betrieb mit Betriebsprofil (beliebige Branche) – sonst Energieberatungsbüro. */
-  business?: Pick<BusinessProfile, "industry" | "description" | "documents" | "humanTopics" | "knowledge"> | null;
+  business?: Pick<BusinessProfile, "industry" | "description" | "documents" | "humanTopics" | "knowledge" | "interview"> | null;
 }
 
 export interface ChatHistoryEntry {
@@ -40,6 +40,19 @@ export function contactLine(ctx: Pick<QuestionContext, "email" | "phone">): stri
   return ways.length ? ways.join(" oder ") : "direkt über die Kontaktdaten auf unserer Website";
 }
 
+/** Angaben aus dem Einrichtungs-Gespräch (Kunden, Gebiet, Besonderheiten) als Zeilen für den Prompt – leer, wenn nichts da ist. */
+function aboutLines(b: NonNullable<QuestionContext["business"]>): string {
+  const i = b.interview ?? {};
+  return [
+    i.customers?.length ? `- Unsere Kunden: ${i.customers.join(", ")}` : "",
+    i.area ? `- Einsatzgebiet: ${i.area}` : "",
+    i.strengths?.length ? `- Was uns ausmacht: ${i.strengths.join(", ")}` : "",
+  ]
+    .filter(Boolean)
+    .map((l) => `${l}\n`)
+    .join("");
+}
+
 /** Website-Chat für einen beliebigen Betrieb (Branche aus dem Betriebsprofil). */
 function buildGenericSystem(ctx: QuestionContext, b: NonNullable<QuestionContext["business"]>, notes: string): string {
   return `Du bist ${ctx.assistantName}, der digitale Assistent des Betriebs "${ctx.companyName}" (Branche: ${b.industry}) im Website-Chat.
@@ -50,7 +63,7 @@ Du sprichst als Teil des Betriebs: immer in der Wir-Form ("wir", "uns"), nie in 
 
 Was du über den Betrieb weißt (nur das gilt als Fakt):
 - Über uns: ${b.description || "(keine Angabe)"}
-- Angebotene Leistungen: ${ctx.services.filter((s) => s !== "Sonstiges").join(", ") || "(keine Angabe)"}
+${aboutLines(b)}- Angebotene Leistungen: ${ctx.services.filter((s) => s !== "Sonstiges").join(", ") || "(keine Angabe)"}
 - Unterlagen, die Kunden für eine Anfrage typischerweise schicken: ${b.documents.join(", ") || "(keine Angabe)"}
 - Adresse: ${ctx.address || "(keine Angabe)"} · Telefon: ${ctx.phone || "(keine Angabe)"} · E-Mail: ${ctx.email || "(keine Angabe)"} · Website: ${ctx.website || "(keine Angabe)"}
 - Geschäftszeiten: ${ctx.availability || "(keine Angabe)"}

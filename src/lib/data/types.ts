@@ -72,8 +72,19 @@ export interface BusinessProfile {
   quoteDefaults?: { vatRate?: 19 | 7 | 0 };
   /** Anfrage auf WhatsApp-Freischaltung (solange die Meta-App noch nicht freigegeben ist, siehe lib/whatsapp-access.ts). */
   whatsappRequest?: WhatsAppAccessRequest;
+  /** Antworten aus dem Einrichtungs-Gespräch (onboarding/interview.tsx) – fließen in Kundentexte und Website-Chat ein. */
+  interview?: BusinessInterview;
   /** Der Betrieb erlaubt dem FallFlow-Support zeitlich begrenzt, sein Konto einzurichten (siehe lib/auth/support.ts). */
   supportAccess?: import("@/lib/auth/support").SupportAccess;
+}
+
+export interface BusinessInterview {
+  /** Wer die Kunden sind, z. B. "Privatkunden", "Hausverwaltungen" */
+  customers?: string[];
+  /** Einsatzgebiet in eigenen Worten, z. B. "Gräfelfing und 30 km Umkreis" */
+  area?: string;
+  /** Was den Betrieb ausmacht, z. B. "Meisterbetrieb", "Familienbetrieb seit 1998" */
+  strengths?: string[];
 }
 
 export interface WhatsAppAccessRequest {

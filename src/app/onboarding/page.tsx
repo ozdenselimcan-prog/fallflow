@@ -27,6 +27,19 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
   ]);
 
   const byProvider = new Map(connections.map((c) => [c.provider, toStatus(c)]));
+  // Bisherige Antworten aus dem Einrichtungs-Gespräch – wer unterbricht, macht mit seinen Antworten weiter.
+  const bp = company.businessProfile;
+  const greetingText = bp.texts?.["email.greeting"] ?? "";
+  const signoff = bp.texts?.["email.signoff"] ?? "";
+  const interviewInitial = {
+    customers: bp.interview?.customers ?? [],
+    area: bp.interview?.area ?? "",
+    strengths: bp.interview?.strengths ?? [],
+    faqs: bp.knowledge?.faqs ?? [],
+    tone: assistant.tone,
+    greeting: greetingText.startsWith("Hallo") ? ("hallo" as const) : greetingText.startsWith("Sehr geehrte") ? ("sehr-geehrte" as const) : ("guten-tag" as const),
+    signature: signoff.includes("\n") ? signoff.split("\n").slice(1).join(" ").replace("{firma}", "").trim() : "",
+  };
 
   return (
     <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-12">
@@ -49,6 +62,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
         documentTemplates={documentTemplates.map((t) => ({ id: t.id, service: t.service, title: t.title, fileName: t.fileName, alwaysInclude: t.alwaysInclude, requiresReturn: t.requiresReturn }))}
         serviceMessages={serviceMessages.map((m) => ({ service: m.service, body: m.body, appointmentNote: m.appointmentNote }))}
         assistant={assistant}
+        interviewInitial={interviewInitial}
         initialProfile={
           company.businessProfile.industry
             ? {
