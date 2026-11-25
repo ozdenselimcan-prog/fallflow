@@ -48,9 +48,9 @@ const TONES: { id: Tone; title: string; example: string }[] = [
   { id: "short", title: "Kurz & knapp", example: "„danke für Ihre Anfrage.“" },
 ];
 const GREETINGS: { id: Greeting; label: string }[] = [
-  { id: "guten-tag", label: "Guten Tag Frau Müller," },
-  { id: "hallo", label: "Hallo Frau Müller," },
-  { id: "sehr-geehrte", label: "Sehr geehrte Frau Müller," },
+  { id: "guten-tag", label: "Guten Tag Maria Müller," },
+  { id: "hallo", label: "Hallo Maria Müller," },
+  { id: "sehr-geehrte", label: "Sehr geehrte/r Maria Müller," },
 ];
 const TOTAL = 9;
 
@@ -343,7 +343,8 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
             ))}
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium">Anrede</p>
+            <p className="text-sm font-medium">Anrede</p>
+            <p className="mb-2 text-xs text-muted-foreground">FallFlow nimmt den Namen so, wie der Kunde ihn angibt.</p>
             <div className="flex flex-wrap gap-2">
               {GREETINGS.map((g) => (
                 <button

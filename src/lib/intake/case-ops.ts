@@ -133,8 +133,9 @@ export async function matchServiceMaterials(
       const missing = (await store.listQuestions())
         .filter((q) => q.active && q.required && !["name", "email", "service", "description"].includes(q.key) && allServices.some((s) => isRelevant(q, { ...c.fields, service: s })) && !isAnswered(c.fields, q.key))
         .filter((q) => !own.toLowerCase().includes(q.label.toLowerCase()))
-        .map((q) => q.label);
-      // "Straße, Nr." am Ende + Punkt im Text ergäbe "Nr.." – den Punkt der Liste weglassen.
+        // "Straße, Nr." in einer Aufzählung mit Kommas liest sich wie zwei Angaben – für den Kunden "Adresse".
+        .map((q) => (q.key === "street" ? "Adresse" : q.label));
+      // Endet ein Feldname mit Punkt (z. B. "Hausnr."), ergäbe das mit dem Satzpunkt "..": den Punkt der Liste weglassen.
       if (missing.length) parts.push(T("email.missing", { liste: missing.join(", ").replace(/\.$/, "") }).replace(/\.\.$/, "."));
       const docs = [...new Set(allServices.flatMap((s) => profileDocumentsFor(company.businessProfile, s)))].filter((d) => !own.toLowerCase().includes(d.toLowerCase()));
       if (docs.length) parts.push(T("email.helpful", { liste: docs.join(", ") }));
