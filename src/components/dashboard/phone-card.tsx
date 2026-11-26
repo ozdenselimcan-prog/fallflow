@@ -44,10 +44,7 @@ export function PhoneCard() {
         {!info && !error && <p className="text-muted-foreground">Wird geladen …</p>}
         {info && info.includedMinutes === 0 && (
           <p className="text-muted-foreground">
-            Der Telefon-Assistent ist ab dem Tarif Pro enthalten (120 Minuten pro Monat).{" "}
-            <Link href="/dashboard/settings/billing" className="font-medium text-accent hover:underline">
-              Tarif ändern
-            </Link>
+            Der Telefon-Assistent ist in Vorbereitung. Sobald er verfügbar ist, melden wir uns bei Ihnen.
           </p>
         )}
         {info && info.includedMinutes > 0 && !info.number && (

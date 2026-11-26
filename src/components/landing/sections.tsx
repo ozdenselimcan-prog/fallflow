@@ -271,7 +271,6 @@ const features: { icon: Icon; title: string; text: string; soon?: boolean }[] = 
   { icon: Camera, title: "Foto-Einschätzung", text: "Die KI schaut sich die Fotos des Kunden an und notiert, was zu sehen ist – nur für Sie, als Vorbereitung für vor Ort." },
   { icon: Languages, title: "In der Sprache des Kunden", text: "Schreibt ein Kunde Englisch, Türkisch oder Polnisch, antwortet FallFlow in seiner Sprache. Sie lesen und schreiben weiter Deutsch." },
   { icon: Star, title: "Google-Bewertungen", text: "Nach dem Termin bittet FallFlow zufriedene Kunden um eine Bewertung – mit Ihrem Link, einmal und freundlich." },
-  { icon: Phone, title: "Telefon-Assistent", text: "Geht niemand ran, nimmt die KI den Anruf an, fragt das Nötige ab und legt den Fall an – mit KI-Hinweis, ohne Aufzeichnung. Ab Tarif Pro.", soon: true },
   { icon: MessageCircleQuestion, title: "Aufmerksamkeit benötigt", text: "Stellt ein Kunde eine Frage oder ist die Leistung unklar, antwortet nicht die KI, sondern Sie – FallFlow sagt Ihnen Bescheid." },
   { icon: ClipboardCheck, title: "Vollständigkeit in %", text: "Jeder Fall zeigt auf einen Blick, was vorliegt und was noch fehlt." },
   { icon: FileText, title: "Fallakte", text: "Kunde, Angaben zum Auftrag, Unterlagen, Kommunikation und eine kurze KI-Zusammenfassung an einem Ort." },
