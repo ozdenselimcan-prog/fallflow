@@ -337,7 +337,7 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
       body = (
         <div className="space-y-3">
           {prices.map((x, i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-[1fr_9rem_1fr]">
+            <div key={i} className="grid gap-2 rounded-xl border border-border p-2 sm:grid-cols-[1fr_9rem_1fr] sm:border-0 sm:p-0">
               <Input value={x.item} onChange={(e) => setPrices(prices.map((y, k) => (k === i ? { ...y, item: e.target.value } : y)))} placeholder="Leistung" maxLength={80} aria-label="Leistung" />
               <Input value={x.price} onChange={(e) => setPrices(prices.map((y, k) => (k === i ? { ...y, price: e.target.value } : y)))} placeholder="z. B. ab 120 €" maxLength={40} aria-label={`Preis für ${x.item || "Leistung"}`} />
               <Input value={x.note} onChange={(e) => setPrices(prices.map((y, k) => (k === i ? { ...y, note: e.target.value } : y)))} placeholder="Hinweis (optional), z. B. je m²" maxLength={160} aria-label="Hinweis" />
