@@ -42,7 +42,7 @@ export default function AnleitungPage() {
           <Link href="/signup" className={buttonStyles({ size: "lg" })}>
             7 Tage kostenlos testen
           </Link>
-          <span className="text-sm text-muted-foreground">Fragen? support@fallflow.xyz</span>
+          <span className="text-sm text-muted-foreground">Fragen? support@fallflow.eu</span>
         </div>
       </main>
       <Footer />

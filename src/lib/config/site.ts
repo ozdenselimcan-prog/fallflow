@@ -3,7 +3,7 @@ export const siteConfig = {
   description:
     "FallFlow beantwortet Kundenanfragen für Ihren Betrieb automatisch mit Ihren eigenen Texten und Vorlagen, sammelt Unterlagen ein und bereitet fertige Aufträge samt Terminvorschlag vor.",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-  supportEmail: "support@fallflow.xyz",
+  supportEmail: "support@fallflow.eu",
   phone: "+49 176 21546311",
 };
 

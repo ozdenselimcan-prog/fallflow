@@ -23,7 +23,7 @@ export const pushConfigured = () => Boolean(vapidPublicKey() && vapidPrivateKey(
 let configured = false;
 function configure() {
   if (configured || !pushConfigured()) return;
-  webpush.setVapidDetails((process.env.VAPID_SUBJECT || "mailto:support@fallflow.xyz").trim(), vapidPublicKey(), vapidPrivateKey());
+  webpush.setVapidDetails((process.env.VAPID_SUBJECT || "mailto:support@fallflow.eu").trim(), vapidPublicKey(), vapidPrivateKey());
   configured = true;
 }
 
