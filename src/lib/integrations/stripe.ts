@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { siteConfig } from "@/lib/config/site";
-import type { Plan } from "@/lib/config/pricing";
+import { pilotPriceFor, type Plan } from "@/lib/config/pricing";
 
 const PLAN_PRICE_ENV: Record<Plan["id"], string> = {
   starter: "STRIPE_PRICE_STARTER",
@@ -22,9 +22,23 @@ export function priceIdForPlan(planId: Plan["id"]): string | null {
   return process.env[PLAN_PRICE_ENV[planId]] ?? null;
 }
 
+/** Auch frühere Preise (Preisänderung 11/2026): STRIPE_PRICE_<PLAN>_OLD, mehrere mit Komma getrennt – laufende Abos behalten ihren Plan. */
 export function planForPriceId(priceId: string): Plan["id"] | null {
-  const entry = (Object.entries(PLAN_PRICE_ENV) as [Plan["id"], string][]).find(([, envKey]) => process.env[envKey] === priceId);
+  const ids = (envKey: string) => [process.env[envKey], ...(process.env[`${envKey}_OLD`] ?? "").split(",")].map((v) => v?.trim()).filter(Boolean);
+  const entry = (Object.entries(PLAN_PRICE_ENV) as [Plan["id"], string][]).find(([, envKey]) => ids(envKey).includes(priceId));
   return entry?.[0] ?? null;
+}
+
+/** Einführungspreis (PILOT_OFFER): Gutschein, solange er noch gültig ist (Stripe begrenzt die Einlösungen). */
+async function pilotDiscount(stripe: Stripe, planId: Plan["id"]): Promise<{ coupon: string }[] | undefined> {
+  const coupon = process.env.STRIPE_PILOT_COUPON;
+  if (!coupon || pilotPriceFor(planId) === null) return undefined;
+  try {
+    const c = await stripe.coupons.retrieve(coupon);
+    return c.valid ? [{ coupon }] : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 interface CheckoutParams {
@@ -47,9 +61,11 @@ export async function createCheckoutSession({ companyId, planId, customerEmail, 
   const price = priceIdForPlan(planId);
   if (!price) throw new Error(`Kein Stripe-Preis für Plan "${planId}" hinterlegt`);
 
+  const discounts = await pilotDiscount(stripe, planId);
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price, quantity: 1 }],
+    ...(discounts ? { discounts } : {}),
     success_url: successUrl ?? `${siteConfig.appUrl}/api/billing/confirm?next=billing&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl ?? `${siteConfig.appUrl}/dashboard/settings/billing?checkout=cancelled`,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: customerEmail }),

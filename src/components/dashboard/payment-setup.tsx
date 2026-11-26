@@ -7,7 +7,7 @@ import { LiveRefresh } from "@/components/dashboard/live-refresh";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/states";
-import { plans, VAT_NOTE } from "@/lib/config/pricing";
+import { PILOT_NOTE, pilotPriceFor, plans, VAT_NOTE } from "@/lib/config/pricing";
 import { apiFetch } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +97,7 @@ export function PaymentSetup({ canManage, preferredPlan, daysLeft = 0, direct = 
                   <span className="text-2xl font-semibold">{p.priceEur} €</span>
                   <span className="text-sm text-muted-foreground"> / Monat{running && p.trial ? " nach der Testphase" : ""}</span>
                 </p>
+                {pilotPriceFor(p.id) !== null && <p className="mt-1 text-xs font-semibold text-accent">{PILOT_NOTE}</p>}
                 {running && !p.trial && <p className="mt-1 text-xs text-muted-foreground">Startet sofort – die erste Zahlung ist direkt fällig.</p>}
                 <ul className="mt-3 flex-1 space-y-1.5 text-sm">
                   {p.features.map((f) => (

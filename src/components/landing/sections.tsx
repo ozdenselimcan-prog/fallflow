@@ -33,7 +33,7 @@ import { buttonStyles } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { faqs } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
-import { plans, VAT_NOTE } from "@/lib/config/pricing";
+import { PILOT_NOTE, pilotPriceFor, plans, VAT_NOTE } from "@/lib/config/pricing";
 import { cn } from "@/lib/utils";
 
 type Icon = ComponentType<{ className?: string }>;
@@ -393,6 +393,7 @@ export function PricingSection({ h1 = false }: { h1?: boolean } = {}) {
               <span className="text-4xl font-semibold tracking-tight">{p.priceEur} €</span>
               <span className="text-muted-foreground">/Monat</span>
             </p>
+            {pilotPriceFor(p.id) !== null && <p className="mt-2 text-sm font-semibold text-accent">{PILOT_NOTE}</p>}
             <p className="mt-1 text-xs text-muted-foreground">
               {p.trial ? "7 Tage kostenlos testen, ohne Kreditkarte – oder direkt starten." : "Direkt abonnieren – die kostenlose Testphase gibt es mit Starter."} Monatlich kündbar. {VAT_NOTE}
             </p>

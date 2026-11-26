@@ -4,7 +4,7 @@ import { ArrowRight, Bell, Check, ClipboardCheck, MessageSquare } from "lucide-r
 import { CaseFilm } from "@/components/landing/case-film";
 import { Logo } from "@/components/ui/logo";
 import { buttonStyles } from "@/components/ui/button";
-import { plans } from "@/lib/config/pricing";
+import { pilotPriceFor, plans } from "@/lib/config/pricing";
 
 /**
  * Zielseite für die Werbeanzeigen (Meta): knüpft direkt an die Anzeige an („22:14 Uhr – noch 23 Anfragen offen?“),
@@ -22,7 +22,7 @@ const steps = [
   { icon: Bell, title: "Sie bekommen den Auftrag", text: "Fertig vorbereitet. Bei Dringendem bekommen Sie sofort Bescheid." },
 ];
 
-const startPrice = Math.min(...plans.map((p) => p.priceEur));
+const startPrice = Math.min(...plans.map((p) => pilotPriceFor(p.id) ?? p.priceEur));
 
 function Cta({ className }: { className?: string }) {
   return (

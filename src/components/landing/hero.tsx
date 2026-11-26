@@ -89,7 +89,7 @@ export function Hero() {
             Selbst einrichten
           </Link>
         </div>
-        <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">5 Minuten Fragen beantworten · 7 Tage kostenlos · ohne Kreditkarte · ab 49 €/Monat</p>
+        <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">5 Minuten Fragen beantworten · 7 Tage kostenlos · ohne Kreditkarte · monatlich kündbar</p>
         <p className="hero-reveal mt-2 text-sm text-zinc-500 [animation-delay:360ms]">
           Erst ausprobieren?{" "}
           <Link href="/demo" className="font-medium text-zinc-900 underline underline-offset-2">

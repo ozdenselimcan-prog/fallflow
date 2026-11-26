@@ -31,11 +31,11 @@ const plan = (p: Omit<Plan, "features">): Plan => ({ ...p, features: [...p.extra
 
 /** Zentrale Preiskonfiguration – Landingpage und Billing lesen ausschließlich hieraus. */
 export const plans: Plan[] = [
-  plan({ id: "starter", name: "Starter", priceEur: 49, trial: true, caseLimit: 100, phoneMinutes: 0, extras: ["100 Kundenanfragen/Monat"] }),
+  plan({ id: "starter", name: "Starter", priceEur: 99, trial: true, caseLimit: 100, phoneMinutes: 0, extras: ["100 Kundenanfragen/Monat"] }),
   plan({
     id: "pro",
     name: "Pro",
-    priceEur: 99,
+    priceEur: 149,
     trial: false,
     caseLimit: 500,
     phoneMinutes: 120,
@@ -45,13 +45,21 @@ export const plans: Plan[] = [
   plan({
     id: "business",
     name: "Business",
-    priceEur: 149,
+    priceEur: 249,
     trial: false,
     caseLimit: null,
     phoneMinutes: 260,
     extras: ["Unbegrenzte Kundenanfragen", "Telefon-Assistent mit 240 Minuten/Monat + 20 Minuten geschenkt (bald verfügbar)", "Prioritätssupport"],
   }),
 ];
+
+/**
+ * Einführungspreis: Die ersten Betriebe zahlen für Starter dauerhaft weniger (Stripe-Gutschein STRIPE_PILOT_COUPON, auf
+ * 10 Einlösungen begrenzt – Stripe zählt mit). Sind alle Plätze vergeben, active auf false setzen.
+ */
+export const PILOT_OFFER = { active: true, planId: "starter" as Plan["id"], priceEur: 69, slots: 10 };
+export const pilotPriceFor = (planId: string) => (PILOT_OFFER.active && planId === PILOT_OFFER.planId ? PILOT_OFFER.priceEur : null);
+export const PILOT_NOTE = `Einführungspreis: ${PILOT_OFFER.priceEur} €/Monat – dauerhaft für die ersten ${PILOT_OFFER.slots} Betriebe`;
 
 /** Kleinunternehmerregelung: keine Umsatzsteuer. Fällt das weg, hier "zzgl. gesetzlicher MwSt." eintragen (und AGB § 5 anpassen). */
 export const VAT_NOTE = "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.";

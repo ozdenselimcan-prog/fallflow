@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { SignupForm } from "@/components/auth/auth-form";
 import { REFERRAL_COOKIE } from "@/lib/billing/referral-code";
 import { REFERRAL_CODE, REFERRAL_TRIAL_DAYS } from "@/lib/billing/referrals";
-import { plans } from "@/lib/config/pricing";
+import { pilotPriceFor, plans } from "@/lib/config/pricing";
 
 export const metadata: Metadata = { title: "Registrieren" };
 
@@ -31,7 +31,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
       <p className="mt-2 text-sm text-muted-foreground sm:text-base">
         {buy ? (
           <>
-            {plan.name}-Plan für {plan.priceEur} €/Monat. Nach der Registrierung geht es direkt zur Bezahlung.{" "}
+            {plan.name}-Plan für {pilotPriceFor(plan.id) ?? plan.priceEur} €/Monat{pilotPriceFor(plan.id) !== null ? " (Einführungspreis)" : ""}. Nach der Registrierung geht es direkt zur Bezahlung.{" "}
             <Link href="/signup?plan=starter" className="underline">
               {plan.trial ? "Lieber erst kostenlos testen?" : "Lieber erst 7 Tage kostenlos mit Starter testen?"}
             </Link>
@@ -41,7 +41,7 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
         )}
       </p>
       <ul className="mb-5 mt-3 flex flex-wrap gap-1.5 text-xs font-medium sm:mb-8 sm:mt-4 sm:gap-2">
-        {(buy ? [`${plan.name}-Plan`, "Monatlich kündbar", "Server in der EU"] : ["Ohne Kreditkarte", `Danach ${plan.priceEur} €/Monat (${plan.name})`, "Jederzeit kündbar"]).map((t) => (
+        {(buy ? [`${plan.name}-Plan`, "Monatlich kündbar", "Server in der EU"] : ["Ohne Kreditkarte", `Danach ${pilotPriceFor(plan.id) ?? plan.priceEur} €/Monat (${plan.name}${pilotPriceFor(plan.id) !== null ? ", Einführungspreis" : ""})`, "Jederzeit kündbar"]).map((t) => (
           <li key={t} className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 sm:px-3 sm:py-1.5">
             <Check className="size-3.5" aria-hidden /> {t}
           </li>
