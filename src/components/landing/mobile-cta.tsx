@@ -26,10 +26,10 @@ export function MobileCta() {
           show ? "translate-y-0" : "translate-y-full",
         )}
       >
-        <Link href="/signup" className={buttonStyles({ size: "lg", className: "w-full" })}>
-          7 Tage kostenlos testen
+        <Link href="/einrichtung" className={buttonStyles({ size: "lg", className: "w-full" })}>
+          Kostenlos einrichten lassen
         </Link>
-        <p className="mt-1.5 text-center text-xs text-muted-foreground">Ohne Kreditkarte · monatlich kündbar</p>
+        <p className="mt-1.5 text-center text-xs text-muted-foreground">5 Minuten · 7 Tage kostenlos · ohne Kreditkarte</p>
       </div>
     </>
   );

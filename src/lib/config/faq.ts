@@ -5,7 +5,7 @@ export const faqs = [
   },
   {
     q: "Wie aufwendig ist die Einrichtung?",
-    a: "Etwa 10 Minuten. FallFlow führt Sie Schritt für Schritt durch Firmendaten, Ihren Betrieb, Ihre Texte und Formulare, Termine und die Verbindung mit Ihrem E-Mail-Postfach. Keine Zeit oder Lust darauf? Dann richten wir FallFlow kostenlos in einem kurzen Telefonat gemeinsam mit Ihnen ein – Sie müssen nichts vorbereiten.",
+    a: "Für Sie fast gar nicht: Sie beantworten in etwa 5 Minuten ein paar Fragen zu Ihrem Betrieb, wir richten FallFlow komplett ein – Leistungen, Rückfragen an Kunden, Texte – und prüfen alles persönlich. Danach bekommen Sie den fertigen Zugang per E-Mail und verbinden nur noch Ihr Postfach, gern gemeinsam mit uns am Telefon. Kostenlos. Wer lieber selbst einrichtet, wird in etwa 10 Minuten Schritt für Schritt durchgeführt.",
   },
   {
     q: "Schreibt die KI meinen Kunden eigene Texte?",

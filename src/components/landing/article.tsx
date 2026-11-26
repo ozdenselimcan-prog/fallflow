@@ -37,11 +37,11 @@ export function Article({ path, title, intro, published, children }: { path: str
             den fertig vorbereiteten Auftrag hin.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Link href="/signup" className={buttonStyles({ className: "bg-white text-black hover:bg-white" })}>
-              7 Tage kostenlos testen
-            </Link>
-            <Link href="/einrichtung" className={buttonStyles({ variant: "secondary" })}>
+            <Link href="/einrichtung" className={buttonStyles({ className: "bg-white text-black hover:bg-white" })}>
               Kostenlos einrichten lassen
+            </Link>
+            <Link href="/signup" className={buttonStyles({ variant: "secondary" })}>
+              Selbst einrichten
             </Link>
           </div>
         </aside>

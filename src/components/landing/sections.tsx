@@ -102,15 +102,15 @@ export function MailFlowSection({ h1 = false }: { h1?: boolean } = {}) {
 }
 
 const simpleSteps = [
-  { icon: Mail, title: "Postfach verbinden", text: "Einmal Ihr E-Mail-Postfach verbinden, auf Wunsch auch WhatsApp. Wählen Sie Ihre Branche – die Vorlagen sind schon da." },
-  { icon: MessageCircle, title: "Die KI antwortet sofort", text: "Jede Anfrage bekommt eine freundliche Antwort mit Ihren Texten. Fehlende Angaben, Fotos und Formulare fordert sie selbst an." },
-  { icon: ClipboardCheck, title: "Sie bekommen den Auftrag", text: "Alles Wichtige auf einen Blick, mit Terminvorschlag. Notfälle meldet FallFlow sofort aufs Handy." },
+  { icon: ClipboardCheck, title: "Ein paar Fragen beantworten", text: "In 5 Minuten erzählen Sie uns, was Ihr Betrieb macht. Wir richten alles ein – Leistungen, Rückfragen an Kunden, Texte – und prüfen es persönlich." },
+  { icon: Mail, title: "Postfach verbinden", text: "Sie bekommen Ihren fertigen Zugang per E-Mail und verbinden Ihr Postfach – gern gemeinsam mit uns am Telefon." },
+  { icon: MessageCircle, title: "Anfragen laufen von selbst", text: "Jeder Kunde bekommt in Minuten eine Antwort, fehlende Angaben und Fotos fordert FallFlow selbst an. Sie bekommen den fertigen Auftrag, Notfälle sofort aufs Handy." },
 ];
 
 /** Startseite: der ganze Ablauf in drei einfachen Schritten. */
 export function SimpleStepsSection() {
   return (
-    <Section id="so-funktioniert-es" tinted title="So einfach geht's." intro="Sie arbeiten weiter wie bisher. FallFlow kümmert sich um die Anfragen.">
+    <Section id="so-funktioniert-es" tinted title="So einfach geht's." intro="Sie beantworten ein paar Fragen. Den Rest machen wir.">
       <ol className="grid gap-4 md:grid-cols-3">
         {simpleSteps.map(({ icon: I, title, text }, i) => (
           <li key={title}>
@@ -137,7 +137,7 @@ const control = [
   "Jeder Text, den Ihre Kunden bekommen, lässt sich ändern.",
   "Kein neues Programm: Kunden schreiben wie gewohnt per E-Mail oder WhatsApp.",
   "Server in Deutschland, DSGVO-konform. Monatlich kündbar.",
-  "Persönliche Einrichtung inklusive: Auf Wunsch richten wir alles in einem kurzen Telefonat mit Ihnen ein.",
+  "Einrichtung inklusive: Wir richten FallFlow für Ihren Betrieb ein und prüfen alles persönlich, bevor es losgeht.",
 ];
 
 /** Startseite: die häufigsten Bedenken („Was schreibt die KI meinen Kunden?“) direkt beantworten. */
@@ -170,8 +170,8 @@ export function PersonalSection() {
             <div>
               <h2 className="text-2xl font-extrabold tracking-tight text-balance sm:text-3xl">Persönlich für Sie da – kein Callcenter.</h2>
               <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-                FallFlow kommt aus München. Ich bin Selimcan Özden und kümmere mich selbst um jeden Betrieb: Auf Wunsch richte ich FallFlow in einem kurzen Telefonat mit
-                Ihnen ein – Leistungen, Texte, Postfach. Bei Fragen rufen Sie mich einfach an.
+                FallFlow kommt aus München. Ich bin Selimcan Özden und kümmere mich selbst um jeden Betrieb: Ich richte FallFlow für Sie ein, prüfe Leistungen und Texte
+                persönlich und verbinde auf Wunsch Ihr Postfach mit Ihnen am Telefon. Bei Fragen rufen Sie mich einfach an.
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link href="/einrichtung" className={buttonStyles({ size: "lg" })}>
@@ -381,7 +381,7 @@ export function AudienceSection() {
 
 export function PricingSection({ h1 = false }: { h1?: boolean } = {}) {
   return (
-    <Section id="preise" h1={h1} title="Einfache, monatliche Preise." intro="Wählen Sie den Plan, der zur Größe Ihres Betriebs passt.">
+    <Section id="preise" h1={h1} title="Einfache, monatliche Preise." intro="Wählen Sie den Plan, der zur Größe Ihres Betriebs passt. Die Einrichtung durch uns ist bei jedem Plan kostenlos dabei.">
       <div className="grid gap-4 lg:grid-cols-3">
         {plans.map((p) => (
           <Card key={p.id} className={cn("flex flex-col p-6", p.highlighted && "border-accent ring-1 ring-accent")}>
@@ -406,11 +406,11 @@ export function PricingSection({ h1 = false }: { h1?: boolean } = {}) {
             </ul>
             {p.trial ? (
               <>
-                <Link href={`/signup?plan=${p.id}`} className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
-                  7 Tage kostenlos testen
+                <Link href="/einrichtung" className={buttonStyles({ variant: p.highlighted ? "primary" : "secondary", className: "mt-6" })}>
+                  Kostenlos einrichten lassen
                 </Link>
-                <Link href={`/signup?plan=${p.id}&buy=1`} className={buttonStyles({ variant: "ghost", className: "mt-2 border border-border" })}>
-                  Direkt kaufen
+                <Link href={`/signup?plan=${p.id}`} className={buttonStyles({ variant: "ghost", className: "mt-2 border border-border" })}>
+                  Selbst einrichten & 7 Tage testen
                 </Link>
               </>
             ) : (
@@ -456,17 +456,17 @@ export function FinalCta() {
       <div className="mx-auto max-w-4xl rounded-lg bg-black px-6 py-14 text-center text-white sm:px-12">
         <h2 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">Verwandeln Sie Ihre nächste Kundenanfrage in einen fertig vorbereiteten Auftrag.</h2>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/signup" className={buttonStyles({ size: "lg", className: "bg-white text-black hover:bg-white" })}>
-            Kostenlos starten
+          <Link href="/einrichtung" className={buttonStyles({ size: "lg", className: "bg-white text-black hover:bg-white" })}>
+            Kostenlos einrichten lassen
           </Link>
           <Link href="/demo" className={buttonStyles({ variant: "secondary", size: "lg" })}>
             Demo ansehen
           </Link>
         </div>
         <p className="mt-6 text-sm text-zinc-300">
-          Lieber nicht selbst einrichten?{" "}
-          <Link href="/einrichtung" className="font-medium text-white underline underline-offset-2">
-            Wir machen das kostenlos mit Ihnen am Telefon.
+          Lieber selbst einrichten?{" "}
+          <Link href="/signup" className="font-medium text-white underline underline-offset-2">
+            7 Tage kostenlos testen
           </Link>
         </p>
       </div>

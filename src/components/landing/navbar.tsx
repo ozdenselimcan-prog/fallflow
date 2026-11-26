@@ -25,8 +25,8 @@ export function Navbar() {
           <Link href="/login" className={buttonStyles({ variant: "ghost", className: "h-9 px-3 font-medium text-zinc-700" })}>
             Login
           </Link>
-          <Link href="/signup" className={buttonStyles({ className: "h-10 px-5 font-semibold" })}>
-            Kostenlos starten
+          <Link href="/einrichtung" className={buttonStyles({ className: "h-10 px-5 font-semibold" })}>
+            Einrichten lassen
           </Link>
         </div>
         <button type="button" className="rounded-lg p-2 hover:bg-muted lg:hidden" aria-label={open ? "Menü schließen" : "Menü öffnen"} aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -46,8 +46,8 @@ export function Navbar() {
             <Link href="/login" className={buttonStyles({ variant: "secondary" })}>
               Login
             </Link>
-            <Link href="/signup" className={buttonStyles()}>
-              Kostenlos starten
+            <Link href="/einrichtung" className={buttonStyles()}>
+              Einrichten lassen
             </Link>
           </div>
         </div>

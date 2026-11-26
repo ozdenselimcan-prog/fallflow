@@ -9,7 +9,7 @@ import { ControlSection, FaqSection, FinalCta, MailFlowSection, PersonalSection,
 
 export const metadata: Metadata = {
   title: { absolute: "FallFlow – Kundenanfragen automatisch beantworten für Handwerker" },
-  description: "Keine Anfrage geht mehr verloren: FallFlow beantwortet Kundenanfragen per E-Mail und WhatsApp in wenigen Minuten, fragt fehlende Angaben und Fotos ab und legt Ihnen den fertigen Auftrag hin. 7 Tage kostenlos.",
+  description: "Keine Anfrage geht mehr verloren: FallFlow beantwortet Kundenanfragen per E-Mail und WhatsApp in wenigen Minuten, fragt fehlende Angaben und Fotos ab und legt Ihnen den fertigen Auftrag hin. Wir richten alles für Sie ein – 7 Tage kostenlos.",
   alternates: { canonical: "/" },
 };
 

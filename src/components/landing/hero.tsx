@@ -79,17 +79,17 @@ export function Hero() {
           </span>
         </h1>
         <p className="hero-reveal mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 [animation-delay:160ms] sm:text-lg">
-          Jeder Kunde bekommt in wenigen Minuten eine Antwort – per E-Mail oder WhatsApp, auch abends und am Wochenende. Sie bekommen den fertig vorbereiteten Auftrag.
+          Jeder Kunde bekommt in wenigen Minuten eine Antwort – per E-Mail oder WhatsApp, auch abends und am Wochenende. Sie bekommen den fertig vorbereiteten Auftrag. Und einrichten müssen Sie nichts: Das machen wir für Sie.
         </p>
         <div className="hero-reveal mt-8 flex w-full max-w-sm flex-col gap-3 [animation-delay:240ms] sm:max-w-none sm:flex-row sm:justify-center">
-          <Link href="/signup" className={buttonStyles({ size: "lg" })}>
-            7 Tage kostenlos testen <ArrowRight className="size-4" />
+          <Link href="/einrichtung" className={buttonStyles({ size: "lg" })}>
+            Kostenlos einrichten lassen <ArrowRight className="size-4" />
           </Link>
-          <Link href="/einrichtung" className={buttonStyles({ variant: "ghost", size: "lg", className: "border border-zinc-200 bg-white hover:bg-zinc-50" })}>
-            Kostenlos einrichten lassen
+          <Link href="/signup" className={buttonStyles({ variant: "ghost", size: "lg", className: "border border-zinc-200 bg-white hover:bg-zinc-50" })}>
+            Selbst einrichten
           </Link>
         </div>
-        <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">Ohne Kreditkarte · ab 49 €/Monat · monatlich kündbar</p>
+        <p className="hero-reveal mt-5 text-sm text-zinc-400 [animation-delay:320ms]">5 Minuten Fragen beantworten · 7 Tage kostenlos · ohne Kreditkarte · ab 49 €/Monat</p>
         <p className="hero-reveal mt-2 text-sm text-zinc-500 [animation-delay:360ms]">
           Erst ausprobieren?{" "}
           <Link href="/demo" className="font-medium text-zinc-900 underline underline-offset-2">
