@@ -27,7 +27,7 @@ export function statusQuestion(text: string): { asked: boolean; rest: string } {
 export interface StatusInput {
   appointments: Pick<Appointment, "startsAt" | "status">[];
   /** Fehlende Pflichtpunkte des Falls (Angaben und Unterlagen) */
-  missing: Pick<ChecklistItem, "label">[];
+  missing: (Pick<ChecklistItem, "label"> & { key?: string })[];
   /** Upload-Seite, falls noch Unterlagen fehlen */
   uploadLink?: string | null;
   /** Terminbuchung per Link: Kunde soll seinen Termin noch selbst wählen */
@@ -46,8 +46,10 @@ export function statusAnswer(input: StatusInput): string {
   const proposed = upcoming.find((a) => a.status === "proposed");
   if (proposed) return input.T("status.appointmentPending");
   if (input.missing.length) {
-    const liste = input.missing.map((m) => m.label).slice(0, 6).join(", ");
-    return input.T("status.missing", { liste }) + (input.uploadLink ? ` ${input.T("status.uploadLink", { link: input.uploadLink })}` : "");
+    // "Straße, Nr." liest sich in einer Aufzählung wie zwei Angaben – für den Kunden "Adresse" (wie in der ersten Antwort).
+    const labels = [...new Set(input.missing.map((m) => (m.key === "street" ? "Adresse" : m.label)))];
+    const liste = labels.slice(0, 6).join(", ").replace(/\.$/, "");
+    return input.T("status.missing", { liste }).replace(/\.\.$/, ".") + (input.uploadLink ? ` ${input.T("status.uploadLink", { link: input.uploadLink })}` : "");
   }
   if (input.bookingLink) return input.T("status.chooseAppointment", { link: input.bookingLink });
   return input.T("status.inProgress");

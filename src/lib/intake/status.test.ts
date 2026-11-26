@@ -54,6 +54,10 @@ describe("Antwort auf die Frage nach dem Stand", () => {
     expect(text).toContain("fehlt uns noch: Adresse, Fotos vom Dach.");
     expect(text).toContain("https://x/upload/abc");
   });
+  it("„Straße, Nr.“ heißt für den Kunden „Adresse“", () => {
+    const text = statusAnswer({ appointments: [], missing: [{ key: "street", label: "Straße, Nr." }, { key: "zip", label: "PLZ" }], T, now });
+    expect(text).toContain("fehlt uns noch: Adresse, PLZ.");
+  });
   it("alles da, Termin noch nicht gewählt: Buchungslink", () => {
     expect(statusAnswer({ appointments: [], missing: [], bookingLink: "https://x/termin/abc", T, now })).toContain("https://x/termin/abc");
   });
