@@ -5,7 +5,7 @@ import { LoginForm } from "@/components/auth/auth-form";
 export const metadata: Metadata = { title: "Anmelden" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { error } = await searchParams;
+  const { error, hinweis } = await searchParams;
   return (
     <>
       <h1 className="text-3xl font-semibold tracking-tight">Willkommen zurück</h1>
@@ -13,6 +13,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       {error === "callback" && (
         <p role="alert" className="mb-4 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
           Der Bestätigungslink ist ungültig oder abgelaufen. Bitte melden Sie sich an oder fordern Sie einen neuen Link an.
+        </p>
+      )}
+      {hinweis === "zugang" && (
+        <p role="status" className="mb-4 rounded-xl bg-accent-soft px-4 py-3 text-sm">
+          Ihr Zugang ist schon eingerichtet. Bitte melden Sie sich mit Ihrem Passwort an – falls Sie es nicht mehr wissen, über „Passwort vergessen“.
         </p>
       )}
       <LoginForm />

@@ -76,6 +76,25 @@ export interface BusinessProfile {
   interview?: BusinessInterview;
   /** Der Betrieb erlaubt dem FallFlow-Support zeitlich begrenzt, sein Konto einzurichten (siehe lib/auth/support.ts). */
   supportAccess?: import("@/lib/auth/support").SupportAccess;
+  /** Über den Fragebogen auf der Website angelegt: FallFlow richtet ein, der Betreiber prüft und schaltet frei (lib/setup/managed.ts). */
+  managedSetup?: ManagedSetup;
+}
+
+export interface ManagedSetup {
+  /** generating = KI richtet ein, ready = wartet auf Prüfung/Freischaltung, released = Zugang verschickt, failed = Einrichtung fehlgeschlagen */
+  status: "generating" | "ready" | "released" | "failed";
+  requestedAt: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  /** Nachricht bzw. Wunsch des Betriebs aus dem Fragebogen */
+  note: string;
+  /** Testphase mit dieser Adresse schon einmal genutzt → bei Freischaltung keine neue Testphase */
+  trialUsedBefore?: boolean;
+  releasedAt?: string;
+  error?: string;
+  /** Antworten aus dem Fragebogen (für „Erneut einrichten“, falls die automatische Einrichtung fehlschlug) */
+  answers?: Record<string, unknown>;
 }
 
 export interface BusinessInterview {

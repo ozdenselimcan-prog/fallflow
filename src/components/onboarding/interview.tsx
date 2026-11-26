@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
  * (Betriebsprofil bzw. /api/onboarding/interview) – daraus schreibt FallFlow danach die Texte für jede Leistung.
  */
 
-type Greeting = "guten-tag" | "hallo" | "sehr-geehrte";
+export type Greeting = "guten-tag" | "hallo" | "sehr-geehrte";
 
 export interface InterviewInitial {
   customers: string[];
@@ -39,16 +39,16 @@ interface Props {
   onBack: () => void;
 }
 
-const CUSTOMERS = ["Privatkunden", "Hausverwaltungen", "Vermieter & Eigentümer", "Firmen & Gewerbe", "Öffentliche Auftraggeber", "Architekten & Planer"];
-const STRENGTHS = ["Meisterbetrieb", "Familienbetrieb", "Seit über 10 Jahren am Markt", "Schnelle Termine", "Notdienst", "Feste Ansprechpartner", "Saubere, ordentliche Arbeit", "Kostenlose Besichtigung"];
+export const CUSTOMERS = ["Privatkunden", "Hausverwaltungen", "Vermieter & Eigentümer", "Firmen & Gewerbe", "Öffentliche Auftraggeber", "Architekten & Planer"];
+export const STRENGTHS = ["Meisterbetrieb", "Familienbetrieb", "Seit über 10 Jahren am Markt", "Schnelle Termine", "Notdienst", "Feste Ansprechpartner", "Saubere, ordentliche Arbeit", "Kostenlose Besichtigung"];
 const HUMAN_TOPICS = ["Preise und Kosten", "Notfälle", "Reklamationen", "Sonderwünsche", "Terminänderungen", "Rechtliche Fragen"];
 const FAQ_SUGGESTIONS = ["Wie schnell bekomme ich einen Termin?", "Machen Sie auch kleine Aufträge?", "Arbeiten Sie auch samstags?"];
-const TONES: { id: Tone; title: string; example: string }[] = [
+export const TONES: { id: Tone; title: string; example: string }[] = [
   { id: "friendly", title: "Freundlich", example: "„vielen Dank für Ihre Anfrage – wir kümmern uns gern darum.“" },
   { id: "professional", title: "Sachlich", example: "„vielen Dank für Ihre Anfrage. Wir prüfen Ihr Anliegen.“" },
   { id: "short", title: "Kurz & knapp", example: "„danke für Ihre Anfrage.“" },
 ];
-const GREETINGS: { id: Greeting; label: string }[] = [
+export const GREETINGS: { id: Greeting; label: string }[] = [
   { id: "guten-tag", label: "Guten Tag Maria Müller," },
   { id: "hallo", label: "Hallo Maria Müller," },
   { id: "sehr-geehrte", label: "Sehr geehrte/r Maria Müller," },
@@ -56,7 +56,7 @@ const GREETINGS: { id: Greeting; label: string }[] = [
 const TOTAL = 10;
 
 /** Antippbare Auswahl (mehrere möglich) plus eigene Einträge. */
-function Chips({ options, selected, onChange, addPlaceholder, locked = [] }: { options: string[]; selected: string[]; onChange: (v: string[]) => void; addPlaceholder: string; locked?: string[] }) {
+export function Chips({ options, selected, onChange, addPlaceholder, locked = [] }: { options: string[]; selected: string[]; onChange: (v: string[]) => void; addPlaceholder: string; locked?: string[] }) {
   const [draft, setDraft] = useState("");
   const all = [...options, ...selected.filter((s) => !options.includes(s))];
   const toggle = (o: string) => {
@@ -101,7 +101,7 @@ function Chips({ options, selected, onChange, addPlaceholder, locked = [] }: { o
 }
 
 /** Ort aus der Adresse ("Lindenweg 7, 82166 Gräfelfing" → "Gräfelfing"). */
-const cityOf = (address: string) => address.match(/\b\d{5}\s+([^,\d]+)/)?.[1]?.trim() ?? "";
+export const cityOf = (address: string) => address.match(/\b\d{5}\s+([^,\d]+)/)?.[1]?.trim() ?? "";
 
 export function Interview({ profile, onProfile, company, firstName, initial, onDone, onBack }: Props) {
   const [index, setIndex] = useState(0);

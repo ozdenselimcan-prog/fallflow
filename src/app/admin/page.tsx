@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CleanupTestAccountsButton } from "@/components/admin/cleanup-button";
+import { ManagedSetups } from "@/components/admin/managed-setups";
 import { OpenSupportButton } from "@/components/admin/open-support-button";
 import { WhatsAppRequests } from "@/components/admin/whatsapp-requests";
 import { LiveRefresh } from "@/components/dashboard/live-refresh";
@@ -11,6 +12,7 @@ import { aiHealth } from "@/lib/ai/provider";
 import { requireSession } from "@/lib/auth/session";
 import { getPlan } from "@/lib/config/pricing";
 import { isTestAccount } from "@/lib/admin/test-accounts";
+import { loadManagedSetups } from "@/lib/setup/managed";
 import { formatDateTime, timeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Betreiber-Übersicht", robots: { index: false } };
@@ -45,7 +47,7 @@ function mailboxCell(c: CompanyRow) {
 export default async function AdminPage() {
   const session = await requireSession();
   if (!isPlatformAdmin(session.email)) notFound();
-  const [rows, health, ai, waRequests] = await Promise.all([loadCompanyOverview(), mailHealth(), aiHealth(), loadWhatsAppRequests().catch(() => [])]);
+  const [rows, health, ai, waRequests, managed] = await Promise.all([loadCompanyOverview(), mailHealth(), aiHealth(), loadWhatsAppRequests().catch(() => []), loadManagedSetups().catch(() => [])]);
 
   const paying = rows.filter((r) => r.status === "active");
   const trial = rows.filter((r) => r.status === "trialing" && r.hasPayment);
@@ -88,6 +90,8 @@ export default async function AdminPage() {
           </li>
         ))}
       </ul>
+
+      <ManagedSetups rows={managed} />
 
       <WhatsAppRequests rows={waRequests} />
 
