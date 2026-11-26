@@ -23,6 +23,7 @@ export interface InterviewInitial {
   area: string;
   strengths: string[];
   faqs: { q: string; a: string }[];
+  prices: { item: string; price: string; note?: string }[];
   tone: Tone;
   greeting: Greeting;
   signature: string;
@@ -52,7 +53,7 @@ const GREETINGS: { id: Greeting; label: string }[] = [
   { id: "hallo", label: "Hallo Maria Müller," },
   { id: "sehr-geehrte", label: "Sehr geehrte/r Maria Müller," },
 ];
-const TOTAL = 9;
+const TOTAL = 10;
 
 /** Antippbare Auswahl (mehrere möglich) plus eigene Einträge. */
 function Chips({ options, selected, onChange, addPlaceholder, locked = [] }: { options: string[]; selected: string[]; onChange: (v: string[]) => void; addPlaceholder: string; locked?: string[] }) {
@@ -125,6 +126,11 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
     return [...FAQ_SUGGESTIONS.map((q) => ({ q, a: initial.faqs.find((f) => f.q === q)?.a ?? "" })), ...own];
   });
   const [newFaq, setNewFaq] = useState("");
+  // Preise, die FallFlow nennen darf: gespeicherte Zeilen, sonst je Leistung eine leere Zeile zum Ausfüllen.
+  const [prices, setPrices] = useState<{ item: string; price: string; note: string }[]>(() =>
+    initial.prices.length ? initial.prices.map((x) => ({ item: x.item, price: x.price, note: x.note ?? "" })) : [],
+  );
+  const [newPrice, setNewPrice] = useState("");
   const [tone, setTone] = useState<Tone>(initial.tone);
   const [greeting, setGreeting] = useState<Greeting>(initial.greeting);
   const [signature, setSignature] = useState(initial.signature);
@@ -176,12 +182,14 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
     setError(null);
     try {
       if (index === 0 && !(await describe())) return;
-      if (index === 1 || index === 5 || index === 8) await saveProfile(profile);
+      if (index === 1 || index === 5 || index === 9) await saveProfile(profile);
       if (index === 2) await saveAnswer({ step: "customers", values: customers });
       if (index === 3) await saveAnswer({ step: "area", value: area.trim() });
       if (index === 4) await saveAnswer({ step: "strengths", values: strengths });
       if (index === 6) await saveAnswer({ step: "faqs", faqs: faqs.filter((f) => f.q.trim().length >= 3).map((f) => ({ q: f.q.trim(), a: f.a.trim() })) });
-      if (index === 7) await saveAnswer({ step: "tone", tone, greeting, signature: signature.trim() });
+      if (index === 7) await saveAnswer({ step: "prices", prices: prices.filter((x) => x.item.trim() && x.price.trim()).map((x) => ({ item: x.item.trim(), price: x.price.trim(), note: x.note.trim() })) });
+      if (index === 8) await saveAnswer({ step: "tone", tone, greeting, signature: signature.trim() });
+      if (index === 6 && prices.length === 0) setPrices(profile.services.filter((x) => x !== "Sonstiges").slice(0, 10).map((item) => ({ item, price: "", note: "" })));
       if (index === TOTAL - 1) onDone();
       else setIndex(index + 1);
     } catch (e) {
@@ -192,7 +200,7 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
   }
 
   const canNext = index === 0 ? Boolean(industryPick || about.trim() || (useWebsite && company.website)) : index === 1 ? profile.services.length > 0 : true;
-  const optional = [2, 3, 4, 6].includes(index);
+  const optional = [2, 3, 4, 6, 7].includes(index);
 
   let title = "";
   let hint = "";
@@ -297,7 +305,7 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
       break;
     case 6:
       title = "Welche Fragen bekommen Sie oft – und was antworten Sie?";
-      hint = "Nur ausfüllen, was Sie wirklich so sagen würden. Leere Felder werden nicht verwendet. Preise beantworten weiterhin Sie selbst.";
+      hint = "Nur ausfüllen, was Sie wirklich so sagen würden. Leere Felder werden nicht verwendet. Preise kommen auf der nächsten Seite.";
       body = (
         <div className="space-y-4">
           {faqs.map((f, i) => (
@@ -324,6 +332,36 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
       );
       break;
     case 7:
+      title = "Gibt es Preise, die FallFlow Kunden nennen darf?";
+      hint = "Nur feste Preise, die Sie so auch am Telefon sagen würden (z. B. „ab 120 €“). FallFlow nennt sie wörtlich – ohne zu schätzen oder zu rechnen. Leer lassen = Preisfragen beantworten Sie selbst.";
+      body = (
+        <div className="space-y-3">
+          {prices.map((x, i) => (
+            <div key={i} className="grid gap-2 sm:grid-cols-[1fr_9rem_1fr]">
+              <Input value={x.item} onChange={(e) => setPrices(prices.map((y, k) => (k === i ? { ...y, item: e.target.value } : y)))} placeholder="Leistung" maxLength={80} aria-label="Leistung" />
+              <Input value={x.price} onChange={(e) => setPrices(prices.map((y, k) => (k === i ? { ...y, price: e.target.value } : y)))} placeholder="z. B. ab 120 €" maxLength={40} aria-label={`Preis für ${x.item || "Leistung"}`} />
+              <Input value={x.note} onChange={(e) => setPrices(prices.map((y, k) => (k === i ? { ...y, note: e.target.value } : y)))} placeholder="Hinweis (optional), z. B. je m²" maxLength={160} aria-label="Hinweis" />
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Input value={newPrice} onChange={(e) => setNewPrice(e.target.value)} placeholder="Weitere Leistung, z. B. Anfahrt" maxLength={80} />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!newPrice.trim()}
+              onClick={() => {
+                setPrices([...prices, { item: newPrice.trim(), price: "", note: "" }]);
+                setNewPrice("");
+              }}
+            >
+              <Plus className="size-4" /> <span className="hidden sm:inline">Hinzufügen</span>
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Später jederzeit änderbar unter KI-Assistent → Wissen & Preise.</p>
+        </div>
+      );
+      break;
+    case 8:
       title = "Wie sprechen Sie mit Ihren Kunden?";
       hint = "So klingen Ihre automatischen Antworten.";
       body = (
@@ -367,9 +405,9 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
         </div>
       );
       break;
-    case 8:
+    case 9:
       title = "Worum kümmern Sie sich lieber selbst?";
-      hint = "Fragt ein Kunde dazu, antwortet nicht die KI – Sie bekommen Bescheid und antworten persönlich. Preise sind immer dabei.";
+      hint = "Fragt ein Kunde dazu, antwortet nicht die KI – Sie bekommen Bescheid und antworten persönlich. Preise aus Ihrer Preisliste nennt FallFlow selbst, alle anderen Preisfragen beantworten Sie.";
       body = (
         <Chips
           options={[...new Set([...HUMAN_TOPICS, ...profile.humanTopics])]}
@@ -404,17 +442,18 @@ export function Interview({ profile, onProfile, company, firstName, initial, onD
           <ArrowLeft className="size-4" /> Zurück
         </Button>
         <Button onClick={next} loading={pending} disabled={!canNext}>
-          {optional && isEmpty(index, { customers, area, strengths, faqs }) ? "Überspringen" : "Weiter"} <ArrowRight className="size-4" />
+          {optional && isEmpty(index, { customers, area, strengths, faqs, prices }) ? "Überspringen" : "Weiter"} <ArrowRight className="size-4" />
         </Button>
       </div>
     </div>
   );
 }
 
-function isEmpty(index: number, s: { customers: string[]; area: string; strengths: string[]; faqs: { a: string }[] }) {
+function isEmpty(index: number, s: { customers: string[]; area: string; strengths: string[]; faqs: { a: string }[]; prices: { price: string }[] }) {
   if (index === 2) return s.customers.length === 0;
   if (index === 3) return !s.area.trim();
   if (index === 4) return s.strengths.length === 0;
   if (index === 6) return s.faqs.every((f) => !f.a.trim());
+  if (index === 7) return s.prices.every((x) => !x.price.trim());
   return false;
 }

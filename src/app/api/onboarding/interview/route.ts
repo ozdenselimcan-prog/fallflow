@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { json, parseBody, withSession } from "@/lib/api";
+import { cleanKnowledge } from "@/lib/ai/knowledge";
 import type { BusinessProfile } from "@/lib/data/types";
 
 /**
@@ -12,6 +13,7 @@ const schema = z.discriminatedUnion("step", [
   z.object({ step: z.literal("area"), value: z.string().trim().max(200) }),
   z.object({ step: z.literal("strengths"), values: list }),
   z.object({ step: z.literal("faqs"), faqs: z.array(z.object({ q: z.string().trim().min(3).max(200), a: z.string().trim().max(600) })).max(8) }),
+  z.object({ step: z.literal("prices"), prices: z.array(z.object({ item: z.string().trim().max(80), price: z.string().trim().max(40), note: z.string().trim().max(160).default("") })).max(30) }),
   z.object({
     step: z.literal("tone"),
     tone: z.enum(["professional", "friendly", "short"]),
@@ -45,6 +47,8 @@ export const POST = withSession(
       setFaq(AREA_QUESTION, !d.value ? "" : /^wir\b/i.test(d.value) ? d.value : `Unser Einsatzgebiet: ${d.value.replace(/[.!]+$/, "")}.`);
     }
     if (d.step === "faqs") for (const f of d.faqs) setFaq(f.q, f.a);
+    // Preisliste ersetzen (wie unter „Wissen & Preise“); Zeilen ohne Preis fallen weg.
+    if (d.step === "prices") knowledge = { ...knowledge, prices: cleanKnowledge({ prices: d.prices }).prices };
     if (d.step === "tone") {
       const assistant = await store.getAssistant();
       await store.saveAssistant({ ...assistant, tone: d.tone });

@@ -36,6 +36,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<"/onboa
     area: bp.interview?.area ?? "",
     strengths: bp.interview?.strengths ?? [],
     faqs: bp.knowledge?.faqs ?? [],
+    prices: bp.knowledge?.prices ?? [],
     tone: assistant.tone,
     greeting: greetingText.startsWith("Hallo") ? ("hallo" as const) : greetingText.startsWith("Sehr geehrte") ? ("sehr-geehrte" as const) : ("guten-tag" as const),
     signature: signoff.includes("\n") ? signoff.split("\n").slice(1).join(" ").replace("{firma}", "").trim() : "",
