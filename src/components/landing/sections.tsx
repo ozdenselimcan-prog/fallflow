@@ -163,73 +163,84 @@ export function AnswersSection() {
   );
 }
 
-/** Vergleich nach ART des Werkzeugs, bewusst ohne Markennamen (vergleichende Werbung, § 6 UWG). "yes" / "no" / Text = "teilweise/meist". */
-type Cell = "yes" | "no" | string;
-const COMPARE_COLS = ["FallFlow", "KI-Telefon-Assistent", "Handwerkersoftware mit KI", "Website-Chatbot", "KI-Schreibhilfe fürs Postfach"];
-const COMPARE_ROWS: { label: string; cells: Cell[] }[] = [
-  { label: "Beantwortet E-Mail-Anfragen selbstständig", cells: ["yes", "no", "teils", "no", "nur Vorschläge"] },
-  { label: "Fragt fehlende Angaben und Fotos nach", cells: ["yes", "ohne Fotos", "teils", "no", "no"] },
-  { label: "Legt den fertig vorbereiteten Auftrag an", cells: ["yes", "Zusammenfassung", "yes", "no", "no"] },
-  { label: "Schlägt Termine vor bzw. lässt buchen", cells: ["yes", "teils", "yes", "teils", "no"] },
-  { label: "Kein neues Programm – läuft im eigenen Postfach", cells: ["yes", "yes", "no", "yes", "yes"] },
-  { label: "Einrichtung durch den Anbieter inklusive", cells: ["yes", "meist selbst", "meist selbst", "meist selbst", "selbst"] },
-  { label: "Fester Monatspreis, keine Kosten pro Minute", cells: ["yes", "oft pro Minute", "yes", "yes", "yes"] },
-  { label: "Monatlich kündbar", cells: ["yes", "unterschiedlich", "oft Laufzeit", "unterschiedlich", "unterschiedlich"] },
-  { label: "Nimmt Anrufe an", cells: ["no", "yes", "teils", "no", "no"] },
+/** Startseite: Was FallFlow anders macht als normale E-Mail-Automatik (Autoresponder, Regeln, KI-Schreibhilfe) – je eine Gegenüberstellung. */
+const VS: { icon: Icon; title: string; others: string; ours: string }[] = [
+  {
+    icon: Mail,
+    title: "Eine echte Antwort statt „Wir melden uns“",
+    others: "Ein Autoresponder schickt jedem dasselbe: „Danke für Ihre Nachricht, wir melden uns.“ Die eigentliche Arbeit bleibt bei Ihnen.",
+    ours: "FallFlow versteht, worum es geht, und antwortet passend zur Leistung – mit Ihren Texten, in Ihrem Ton, aus Ihrem Postfach.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Fragt nur, was wirklich fehlt",
+    others: "Starre Formulare und Standard-Rückfragen: Der Kunde soll alles noch einmal angeben, auch was längst in seiner Mail steht.",
+    ours: "FallFlow liest die Anfrage, erkennt Adresse, Maße und Wünsche und fragt gezielt nur nach dem, was noch fehlt – auch nach Fotos.",
+  },
+  {
+    icon: Repeat,
+    title: "Bleibt dran, bis alles da ist",
+    others: "Nach der ersten Antwort ist Schluss. Ob Fotos oder Formular je kommen, müssen Sie selbst im Blick behalten.",
+    ours: "FallFlow erinnert den Kunden, nimmt Fotos und ausgefüllte Formulare entgegen, prüft sie und zeigt Ihnen, wie vollständig der Auftrag ist.",
+  },
+  {
+    icon: CalendarCheck,
+    title: "Termin ohne Hin und Her",
+    others: "Für den Termin geht das Mail-Pingpong los: „Wann passt es Ihnen?“ – „Dienstag?“ – „Da kann ich nicht …“",
+    ours: "Ist alles da, wählt der Kunde selbst einen Termin aus Ihren freien Zeiten. Verschieben oder Absagen klärt FallFlow auch.",
+  },
+  {
+    icon: MessageCircleQuestion,
+    title: "Beantwortet auch die Fragen zwischendurch",
+    others: "„Kommen Sie nach Dachau?“, „Wann kommen Sie denn?“ – solche Mails landen wieder bei Ihnen.",
+    ours: "FallFlow beantwortet sie aus Ihren Angaben und dem Stand des Auftrags. Nur was wirklich Sie braucht, landet bei Ihnen.",
+  },
+  {
+    icon: Siren,
+    title: "Erfindet nichts – und erkennt Notfälle",
+    others: "Allgemeine KI-Tools formulieren gern etwas dazu – im schlimmsten Fall einen Preis oder eine Zusage, die Sie nie gemacht haben.",
+    ours: "FallFlow nennt Preise nur wörtlich aus Ihrer Preisliste. Notfälle und Reklamationen kommen sofort aufs Handy und per E-Mail zu Ihnen.",
+  },
+  {
+    icon: Sparkles,
+    title: "Wir richten es für Sie ein",
+    others: "Regeln bauen, Vorlagen schreiben, Schnittstellen verbinden – das bleibt bei den meisten Programmen an Ihnen hängen.",
+    ours: "Sie beantworten ein paar Fragen, wir richten FallFlow ein und prüfen alles persönlich. Sie verbinden nur noch Ihr Postfach.",
+  },
 ];
 
-function CompareCell({ value, highlight }: { value: Cell; highlight?: boolean }) {
-  if (value === "yes") return <Check className={cn("mx-auto size-5", highlight ? "text-white" : "text-success")} aria-label="ja" />;
-  if (value === "no") return <span className={cn("block text-center text-lg leading-none", highlight ? "text-white/60" : "text-muted-foreground/60")} aria-label="nein">–</span>;
-  return <span className={cn("block text-center text-xs leading-snug", highlight ? "text-white/80" : "text-muted-foreground")}>{value}</span>;
-}
-
-/** Startseite: FallFlow im Vergleich zu anderen Arten von Werkzeugen – ehrlich, auch mit dem, was FallFlow nicht macht. */
 export function ComparisonSection() {
   return (
     <Section
       id="vergleich"
-      title="Warum FallFlow statt anderer Programme?"
-      intro="Es gibt viele KI-Werkzeuge fürs Handwerk. Die meisten kümmern sich um Anrufe oder wollen Ihre ganze Verwaltung ersetzen. FallFlow macht eine Sache richtig: aus jeder Anfrage in Ihrem Postfach einen fertigen Auftrag."
+      title="Mehr als eine automatische Antwort."
+      intro="Normale E-Mail-Automatik schickt eine Antwort – und die Arbeit bleibt bei Ihnen. FallFlow macht aus jeder Anfrage einen fertig vorbereiteten Auftrag."
     >
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <table className="w-full min-w-[46rem] border-separate border-spacing-0 text-sm">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 w-56 bg-background p-3 text-left font-medium text-muted-foreground" />
-              {COMPARE_COLS.map((c, i) => (
-                <th key={c} className={cn("p-3 text-center align-bottom text-xs font-semibold", i === 0 ? "rounded-t-xl bg-zinc-900 text-sm text-white" : "text-muted-foreground")}>
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {COMPARE_ROWS.map((r, ri) => (
-              <tr key={r.label}>
-                <th scope="row" className="sticky left-0 z-10 border-t border-border bg-background p-3 text-left font-medium">
-                  {r.label}
-                </th>
-                {r.cells.map((v, i) => (
-                  <td
-                    key={i}
-                    className={cn("border-t p-3", i === 0 ? "border-white/10 bg-zinc-900" : "border-border", i === 0 && ri === COMPARE_ROWS.length - 1 && "rounded-b-xl")}
-                  >
-                    <CompareCell value={v} highlight={i === 0} />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-4 text-xs text-muted-foreground">
-        Vergleich nach Art des Werkzeugs, typische Eigenschaften (Stand November 2026) – einzelne Anbieter können abweichen. Mehr dazu im{" "}
-        <Link href="/ratgeber/ki-fuer-handwerker-vergleich" className="underline underline-offset-2">
-          Ratgeber: KI für Handwerker im Vergleich
-        </Link>
-        .
-      </p>
+      <ul className="grid gap-4 md:grid-cols-2">
+        {VS.map(({ icon: I, title, others, ours }, i) => (
+          <li key={title} className={i === VS.length - 1 ? "md:col-span-2" : undefined}>
+            <Card className="h-full p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+                  <I className="size-5" />
+                </span>
+                <h3 className="text-lg font-semibold leading-snug">{title}</h3>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                <span className="font-semibold text-foreground/70">Normale E-Mail-Automatik: </span>
+                {others}
+              </p>
+              <p className="mt-3 flex gap-2 rounded-lg bg-muted px-3 py-2.5 text-sm leading-relaxed">
+                <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                <span>
+                  <span className="font-semibold">FallFlow: </span>
+                  {ours}
+                </span>
+              </p>
+            </Card>
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }
