@@ -50,3 +50,40 @@ describe("Benachrichtigung an das Büro", () => {
     expect(mails.some((m) => m.subject === "FallFlow: Fall bereit zur Prüfung – Max Kunde (Fördermittelberatung)")).toBe(true);
   });
 });
+
+describe("Notfall-Mail an das Büro", () => {
+  it("geht immer raus – auch wenn Benachrichtigungen ausgeschaltet sind – mit Telefon und Nachricht", async () => {
+    const store = freshStore();
+    vi.mocked(deliverToCustomer).mockClear();
+    await store.saveAssistant({ ...(await store.getAssistant()), notifyAttention: false, notifyEmail: "buero@muster.de" });
+    const c = await store.createCase({
+      fields: { name: "Erika Beispiel", email: "erika@beispiel.de", phone: "0151 1234567", street: "Lindenweg 7, 82166 Gräfelfing", needsAttention: "Frage des Kunden: Notfall: Wasser läuft ins Haus" },
+      customerName: "Erika Beispiel",
+      service: "",
+      source: "email",
+      status: "NEEDS_REPLY",
+      assignedTo: null,
+      summary: "",
+    });
+    await store.addMessage(c.id, "user", "Hilfe, seit dem Sturm läuft Wasser durch die Decke!", { channel: "email", simulated: false, delivery: "delivered" });
+    const { notifyOffice } = await import("./notify");
+    await notifyOffice(store, c, "attention");
+    const mails = vi.mocked(deliverToCustomer).mock.calls.map(([i]) => i).filter((i) => i.subject?.startsWith("NOTFALL"));
+    expect(mails).toHaveLength(1);
+    expect(mails[0].email).toBe("buero@muster.de");
+    expect(mails[0].subject).toBe("NOTFALL: Erika Beispiel – bitte sofort melden");
+    expect(mails[0].text).toContain("Telefon: 0151 1234567");
+    expect(mails[0].text).toContain("Adresse: Lindenweg 7, 82166 Gräfelfing");
+    expect(mails[0].text).toContain("läuft Wasser durch die Decke");
+  });
+
+  it("im Simulator: keine Notfall-Mail", async () => {
+    const store = freshStore();
+    vi.mocked(deliverToCustomer).mockClear();
+    const c = await store.createCase({ fields: { name: "Test", needsAttention: "Frage des Kunden: Notfall: Gasgeruch" }, customerName: "Test", service: "", source: "email", status: "NEEDS_REPLY", assignedTo: null, summary: "" });
+    await store.addMessage(c.id, "user", "Es riecht nach Gas", { channel: "email", simulated: true, delivery: "delivered" });
+    const { notifyOffice } = await import("./notify");
+    await notifyOffice(store, c, "attention");
+    expect(vi.mocked(deliverToCustomer).mock.calls.filter(([i]) => i.subject?.startsWith("NOTFALL"))).toHaveLength(0);
+  });
+});

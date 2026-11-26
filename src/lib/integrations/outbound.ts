@@ -19,6 +19,7 @@ const EMAIL_PROVIDERS = [gmailProvider, microsoftProvider];
 /** Test-Simulation (siehe /api/simulate/email): Alles, was innerhalb läuft, versendet garantiert keine echte Mail. */
 const simulation = new AsyncLocalStorage<boolean>();
 export const runSimulated = <T>(fn: () => Promise<T>): Promise<T> => simulation.run(true, fn);
+export const isSimulating = () => Boolean(simulation.getStore());
 
 /**
  * Während eine eingegangene Mail bearbeitet wird (siehe mail-sync.ts): Antworten an genau diesen Absender gehen als

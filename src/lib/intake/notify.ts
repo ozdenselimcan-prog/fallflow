@@ -2,7 +2,8 @@ import { attentionOf } from "@/lib/cases/attention";
 import { siteConfig } from "@/lib/config/site";
 import type { Store } from "@/lib/data/store";
 import type { CaseRecord } from "@/lib/data/types";
-import { deliverToCustomer } from "@/lib/integrations/outbound";
+import { deliverToCustomer, isSimulating } from "@/lib/integrations/outbound";
+import { sendResendMail } from "@/lib/integrations/resend";
 
 export type OfficeNotice = "attention" | "ready";
 
@@ -23,6 +24,9 @@ const displayName = (c: CaseRecord) => (c.customerName && c.customerName !== "Un
 export async function notifyOffice(store: Store, c: CaseRecord, kind: OfficeNotice): Promise<void> {
   try {
     const settings = await store.getAssistant();
+    // Notfall: immer Bescheid geben – auch wenn Benachrichtigungen bei Fragen ausgeschaltet sind.
+    const emergency = kind === "attention" && /notfall/i.test(attentionOf(c.fields));
+    if (emergency) return await notifyEmergency(store, c, settings.notifyEmail);
     if (kind === "attention" ? !settings.notifyAttention : !settings.notifyReady) return;
     const to = await recipients(store, settings.notifyEmail);
     if (!to.length) return;
@@ -55,4 +59,50 @@ export async function notifyOffice(store: Store, c: CaseRecord, kind: OfficeNoti
   } catch (err) {
     console.error("[notify] Benachrichtigung fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
   }
+}
+
+/**
+ * Notfall-Mail an das Büro (zusätzlich zur Push-Nachricht aufs Handy): mit Telefon, Adresse und der Nachricht des Kunden,
+ * damit man ohne Umweg zurückrufen kann. Geht über das verbundene Postfach; klappt das nicht (kein Postfach verbunden,
+ * Verbindung gestört), über FallFlow selbst (Resend) – ein Notfall darf nicht an einer Postfach-Störung hängen.
+ */
+async function notifyEmergency(store: Store, c: CaseRecord, notifyEmail: string): Promise<void> {
+  const messages = await store.listMessages(c.id);
+  const lastFromCustomer = [...messages].reverse().find((m) => m.role === "user");
+  // Test im Simulator: nichts verschicken.
+  if (isSimulating() || lastFromCustomer?.simulated) return;
+  const to = await recipients(store, notifyEmail);
+  if (!to.length) return;
+
+  const name = displayName(c);
+  const reason = attentionOf(c.fields).replace(/^(Frage des Kunden|Anruf): /, "");
+  // Die Straße enthält oft schon PLZ und Ort ("Lindenweg 7, 82166 Gräfelfing") – dann nicht doppelt anhängen.
+  const street = c.fields.street ?? "";
+  const address = /\b\d{5}\b/.test(street) ? street : [street, [c.fields.postalCode, c.fields.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const subject = `NOTFALL: ${name} – bitte sofort melden`;
+  const text = [
+    `${name} meldet einen Notfall: ${reason}`,
+    [c.fields.phone ? `Telefon: ${c.fields.phone}` : "", c.fields.email ? `E-Mail: ${c.fields.email}` : "", address ? `Adresse: ${address}` : ""].filter(Boolean).join("\n"),
+    lastFromCustomer ? `Nachricht des Kunden:\n${lastFromCustomer.content.slice(0, 1200)}` : "",
+    "Der Kunde hat eine Eingangsbestätigung bekommen – mit dem Hinweis, Sie in dringenden Fällen anzurufen. Bitte melden Sie sich so schnell wie möglich.",
+    `Zum Fall: ${siteConfig.appUrl}/dashboard/cases/${c.id}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const sentTo: string[] = [];
+  for (const email of to) {
+    const viaMailbox = await deliverToCustomer({ companyId: c.companyId, channel: "email", email, subject, text }).catch(() => ({ delivered: false }));
+    if (viaMailbox.delivered) {
+      sentTo.push(email);
+      continue;
+    }
+    try {
+      await sendResendMail({ fromName: "FallFlow Notfall", to: email, subject, text, ...(c.fields.email ? { replyTo: [c.fields.email] } : {}) });
+      sentTo.push(email);
+    } catch (err) {
+      console.error("[notify] Notfall-Mail fehlgeschlagen:", err instanceof Error ? err.message : "unbekannt");
+    }
+  }
+  if (sentTo.length) await store.addEvent(c.id, "note", `Notfall-Mail an das Büro gesendet (${sentTo.join(", ")})`);
 }
