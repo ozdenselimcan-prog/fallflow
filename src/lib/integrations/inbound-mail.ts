@@ -1,5 +1,8 @@
 import { extractionContext } from "@/lib/ai/case-extractor";
-import { classifyInquiry, type ClassifyBusiness } from "@/lib/ai/classify";
+import { classifyInquiry, classifyMail, type ClassifyBusiness } from "@/lib/ai/classify";
+import { customerText } from "@/lib/config/customer-texts";
+import { frameEmail } from "@/lib/intake/case-ops";
+import { deliverToCustomer } from "./outbound";
 import type { Company } from "@/lib/data/types";
 
 /** Betriebsprofil für die Anfrage-Prüfung – null = noch kein Profil (dann Energieberatungs-Prüfung). */
@@ -46,7 +49,21 @@ async function isNewRequestAfterDoneCase(store: Store, c: CaseRecord, text: stri
 /** Grund für "Aufmerksamkeit benötigt", wenn die KI nicht prüfen konnte, ob es eine Kundenanfrage ist. */
 export const UNSURE_ATTENTION = "KI war kurz nicht erreichbar – bitte prüfen, ob es eine Kundenanfrage ist, und selbst antworten";
 
-export type InboundOutcome = { handled: false } | { handled: true; caseId: string; matchedExisting: boolean };
+/** declinedReply: Antwort an einen Kunden, der nach einer Leistung gefragt hat, die der Betrieb nicht anbietet (ohne Fall). */
+export type InboundOutcome = { handled: false; declinedReply?: string } | { handled: true; caseId: string; matchedExisting: boolean };
+
+/**
+ * Kunde fragt nach etwas, das der Betrieb nicht anbietet (Fensterputzen bei der Dachdeckerei): kurze, freundliche Absage
+ * statt Schweigen – ohne Fall anzulegen (zählt nicht zum Anfrage-Limit). Nie bei Mails aus dem Spam-Ordner.
+ */
+async function declineNotOffered(store: Store, companyId: string, mail: IncomingMail, service: string, simulated?: boolean): Promise<string | null> {
+  const [company, settings] = await Promise.all([store.getCompany(), store.getAssistant()]);
+  if (!settings.autoReply) return null;
+  const liste = company.services.filter((s) => s && s !== "Sonstiges").slice(0, 8).join(", ");
+  const text = await frameEmail(store, customerText(company.businessProfile?.texts, "email.notOffered", { leistung: service, liste }), mail.fromName || undefined);
+  await deliverToCustomer({ companyId, channel: "email", email: mail.from, text, simulated, subject: mail.subject ? `Re: ${mail.subject.replace(/^(re|aw):\s*/i, "")}` : undefined });
+  return text;
+}
 
 /**
  * Verarbeitet eine eingegangene E-Mail: prüft, ob es überhaupt eine Kundenanfrage ist, ordnet sie dem Fall zu
@@ -77,7 +94,11 @@ export async function handleInboundMail(store: Store, companyId: string, mail: I
   let unsure = false;
   // (Neue Anfrage nach fertigem Fall: schon als Anfrage erkannt, siehe isNewRequestAfterDoneCase.)
   if (!existing && !startNew) {
-    const verdict = await classifyInquiry(classifyText, classifyBusiness(await store.getCompany()));
+    const { isInquiry: verdict, notOffered } = await classifyMail(classifyText, classifyBusiness(await store.getCompany()));
+    if (verdict === false && notOffered && !opts.junk) {
+      const declinedReply = await declineNotOffered(store, companyId, mail, notOffered, opts.simulated);
+      return declinedReply ? { handled: false, declinedReply } : { handled: false };
+    }
     if (verdict === false || (verdict === null && opts.junk)) return { handled: false };
     unsure = verdict === null;
   }

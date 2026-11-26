@@ -51,7 +51,7 @@ export const POST = withSession(
         handleInboundMail(store, session.companyId, { from, fromName: body.data.fromName, subject: body.data.subject, body: body.data.body, attachments: accepted, skippedAttachments: skipped }, { simulated: true, junk: body.data.junk }),
       );
       if (!body.data.preview) return json(outcome);
-      if (!outcome.handled) return json({ handled: false });
+      if (!outcome.handled) return json(outcome.declinedReply ? { handled: false, declined: true, reply: outcome.declinedReply } : { handled: false });
 
       // Vorschau zusammenstellen: Antwort an den Kunden, mitgeschickte PDFs, was noch fehlt – dann Testfall löschen.
       const caseId = outcome.caseId;
