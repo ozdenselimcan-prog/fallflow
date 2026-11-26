@@ -25,7 +25,7 @@ export const faqs = [
   },
   {
     q: "Funktioniert das auch mit WhatsApp und Telefon?",
-    a: "WhatsApp: ja. Verbinden Sie Ihre WhatsApp-Business-Nummer, beantwortet die KI auch WhatsApp-Nachrichten – Schritt für Schritt, mit den Fragen, die Sie auf der Seite „WhatsApp-Fragen“ festlegen; Fotos landen direkt in der Fallakte. Antworten Sie selbst im Chat, hält sich die KI dort zurück. Telefon: noch nicht – ein Telefon-Assistent ist in Vorbereitung. Er wird Anrufe annehmen, wenn Sie nicht rangehen (per Rufumleitung auf Ihre Assistenten-Nummer), darauf hinweisen, dass eine KI spricht, und den Fall anlegen. Gespräche werden dabei nicht aufgezeichnet.",
+    a: "WhatsApp: ja. Verbinden Sie Ihre WhatsApp-Business-Nummer, beantwortet die KI auch WhatsApp-Nachrichten – Schritt für Schritt, mit den Fragen, die Sie auf der Seite „WhatsApp-Fragen“ festlegen; Fotos landen direkt in der Fallakte. Antworten Sie selbst im Chat, hält sich die KI dort zurück. Telefon: Anrufe nimmt FallFlow nicht an – FallFlow kümmert sich um Ihre E-Mails, WhatsApp und den Website-Chat.",
   },
   {
     q: "Kann ich meine bestehende Website weiterverwenden?",

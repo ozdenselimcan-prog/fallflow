@@ -38,7 +38,7 @@ const sections = [
   ["anwendung", "11. Nutzung von FallFlow durch Betriebe"],
   ["endkunden", "12. Daten von Endkunden der Büros"],
   ["ki", "13. KI-Funktionen (OpenAI)"],
-  ["chat", "14. Website-Chat, Telefon-Assistent und WhatsApp der Büros"],
+  ["chat", "14. Website-Chat und WhatsApp der Büros"],
   ["systemmails", "15. System-E-Mails von FallFlow"],
   ["sentry", "16. Fehlerüberwachung"],
   ["empfaenger", "17. Empfänger und Auftragsverarbeiter"],
@@ -63,7 +63,7 @@ export default function DatenschutzPage() {
       <Navbar />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-semibold tracking-tight">Datenschutzerklärung</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Stand: Oktober 2026</p>
+        <p className="mt-2 text-sm text-muted-foreground">Stand: November 2026</p>
         <p className="mt-4 text-sm leading-relaxed">
           Mit dieser Datenschutzerklärung informieren wir Sie nach Art. 13 und 14 der Datenschutz-Grundverordnung (DSGVO) darüber, welche personenbezogenen Daten wir beim Besuch
           unserer Website und bei der Nutzung von FallFlow verarbeiten, zu welchen Zwecken, auf welcher Rechtsgrundlage, wie lange und an wen sie weitergegeben werden – und welche
@@ -387,16 +387,10 @@ export default function DatenschutzPage() {
             </p>
           </Section>
 
-          <Section id="chat" title="14. Website-Chat, Telefon-Assistent und WhatsApp der Büros">
+          <Section id="chat" title="14. Website-Chat und WhatsApp der Büros">
             <p>
               Büros können ein Chat-Fenster von FallFlow auf ihrer eigenen Website einbinden. Darin beantwortet die KI allgemeine Fragen zu den Leistungen des Büros. Ihre Fragen werden
               dafür an FallFlow und an OpenAI (Abschnitt 13) übermittelt. Bitte geben Sie im Chat keine sensiblen Daten ein. Verantwortlich für den Chat auf seiner Website ist das jeweilige Büro. Das Chat-Widget setzt keine Cookies.
-            </p>
-            <p>
-              Büros können außerdem Anrufe an eine FallFlow-Telefonnummer weiterleiten. Dann nimmt eine KI den Anruf an – darauf wird zu Beginn jedes Gesprächs hingewiesen – und fragt
-              die Angaben zu Ihrem Anliegen ab. Verarbeitet werden Ihre Telefonnummer (sofern übermittelt), Zeitpunkt und Dauer des Anrufs sowie das Gesagte als Text; daraus entsteht
-              eine Anfrage in der Fallakte des Büros (Abschnitt 12). Das Gespräch wird nicht als Audiodatei aufgezeichnet. Für die Telefonie und die Spracherkennung bzw. Sprachausgabe
-              nutzen wir Twilio (Abschnitt 17), für das Verstehen der Angaben OpenAI (Abschnitt 13). Verantwortlich ist das jeweilige Büro; wir verarbeiten die Daten in dessen Auftrag.
             </p>
             <p>
               Verbindet ein Büro sein WhatsApp-Business-Konto, beantwortet die KI auch Nachrichten, die Sie dem Büro per WhatsApp schicken. Verarbeitet werden Ihre
@@ -432,7 +426,6 @@ export default function DatenschutzPage() {
                 "Hetzner Online GmbH (Deutschland) – Server für Website und Anwendung, Rechenzentrum in Deutschland (Falkenstein)",
                 "Supabase Inc. (USA) – Datenbank, Anmeldung und Dateispeicher, Rechenzentrum in der EU (Irland)",
                 "OpenAI (USA) – KI-Funktionen (Abschnitt 13)",
-                "Twilio Inc. (USA) – Telefonie, Spracherkennung und Sprachausgabe für den Telefon-Assistenten (Abschnitt 14)",
                 "Meta Platforms Ireland Ltd. (Irland) – WhatsApp Business Platform, nur wenn ein Büro WhatsApp verbindet (Abschnitt 14)",
                 "Resend / Plus Five Five, Inc. (USA) – Versand von System-E-Mails, Server in der EU (Irland)",
                 "Zoho Corporation B.V. (Niederlande) – unser eigenes E-Mail-Postfach, Rechenzentrum in der EU",
@@ -451,7 +444,7 @@ export default function DatenschutzPage() {
           <Section id="drittland" title="18. Übermittlung in Drittländer">
             <p>
               Mehrere Dienstleister haben ihren Sitz in den USA. Auch wenn die Daten in Rechenzentren in der EU gespeichert werden, kann ein Zugriff aus den USA (z. B. für Wartung oder
-              Support) nicht ausgeschlossen werden; bei OpenAI und Twilio (und ggf. Meta) werden Daten auch in den USA verarbeitet.
+              Support) nicht ausgeschlossen werden; bei OpenAI (und ggf. Meta) werden Daten auch in den USA verarbeitet.
             </p>
             <p>
               Die Übermittlung stützt sich auf den Angemessenheitsbeschluss der EU-Kommission zum EU-US Data Privacy Framework (Art. 45 DSGVO), soweit der jeweilige Anbieter danach

@@ -7,7 +7,6 @@ import type { Plan } from "@/lib/config/pricing";
 import { ConnectionsPanel } from "@/components/dashboard/connections-panel";
 import { CompanyForm, ProfileForm } from "@/components/dashboard/settings-forms";
 import { CalendarCard } from "@/components/dashboard/calendar-card";
-import { PhoneCard } from "@/components/dashboard/phone-card";
 import { WhatsAppCard } from "@/components/dashboard/whatsapp-card";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Badge, Card, CardHeader } from "@/components/ui/card";
@@ -216,7 +215,6 @@ export function SettingsBoard({ data, initialTab, integrationNotice }: Props) {
             <ConnectionsPanel {...data.connections} />
             <WhatsAppCard canEdit={data.connections.canManage} />
             <CalendarCard canEdit={data.connections.canManage} />
-            <PhoneCard />
           </>
         )}
 
