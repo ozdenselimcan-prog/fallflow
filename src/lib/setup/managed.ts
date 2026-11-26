@@ -41,6 +41,8 @@ export const managedSetupSchema = z.object({
   greeting: z.enum(["guten-tag", "hallo", "sehr-geehrte"]).default("guten-tag"),
   signature: z.string().trim().max(120).default(""),
   note: z.string().trim().max(1000).default(""),
+  /** Über die Pilot-Seite aus den Briefen gekommen: 1 Monat statt 7 Tage kostenlos */
+  pilot: z.boolean().default(false),
   terms: z.literal(true, { message: "Bitte stimmen Sie den AGB und der Auftragsverarbeitung zu." }),
   /** Unsichtbares Feld gegen Spam-Bots: Menschen lassen es leer. */
   hp: z.string().max(0).optional(),
@@ -50,6 +52,7 @@ export type ManagedSetupInput = z.infer<typeof managedSetupSchema>;
 /** So lange darf der Support das Konto nach der Anfrage einrichten. */
 const SUPPORT_SETUP_DAYS = 14;
 const TRIAL_DAYS = 7;
+export const PILOT_TRIAL_DAYS = 30;
 
 export type CreateResult = { ok: true; companyId: string } | { ok: false; error: "exists" | "unavailable" };
 
@@ -95,6 +98,7 @@ export async function createManagedAccount(input: ManagedSetupInput): Promise<Cr
     email: input.email,
     phone: input.phone,
     note: input.note,
+    trialDays: input.pilot ? PILOT_TRIAL_DAYS : TRIAL_DAYS,
     answers: { ...input, hp: undefined },
     ...(trialUsedBefore ? { trialUsedBefore: true } : {}),
   };
@@ -180,6 +184,7 @@ async function notifyOperator(store: Store): Promise<void> {
     `Telefon: ${s.phone}`,
     `E-Mail: ${s.email}`,
     s.note ? `Nachricht: ${s.note}` : "",
+    s.trialDays === PILOT_TRIAL_DAYS ? "Pilotbetrieb (aus den Briefen): 1 Monat kostenlos" : "",
     s.error ? `Hinweis: ${s.error}` : "",
     "",
     `Prüfen und freischalten: ${siteConfig.appUrl}/admin`,
@@ -233,7 +238,8 @@ export async function releaseManagedSetup(companyId: string): Promise<{ ok: true
   if (s.status === "generating") return { ok: false, error: "Die Einrichtung läuft noch – bitte kurz warten." };
 
   // Testphase ab jetzt (nicht ab dem Fragebogen); mit schon genutzter Testphase gleich zur Bezahlung.
-  const end = new Date(Date.now() + (s.trialUsedBefore ? 0 : TRIAL_DAYS) * 86_400_000).toISOString();
+  const trialDays = s.trialDays ?? TRIAL_DAYS;
+  const end = new Date(Date.now() + (s.trialUsedBefore ? 0 : trialDays) * 86_400_000).toISOString();
   await admin.from("subscriptions").update({ current_period_end: end }).eq("company_id", companyId).is("stripe_customer_id", null);
   if (!s.trialUsedBefore) await recordTrialUsage(s.email).catch(() => {});
 
@@ -247,7 +253,7 @@ export async function releaseManagedSetup(companyId: string): Promise<{ ok: true
     `1. Passwort festlegen: ${link}`,
     "2. Ihr E-Mail-Postfach verbinden (dauert etwa 2 Minuten) – ab dann beantwortet FallFlow neue Anfragen automatisch.",
     "",
-    `Sie können ${s.trialUsedBefore ? "FallFlow direkt nutzen" : `FallFlow ${TRIAL_DAYS} Tage kostenlos testen`}. Alle Texte und Einstellungen können Sie jederzeit selbst ändern.`,
+    `Sie können ${s.trialUsedBefore ? "FallFlow direkt nutzen" : `FallFlow ${trialDays === PILOT_TRIAL_DAYS ? "einen Monat" : `${trialDays} Tage`} kostenlos testen`}. Alle Texte und Einstellungen können Sie jederzeit selbst ändern.`,
     "",
     "Lieber gemeinsam? Antworten Sie einfach auf diese E-Mail oder rufen Sie an – dann verbinden wir das Postfach zusammen am Telefon.",
     "",

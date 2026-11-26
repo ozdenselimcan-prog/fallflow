@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Footer } from "@/components/landing/footer";
 import { Navbar } from "@/components/landing/navbar";
 import { CaseFilm } from "@/components/landing/case-film";
+import { ManagedSetupForm } from "@/components/landing/managed-setup-form";
 import { SetupRequestForm } from "@/components/landing/setup-request-form";
 import type { FilmScenario } from "@/components/landing/film-scenario";
 import { buttonStyles } from "@/components/ui/button";
@@ -10,11 +11,13 @@ import { siteConfig } from "@/lib/config/site";
 
 /**
  * Zielseite für die Pilot-Briefe (QR-Code): 1 Monat kostenlos mit persönlicher Einrichtung. Mit Branche (/pilot/dachdecker …)
- * zusätzlich der Film mit einem typischen Fall dieser Branche. Selbst starten über /signup?trial=30 (siehe signup/page.tsx).
+ * zusätzlich der Film mit einem typischen Fall dieser Branche. Rechts der Fragebogen „Wir richten alles ein“ im Pilot-Modus (1 Monat
+ * kostenlos, siehe lib/setup/managed.ts); selbst starten weiterhin über /signup?trial=30.
  */
 const points = [
   "1 Monat kostenlos, ohne Kreditkarte, endet automatisch",
-  "Wir richten alles persönlich mit Ihnen ein – am Telefon oder vor Ort",
+  "Sie beantworten ein paar Fragen, wir richten alles für Sie ein und prüfen es persönlich",
+  "Danach Einführungspreis: 69 € statt 99 € im Monat – dauerhaft, monatlich kündbar",
   "Läuft über Ihr bestehendes E-Mail-Postfach, kein neues Programm",
   "Preise und Sonderfälle beantworten weiter Sie, nicht die KI",
 ];
@@ -47,17 +50,20 @@ export function PilotPage({ audience, film }: { audience?: string; film?: FilmSc
                 <Phone className="size-4" /> {siteConfig.phone}
               </a>
               <Link href="/signup?trial=30" className={buttonStyles({ variant: "secondary", size: "lg" })}>
-                Selbst starten – 1 Monat kostenlos
+                Lieber selbst einrichten
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">Selimcan Özden, FallFlow · {siteConfig.supportEmail}</p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-            <h2 className="text-lg font-semibold">Lieber zurückrufen lassen?</h2>
-            <p className="mt-1 mb-5 text-sm text-muted-foreground">Kurz eintragen – ich melde mich in der Regel innerhalb eines Werktags.</p>
-            <SetupRequestForm />
+            <ManagedSetupForm pilot />
           </div>
         </div>
+        <details className="mx-auto mt-12 max-w-xl rounded-2xl border border-border bg-card p-6">
+          <summary className="cursor-pointer font-semibold">Lieber kurz telefonieren? Rückruf anfordern</summary>
+          <p className="mt-2 mb-5 text-sm text-muted-foreground">Kurz eintragen – ich melde mich in der Regel innerhalb eines Werktags.</p>
+          <SetupRequestForm />
+        </details>
         {film && (
           <section className="mt-14" aria-label="So läuft ein Fall ab">
             <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Ein typischer Fall für {audience} – in 25 Sekunden.</h2>

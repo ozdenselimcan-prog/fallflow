@@ -28,7 +28,8 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
   );
 }
 
-export function ManagedSetupForm() {
+export function ManagedSetupForm({ pilot = false }: { pilot?: boolean } = {}) {
+  const trialText = pilot ? "einen Monat" : "7 Tage";
   const top = useRef<HTMLDivElement>(null);
   // Auf dem Handy steht der Fragebogen unter dem Einleitungstext: nach jedem Schritt zum Fragebogen scrollen, nicht zum Seitenanfang.
   const toTop = () => top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -110,6 +111,7 @@ export function ManagedSetupForm() {
         signature,
         note,
         terms,
+        pilot,
         hp,
       });
       setDone(true);
@@ -314,7 +316,7 @@ export function ManagedSetupForm() {
               "FallFlow richtet Ihr Konto mit Ihren Angaben ein – Leistungen, Rückfragen an Kunden, Texte für jede Leistung.",
               "Wir prüfen alles persönlich und melden uns bei Rückfragen.",
               "Sie bekommen innerhalb eines Werktags Ihren Zugang per E-Mail, legen ein Passwort fest und verbinden Ihr Postfach – gern gemeinsam am Telefon.",
-              "Danach testen Sie FallFlow 7 Tage kostenlos. Ohne Zahlungsdaten, endet automatisch.",
+              `Danach testen Sie FallFlow ${trialText} kostenlos. Ohne Zahlungsdaten, endet automatisch.`,
             ].map((t, i) => (
               <li key={t} className="flex gap-3">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold">{i + 1}</span>
