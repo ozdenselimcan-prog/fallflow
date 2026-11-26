@@ -169,19 +169,19 @@ const VS: { icon: Icon; title: string; others: string; ours: string }[] = [
     icon: Mail,
     title: "Eine echte Antwort statt „Wir melden uns“",
     others: "Ein Autoresponder schickt jedem dasselbe: „Danke für Ihre Nachricht, wir melden uns.“ Die eigentliche Arbeit bleibt bei Ihnen.",
-    ours: "FallFlow versteht, worum es geht, und antwortet passend zur Leistung – mit Ihren Texten, in Ihrem Ton, aus Ihrem Postfach.",
+    ours: "Versteht, worum es geht, und antwortet passend zur Leistung – mit Ihren Texten, in Ihrem Ton, aus Ihrem Postfach.",
   },
   {
     icon: ClipboardCheck,
     title: "Fragt nur, was wirklich fehlt",
     others: "Starre Formulare und Standard-Rückfragen: Der Kunde soll alles noch einmal angeben, auch was längst in seiner Mail steht.",
-    ours: "FallFlow liest die Anfrage, erkennt Adresse, Maße und Wünsche und fragt gezielt nur nach dem, was noch fehlt – auch nach Fotos.",
+    ours: "Liest die Anfrage, erkennt Adresse, Maße und Wünsche und fragt gezielt nur nach dem, was noch fehlt – auch nach Fotos.",
   },
   {
     icon: Repeat,
     title: "Bleibt dran, bis alles da ist",
     others: "Nach der ersten Antwort ist Schluss. Ob Fotos oder Formular je kommen, müssen Sie selbst im Blick behalten.",
-    ours: "FallFlow erinnert den Kunden, nimmt Fotos und ausgefüllte Formulare entgegen, prüft sie und zeigt Ihnen, wie vollständig der Auftrag ist.",
+    ours: "Erinnert den Kunden, nimmt Fotos und ausgefüllte Formulare entgegen, prüft sie und zeigt Ihnen, wie vollständig der Auftrag ist.",
   },
   {
     icon: CalendarCheck,
@@ -193,19 +193,19 @@ const VS: { icon: Icon; title: string; others: string; ours: string }[] = [
     icon: MessageCircleQuestion,
     title: "Beantwortet auch die Fragen zwischendurch",
     others: "„Kommen Sie nach Dachau?“, „Wann kommen Sie denn?“ – solche Mails landen wieder bei Ihnen.",
-    ours: "FallFlow beantwortet sie aus Ihren Angaben und dem Stand des Auftrags. Nur was wirklich Sie braucht, landet bei Ihnen.",
+    ours: "Beantwortet sie aus Ihren Angaben und dem Stand des Auftrags. Nur was wirklich Sie braucht, landet bei Ihnen.",
   },
   {
     icon: Siren,
     title: "Erfindet nichts – und erkennt Notfälle",
     others: "Allgemeine KI-Tools formulieren gern etwas dazu – im schlimmsten Fall einen Preis oder eine Zusage, die Sie nie gemacht haben.",
-    ours: "FallFlow nennt Preise nur wörtlich aus Ihrer Preisliste. Notfälle und Reklamationen kommen sofort aufs Handy und per E-Mail zu Ihnen.",
+    ours: "Nennt Preise nur wörtlich aus Ihrer Preisliste. Notfälle und Reklamationen kommen sofort aufs Handy und per E-Mail zu Ihnen.",
   },
   {
     icon: Sparkles,
     title: "Wir richten es für Sie ein",
     others: "Regeln bauen, Vorlagen schreiben, Schnittstellen verbinden – das bleibt bei den meisten Programmen an Ihnen hängen.",
-    ours: "Sie beantworten ein paar Fragen, wir richten FallFlow ein und prüfen alles persönlich. Sie verbinden nur noch Ihr Postfach.",
+    ours: "Sie beantworten ein paar Fragen, wir richten alles ein und prüfen alles persönlich. Sie verbinden nur noch Ihr Postfach.",
   },
 ];
 
