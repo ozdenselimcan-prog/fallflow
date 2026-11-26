@@ -3,7 +3,7 @@ import { PilotPage } from "@/components/landing/pilot-page";
 
 export const metadata: Metadata = {
   title: "Pilotbetrieb werden",
-  description: "1 Monat kostenlos testen – FallFlow beantwortet Ihre Kundenanfragen, die Einrichtung übernehmen wir persönlich.",
+  description: "7 Tage kostenlos testen, danach dauerhaft 69 € statt 99 € – FallFlow beantwortet Ihre Kundenanfragen, die Einrichtung übernehmen wir.",
   robots: { index: false, follow: false },
 };
 

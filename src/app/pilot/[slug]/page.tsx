@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<"/pilot/[slug]">): 
   const page = INDUSTRY_PAGES.find((p) => p.slug === slug);
   return {
     title: page ? `Pilotbetrieb werden – ${page.audience}` : "Pilotbetrieb werden",
-    description: "1 Monat kostenlos testen – FallFlow beantwortet Ihre Kundenanfragen, die Einrichtung übernehmen wir persönlich.",
+    description: "7 Tage kostenlos testen, danach dauerhaft 69 € statt 99 € – FallFlow beantwortet Ihre Kundenanfragen, die Einrichtung übernehmen wir.",
     robots: { index: false, follow: false },
   };
 }

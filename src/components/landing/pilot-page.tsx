@@ -10,12 +10,11 @@ import { buttonStyles } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 
 /**
- * Zielseite für die Pilot-Briefe (QR-Code): 1 Monat kostenlos mit persönlicher Einrichtung. Mit Branche (/pilot/dachdecker …)
- * zusätzlich der Film mit einem typischen Fall dieser Branche. Rechts der Fragebogen „Wir richten alles ein“ im Pilot-Modus (1 Monat
- * kostenlos, siehe lib/setup/managed.ts); selbst starten weiterhin über /signup?trial=30.
+ * Zielseite für die Pilot-Briefe (QR-Code): 7 Tage kostenlos, danach dauerhaft der Einführungspreis (PILOT_OFFER). Mit Branche
+ * (/pilot/dachdecker …) zusätzlich der Film mit einem typischen Fall dieser Branche. Rechts der Fragebogen „Wir richten alles ein“.
  */
 const points = [
-  "1 Monat kostenlos, ohne Kreditkarte, endet automatisch",
+  "7 Tage kostenlos, ohne Kreditkarte, endet automatisch",
   "Sie beantworten ein paar Fragen, wir richten alles für Sie ein und prüfen es persönlich",
   "Danach Einführungspreis: 69 € statt 99 € im Monat – dauerhaft, monatlich kündbar",
   "Läuft über Ihr bestehendes E-Mail-Postfach, kein neues Programm",
@@ -49,7 +48,7 @@ export function PilotPage({ audience, film }: { audience?: string; film?: FilmSc
               <a href={`tel:${tel}`} className={buttonStyles({ size: "lg" })}>
                 <Phone className="size-4" /> {siteConfig.phone}
               </a>
-              <Link href="/signup?trial=30" className={buttonStyles({ variant: "secondary", size: "lg" })}>
+              <Link href="/signup" className={buttonStyles({ variant: "secondary", size: "lg" })}>
                 Lieber selbst einrichten
               </Link>
             </div>

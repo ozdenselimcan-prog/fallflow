@@ -89,8 +89,10 @@ export interface ManagedSetup {
   phone: string;
   /** Nachricht bzw. Wunsch des Betriebs aus dem Fragebogen */
   note: string;
-  /** Kostenlose Testtage ab Freischaltung (Pilotbetriebe aus den Briefen: 30, sonst 7) */
+  /** Kostenlose Testtage ab Freischaltung (Standard 7) */
   trialDays?: number;
+  /** Über die Pilot-Seite aus den Briefen gekommen (QR-Code) */
+  pilot?: boolean;
   /** Testphase mit dieser Adresse schon einmal genutzt → bei Freischaltung keine neue Testphase */
   trialUsedBefore?: boolean;
   releasedAt?: string;
