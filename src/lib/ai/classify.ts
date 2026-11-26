@@ -46,6 +46,8 @@ Antworte AUSSCHLIESSLICH mit JSON: {"isInquiry": true|false}.
 true = ein (potenzieller) Kunde meldet sich mit einer Anfrage, einem Auftrag, einer Frage zu seinem Vorgang oder liefert
 Angaben/Fotos/Dokumente dazu – auch wenn die Leistung nicht genau in der Liste steht, solange sie zur Branche passt.
 Auch eine kurze Rückruf- oder Kontaktbitte (z. B. "Rufen Sie mich bitte an" mit Telefonnummer) ist true.
+Auch allgemeine Fragen eines (möglichen) Kunden an den Betrieb sind true, z. B. ob er eine Leistung anbietet, ob er in einen
+bestimmten Ort kommt, wann man Termine bekommt, wie man ihn erreicht, oder eine Nachfrage zum Stand einer früheren Anfrage.
 
 false = Newsletter, Werbung, Spam, automatische Benachrichtigungen, Rechnungen/Zahlungsverkehr, Bewerbungen, Mails von
 Lieferanten, Kollegen oder Dienstleistern ohne Kundenanliegen, Schreiben von Behörden, Finanzamt, Gerichten oder

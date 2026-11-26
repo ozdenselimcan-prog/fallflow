@@ -1,7 +1,7 @@
 import { extractFields, extractionContext, type ExtractionContext } from "@/lib/ai/case-extractor";
 import { applyTurn, isInteractive, nextPending, parseAnswer, type TurnResult } from "@/lib/ai/conversation";
 import { formNotByEmail, looksLikeWithdrawal, mentionedServices } from "./request-signals";
-import { customerQuestion, obviousHumanQuestion } from "@/lib/ai/personal-reply";
+import { customerQuestion, obviousHumanQuestion, stripQuoted } from "@/lib/ai/personal-reply";
 import { ATTENTION_KEY, attentionOf } from "@/lib/cases/attention";
 import { heuristicExtract } from "@/lib/ai/heuristic";
 import { canCreateCase } from "@/lib/billing/usage";
@@ -13,11 +13,12 @@ import { deliverToCustomer } from "@/lib/integrations/outbound";
 import { detectLanguage, LANGUAGE_NAMES, translateReplies } from "@/lib/ai/language";
 import { normalizePhone } from "./identity";
 import { outlookBusy, removeAppointment } from "@/lib/integrations/outlook-calendar";
-import { refreshCase, ensureUploadToken, autoBookNextSlot, autoConfirmIfEnabled, bookingLinkEnabled, bookingUrl, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
+import { refreshCase, currentUploadLink, ensureUploadToken, autoBookNextSlot, autoConfirmIfEnabled, bookingLinkEnabled, bookingUrl, completionTextFor, frameEmail, matchServiceMaterials, uploadUrl } from "./case-ops";
 import { CONTACT_CHANNEL_KEY } from "./checklist";
 import { customerText } from "@/lib/config/customer-texts";
 import { sendPush } from "@/lib/push";
-import { answerFromKnowledge, knowledgeOf } from "@/lib/ai/knowledge";
+import { answerFromKnowledge, businessFacts, knowledgeOf } from "@/lib/ai/knowledge";
+import { statusAnswer, statusQuestion } from "./status";
 import { templateQuestionsFor } from "./template-questions";
 import { answerWebsiteChat } from "./website-chat";
 import { documentList } from "./messages";
@@ -160,10 +161,18 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const fromKnowledge = async (question: string) =>
     /^(notfall|reklamation|beschwerde)/i.test(question)
       ? null
-      : answerFromKnowledge(input.text, knowledgeOf(company.businessProfile), { industry: company.businessProfile?.industry ?? "", companyName: company.name });
+      : answerFromKnowledge(input.text, knowledgeOf(company.businessProfile), { industry: company.businessProfile?.industry ?? "", companyName: company.name, facts: businessFacts(company, settings) });
   // Termin absagen oder verschieben per E-Mail: Das klärt das Büro selbst (Kalender) – nicht still übergehen.
   // Termin absagen oder verschieben (auch per E-Mail) erledigt der Termin-Ablauf unten automatisch.
   const wantsApptChange = Boolean(existing && (existing.fields.apptStage ?? "") !== "" && (looksLikeCancellation(input.text) || looksLikeReschedule(input.text)));
+  // Frage nach dem Stand eines laufenden Falls per E-Mail („Wann kommen Sie?“, „Haben Sie meine Fotos bekommen?“):
+  // beantwortet FallFlow selbst aus dem Fall (Termin, was noch fehlt) – statt „Aufmerksamkeit benötigt“. Steht daneben eine
+  // andere echte Frage (Preis, Fachfrage …), bleibt es beim Betrieb.
+  let statusAsked = false;
+  if (existing && input.channel === "email" && settings.autoReply && !silent && !attention && !wantsApptChange && !looksLikeCancellation(input.text)) {
+    const status = statusQuestion(stripQuoted(input.text));
+    statusAsked = status.asked && !(status.rest && (await customerQuestion(status.rest, company.businessProfile?.industry ? { industry: company.businessProfile.industry, humanTopics: company.businessProfile.humanTopics } : null)));
+  }
   // Unklare Anfrage: einmal nachfragen statt sofort an den Betrieb; mehrere Leistungen: eine Antwort für alle.
   let clarify = false;
   let extraServices: string[] = [];
@@ -176,7 +185,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     if (question && input.channel === "whatsapp") knowledgeReply = await fromKnowledge(question);
     if (question && !knowledgeReply) attention = input.channel === "phone" ? `Anruf: ${question}` : `Frage des Kunden: ${question}`;
   }
-  if (!attention && input.channel === "email" && settings.autoReply) {
+  if (!attention && !statusAsked && input.channel === "email" && settings.autoReply) {
     const service = turn.fields.service ?? "";
     // Termin-Betriebe ohne Einsatz vor Ort (Friseur, Werkstatt …): mehrere Leistungen sind ein Termin ("Schneiden und
     // Färben", "Inspektion und Reifenwechsel") – dann normal antworten. Bei Handwerkern sind es zwei Aufträge.
@@ -236,8 +245,8 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
     await store.updateCase(caseId, { fields: { [ATTENTION_KEY]: attention } });
     await store.addEvent(caseId, "handoff", `Aufmerksamkeit benötigt (${attention}) – keine automatische Antwort, bitte selbst antworten.`);
     // Notfall: sofort aufs Handy bzw. in den Browser (Push), nicht erst per E-Mail.
-    if (/notfall/i.test(attention) && !input.simulated) {
-      await sendPush(store, { title: "Notfall – bitte melden", body: `${draft.customerName}: ${attention.replace(/^Frage des Kunden: /, "")}`, url: `/dashboard/cases/${caseId}` }).catch(() => 0);
+    if (/notfall|reklamation|beschwerde/i.test(attention) && !input.simulated) {
+      await sendPush(store, { title: /notfall/i.test(attention) ? "Notfall – bitte melden" : "Reklamation – bitte melden", body: `${draft.customerName}: ${attention.replace(/^Frage des Kunden: /, "")}`, url: `/dashboard/cases/${caseId}` }).catch(() => 0);
     }
   }
 
@@ -327,7 +336,7 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
   const useBookingLink = settings.appointmentBooking && (await bookingLinkEnabled(store));
   const bookingLink = useBookingLink ? bookingUrl(await ensureUploadToken(store, refreshed.caseRecord)) : "";
   const askLine = useBookingLink ? T("appointment.bookingLinkChat", { link: bookingLink }) : T("appointment.ask", { beispiel: availabilityExample(settings.workingDays) });
-  if (settings.appointmentBooking && !turn.handoff && !attention && !silent) {
+  if (settings.appointmentBooking && !turn.handoff && !attention && !silent && !statusAsked) {
     const stage = refreshed.caseRecord.fields.apptStage ?? "";
     const vacation = settings.vacationFrom && settings.vacationUntil ? { from: settings.vacationFrom, until: settings.vacationUntil } : null;
     const slotBase = { workingDays: settings.workingDays, slotStart: settings.slotStart, slotEnd: settings.slotEnd, slotMinutes: settings.slotMinutes, maxAppointmentsPerDay: settings.maxAppointmentsPerDay, vacation };
@@ -425,6 +434,24 @@ export async function processIntakeMessage(store: Store, input: IntakeInput): Pr
       }
     }
     // stage "proposed"/"confirmed"/"failed": liegt beim Team bzw. ist bereits final – die KI sagt dazu nichts Neues mehr.
+  }
+
+  // Antwort auf die Frage nach dem Stand (siehe oben) – nur, wenn dieser Zug nicht ohnehin schon etwas sagt (z. B. „Vielen Dank,
+  // damit haben wir alle Angaben“, nachdem der Kunde die fehlenden Fotos geschickt hat).
+  if (statusAsked && replies.length === 0) {
+    const appointments = (await store.listAppointments()).filter((a) => a.caseId === caseId);
+    const stage = refreshed.caseRecord.fields.apptStage ?? "";
+    const missingDocs = refreshed.checklist.missing.some((i) => i.kind === "document");
+    replies.push(
+      statusAnswer({
+        appointments,
+        missing: refreshed.checklist.missing,
+        uploadLink: missingDocs ? (refreshed.uploadLink ?? currentUploadLink(refreshed.caseRecord)) : null,
+        bookingLink: useBookingLink && (stage === "" || stage === "ask") && settings.appointmentBooking ? bookingLink : null,
+        T,
+      }),
+    );
+    await store.addEvent(caseId, "note", "Kunde hat nach dem Stand gefragt – FallFlow hat automatisch geantwortet.");
   }
 
   let delivered = true;
@@ -540,10 +567,19 @@ async function answerSideQuestion(store: Store, existing: CaseRecord, input: Int
   await store.addMessage(existing.id, "user", input.text.slice(0, 2000), { ...meta, delivery: "delivered" });
   const company = await store.getCompany();
   const texts = company.businessProfile?.texts;
-  const known = obviousHumanQuestion(input.text) ? await answerFromKnowledge(input.text, knowledgeOf(company.businessProfile), { industry: company.businessProfile?.industry ?? "", companyName: company.name }) : null;
-  const human = known ? null : obviousHumanQuestion(input.text);
+  const status = statusQuestion(input.text);
+  const statusOnly = status.asked && !obviousHumanQuestion(status.rest) && !status.rest.includes("?");
+  const settings = await store.getAssistant();
+  const known = !statusOnly && obviousHumanQuestion(input.text) ? await answerFromKnowledge(input.text, knowledgeOf(company.businessProfile), { industry: company.businessProfile?.industry ?? "", companyName: company.name, facts: businessFacts(company, settings) }) : null;
+  const human = known || statusOnly ? null : obviousHumanQuestion(input.text);
   let answer: string;
-  if (known) {
+  if (statusOnly) {
+    const refreshed = await refreshCase(store, existing.id, { touch: false });
+    const appointments = (await store.listAppointments()).filter((a) => a.caseId === existing.id);
+    const missingDocs = refreshed.checklist.missing.some((i) => i.kind === "document");
+    answer = statusAnswer({ appointments, missing: refreshed.checklist.missing, uploadLink: missingDocs ? currentUploadLink(refreshed.caseRecord) : null, T: (key, vars = {}) => customerText(texts, key, vars) });
+    await store.addEvent(existing.id, "note", "Kunde hat nach dem Stand gefragt – FallFlow hat automatisch geantwortet.");
+  } else if (known) {
     answer = known;
   } else if (human) {
     answer = customerText(texts, "whatsapp.sideQuestion");
