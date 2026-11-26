@@ -156,7 +156,7 @@ export function AnswersSection() {
         ))}
       </ul>
       <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-        <strong className="text-foreground">Bei Ihnen landen:</strong> Notfälle und Reklamationen (sofort aufs Handy), Preisfragen ohne Eintrag in Ihrer Preisliste und Fachfragen.
+        <strong className="text-foreground">Bei Ihnen landen:</strong> Notfälle (sofort aufs Handy und per E-Mail) und Reklamationen, Preisfragen ohne Eintrag in Ihrer Preisliste und Fachfragen.
         Der Kunde bekommt sofort eine Eingangsbestätigung, Sie antworten persönlich.
       </p>
     </Section>
