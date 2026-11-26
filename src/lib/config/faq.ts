@@ -17,7 +17,11 @@ export const faqs = [
   },
   {
     q: "Was unterscheidet FallFlow von einem KI-Chatbot?",
-    a: "Ein Chatbot beantwortet nur Fragen – das macht bei FallFlow der Website-Chat. Der Kern ist aber die E-Mail-Bearbeitung: FallFlow erkennt Angaben in der Anfrage, fordert nur Fehlendes an, fordert Unterlagen an, prüft die Vollständigkeit und legt die fertige Fallakte an. Es erfindet keine Angaben und nennt keine Preise.",
+    a: "Ein Chatbot beantwortet nur Fragen – das macht bei FallFlow der Website-Chat. Der Kern ist aber die E-Mail-Bearbeitung: FallFlow erkennt Angaben in der Anfrage, fordert nur Fehlendes an, fordert Unterlagen an, prüft die Vollständigkeit und legt die fertige Fallakte an. Es erfindet keine Angaben und nennt Preise nur wörtlich aus Ihrer Preisliste.",
+  },
+  {
+    q: "Ich habe schon einen KI-Telefon-Assistenten oder eine Handwerkersoftware – passt FallFlow dazu?",
+    a: "Ja. FallFlow ersetzt beides nicht, sondern kümmert sich um das, was dort meist liegen bleibt: Ihr E-Mail-Postfach. Ein Telefon-Assistent nimmt Anrufe an – FallFlow beantwortet die E-Mail-Anfragen, sammelt Fotos und Angaben ein und schlägt Termine vor. Ihre Handwerkersoftware nutzen Sie weiter wie gewohnt; FallFlow liefert Ihnen den vorbereiteten Auftrag mit allen Angaben, den Sie dort übernehmen.",
   },
   {
     q: "Funktioniert das auch mit WhatsApp und Telefon?",

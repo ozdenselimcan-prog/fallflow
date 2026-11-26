@@ -16,6 +16,11 @@ export const ARTICLES = [
     text: "Wie Anfragen nicht liegen bleiben – mit wenig Aufwand, auch wenn Sie den ganzen Tag beim Kunden sind.",
   },
   {
+    href: "/ratgeber/ki-fuer-handwerker-vergleich",
+    title: "KI für Handwerker: Telefon-Assistent, Chatbot oder E-Mail-Automatik?",
+    text: "Was die einzelnen KI-Werkzeuge können, wo ihre Grenzen liegen – und sechs Fragen, bevor Sie sich entscheiden.",
+  },
+  {
     href: "/ratgeber/angebot-schreiben-vorlage",
     title: "Angebot schreiben als Handwerker: Vorlage und was hineingehört",
     text: "Positionen, Preise, Gültigkeit, Ausschlüsse – plus der Unterschied zum Kostenvoranschlag und ein Anschreiben zum Kopieren.",
