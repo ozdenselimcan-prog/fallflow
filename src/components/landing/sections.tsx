@@ -143,7 +143,7 @@ const answers: { q: string; a: string; note: string }[] = [
 /** Startseite: welche Kundenfragen FallFlow selbst beantwortet – und welche bewusst beim Betrieb bleiben. */
 export function AnswersSection() {
   return (
-    <Section title="Das beantwortet FallFlow für Sie." intro="Nicht nur neue Anfragen: Auch die vielen kleinen Fragen zwischendurch beantwortet FallFlow selbst – mit Ihren Angaben, nie mit erfundenen.">
+    <Section tinted title="Das beantwortet FallFlow für Sie." intro="Nicht nur neue Anfragen: Auch die vielen kleinen Fragen zwischendurch beantwortet FallFlow selbst – mit Ihren Angaben, nie mit erfundenen.">
       <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {answers.map((x) => (
           <li key={x.q}>
@@ -158,6 +158,77 @@ export function AnswersSection() {
       <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted-foreground">
         <strong className="text-foreground">Bei Ihnen landen:</strong> Notfälle (sofort aufs Handy und per E-Mail) und Reklamationen, Preisfragen ohne Eintrag in Ihrer Preisliste und Fachfragen.
         Der Kunde bekommt sofort eine Eingangsbestätigung, Sie antworten persönlich.
+      </p>
+    </Section>
+  );
+}
+
+/** Vergleich nach ART des Werkzeugs, bewusst ohne Markennamen (vergleichende Werbung, § 6 UWG). "yes" / "no" / Text = "teilweise/meist". */
+type Cell = "yes" | "no" | string;
+const COMPARE_COLS = ["FallFlow", "KI-Telefon-Assistent", "Handwerkersoftware mit KI", "Website-Chatbot", "KI-Schreibhilfe fürs Postfach"];
+const COMPARE_ROWS: { label: string; cells: Cell[] }[] = [
+  { label: "Beantwortet E-Mail-Anfragen selbstständig", cells: ["yes", "no", "teils", "no", "nur Vorschläge"] },
+  { label: "Fragt fehlende Angaben und Fotos nach", cells: ["yes", "ohne Fotos", "teils", "no", "no"] },
+  { label: "Legt den fertig vorbereiteten Auftrag an", cells: ["yes", "Zusammenfassung", "yes", "no", "no"] },
+  { label: "Schlägt Termine vor bzw. lässt buchen", cells: ["yes", "teils", "yes", "teils", "no"] },
+  { label: "Kein neues Programm – läuft im eigenen Postfach", cells: ["yes", "yes", "no", "yes", "yes"] },
+  { label: "Einrichtung durch den Anbieter inklusive", cells: ["yes", "meist selbst", "meist selbst", "meist selbst", "selbst"] },
+  { label: "Fester Monatspreis, keine Kosten pro Minute", cells: ["yes", "oft pro Minute", "yes", "yes", "yes"] },
+  { label: "Monatlich kündbar", cells: ["yes", "unterschiedlich", "oft Laufzeit", "unterschiedlich", "unterschiedlich"] },
+  { label: "Nimmt Anrufe an", cells: ["no", "yes", "teils", "no", "no"] },
+];
+
+function CompareCell({ value, highlight }: { value: Cell; highlight?: boolean }) {
+  if (value === "yes") return <Check className={cn("mx-auto size-5", highlight ? "text-white" : "text-success")} aria-label="ja" />;
+  if (value === "no") return <span className={cn("block text-center text-lg leading-none", highlight ? "text-white/60" : "text-muted-foreground/60")} aria-label="nein">–</span>;
+  return <span className={cn("block text-center text-xs leading-snug", highlight ? "text-white/80" : "text-muted-foreground")}>{value}</span>;
+}
+
+/** Startseite: FallFlow im Vergleich zu anderen Arten von Werkzeugen – ehrlich, auch mit dem, was FallFlow nicht macht. */
+export function ComparisonSection() {
+  return (
+    <Section
+      id="vergleich"
+      title="Warum FallFlow statt anderer Programme?"
+      intro="Es gibt viele KI-Werkzeuge fürs Handwerk. Die meisten kümmern sich um Anrufe oder wollen Ihre ganze Verwaltung ersetzen. FallFlow macht eine Sache richtig: aus jeder Anfrage in Ihrem Postfach einen fertigen Auftrag."
+    >
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <table className="w-full min-w-[46rem] border-separate border-spacing-0 text-sm">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-10 w-56 bg-background p-3 text-left font-medium text-muted-foreground" />
+              {COMPARE_COLS.map((c, i) => (
+                <th key={c} className={cn("p-3 text-center align-bottom text-xs font-semibold", i === 0 ? "rounded-t-xl bg-zinc-900 text-sm text-white" : "text-muted-foreground")}>
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARE_ROWS.map((r, ri) => (
+              <tr key={r.label}>
+                <th scope="row" className="sticky left-0 z-10 border-t border-border bg-background p-3 text-left font-medium">
+                  {r.label}
+                </th>
+                {r.cells.map((v, i) => (
+                  <td
+                    key={i}
+                    className={cn("border-t p-3", i === 0 ? "border-white/10 bg-zinc-900" : "border-border", i === 0 && ri === COMPARE_ROWS.length - 1 && "rounded-b-xl")}
+                  >
+                    <CompareCell value={v} highlight={i === 0} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-4 text-xs text-muted-foreground">
+        Vergleich nach Art des Werkzeugs, typische Eigenschaften (Stand November 2026) – einzelne Anbieter können abweichen. Mehr dazu im{" "}
+        <Link href="/ratgeber/ki-fuer-handwerker-vergleich" className="underline underline-offset-2">
+          Ratgeber: KI für Handwerker im Vergleich
+        </Link>
+        .
       </p>
     </Section>
   );
