@@ -558,10 +558,15 @@ export async function completionTextFor(store: Store, service: string | undefine
  * Automatische E-Mail mit Anrede und Gruß einrahmen (Texte unter „KI-Assistent → Texte“). Beginnt der Text schon mit
  * einer Anrede bzw. endet er mit einem Gruß (eigener Text des Betriebs), wird nichts doppelt ergänzt.
  */
+/** Ohne Namen ergäbe "Sehr geehrte/r {name}," ein holpriges "Sehr geehrte/r," – dann die übliche Form ohne Namen. */
+export function greetingWithoutName(greeting: string): string {
+  return greeting.replace(/^\s*sehr geehrte\/?r?\s*,/i, "Sehr geehrte Damen und Herren,").replace(/^\s*(hallo|guten tag)\s+,/i, "$1,");
+}
+
 export async function frameEmail(store: Store, text: string, name?: string): Promise<string> {
   const company = await store.getCompany();
   const texts = company.businessProfile?.texts;
-  const greeting = hasGreeting(text) ? "" : customerText(texts, "email.greeting", { name: name?.trim() });
+  const greeting = hasGreeting(text) ? "" : greetingWithoutName(customerText(texts, "email.greeting", { name: name?.trim() }));
   const signoff = hasSignoff(text) ? "" : customerText(texts, "email.signoff", { firma: company.name });
   // Nach der Anrede klein weiter ("Guten Tag Frau X, vielen Dank …"), ohne Anrede groß.
   const body = greeting ? text.replace(/^Vielen Dank/, "vielen Dank") : text.charAt(0).toUpperCase() + text.slice(1);

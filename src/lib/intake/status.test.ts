@@ -110,3 +110,16 @@ describe("E-Mail: Frage nach dem Stand wird automatisch beantwortet", () => {
     expect((await store.getCase(turn.sessionId))?.fields.needsAttention).toMatch(/^Frage des Kunden/);
   });
 });
+
+describe("Anrede ohne Namen", () => {
+  it.each([
+    ["Sehr geehrte/r ,", "Sehr geehrte Damen und Herren,"],
+    ["Sehr geehrte/r,", "Sehr geehrte Damen und Herren,"],
+    ["Guten Tag ,", "Guten Tag,"],
+    ["Hallo ,", "Hallo,"],
+    ["Guten Tag Petra Lang,", "Guten Tag Petra Lang,"],
+  ])("„%s“ → „%s“", async (input, expected) => {
+    const { greetingWithoutName } = await import("./case-ops");
+    expect(greetingWithoutName(input)).toBe(expected);
+  });
+});

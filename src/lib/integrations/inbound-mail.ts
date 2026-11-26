@@ -60,7 +60,9 @@ async function declineNotOffered(store: Store, companyId: string, mail: Incoming
   const [company, settings] = await Promise.all([store.getCompany(), store.getAssistant()]);
   if (!settings.autoReply) return null;
   const liste = company.services.filter((s) => s && s !== "Sonstiges").slice(0, 8).join(", ");
-  const text = await frameEmail(store, customerText(company.businessProfile?.texts, "email.notOffered", { leistung: service, liste }), mail.fromName || undefined);
+  // Name für die Anrede: aus dem Absender, sonst aus der Unterschrift der Mail.
+  const name = mail.fromName || (await extractForText(mail.body.slice(0, 1500)).catch(() => ({}) as Record<string, string>)).name || undefined;
+  const text = await frameEmail(store, customerText(company.businessProfile?.texts, "email.notOffered", { leistung: service, liste }), name);
   await deliverToCustomer({ companyId, channel: "email", email: mail.from, text, simulated, subject: mail.subject ? `Re: ${mail.subject.replace(/^(re|aw):\s*/i, "")}` : undefined });
   return text;
 }
