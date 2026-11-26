@@ -70,7 +70,7 @@ export function Hero() {
       <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
       <div className="flex flex-col items-center">
         <span className="hero-reveal mb-5 inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">
-          Für Handwerker · läuft in Ihrem bestehenden E-Mail-Postfach
+          Für Handwerker · ohne neues Programm
         </span>
         <h1 className="hero-reveal text-balance text-[clamp(2rem,5vw+0.5rem,3.75rem)] font-black leading-[1.05] tracking-[-0.03em] text-zinc-900 [animation-delay:80ms]">
           Keine Kundenanfrage
