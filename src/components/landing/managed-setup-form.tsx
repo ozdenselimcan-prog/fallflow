@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Check, Plus } from "lucide-react";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Chips, cityOf, CUSTOMERS, GREETINGS, STRENGTHS, TONES, type Greeting } from "@/components/onboarding/interview";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/form";
@@ -29,6 +29,9 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
 }
 
 export function ManagedSetupForm() {
+  const top = useRef<HTMLDivElement>(null);
+  // Auf dem Handy steht der Fragebogen unter dem Einleitungstext: nach jedem Schritt zum Fragebogen scrollen, nicht zum Seitenanfang.
+  const toTop = () => top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const [index, setIndex] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export function ManagedSetupForm() {
     if (index === 1 && !services.length && preset) setServices([...preset.services]);
     if (index === 4 && !prices.length) setPrices(services.slice(0, 10).map((item) => ({ item, price: "", note: "" })));
     setIndex(index + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    toTop();
   }
 
   async function submit() {
@@ -110,7 +113,7 @@ export function ManagedSetupForm() {
         hp,
       });
       setDone(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      toTop();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Das hat gerade nicht geklappt. Bitte versuchen Sie es noch einmal.");
     } finally {
@@ -120,7 +123,7 @@ export function ManagedSetupForm() {
 
   if (done) {
     return (
-      <div className="text-center">
+      <div ref={top} className="scroll-mt-24 text-center">
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent text-white">
           <Check className="size-6" />
         </div>
@@ -346,7 +349,7 @@ export function ManagedSetupForm() {
   }
 
   return (
-    <div>
+    <div ref={top} className="scroll-mt-24">
       <div className="mb-6">
         <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>
@@ -368,7 +371,7 @@ export function ManagedSetupForm() {
       )}
       <div className="mt-8 flex items-center justify-between">
         {index > 0 ? (
-          <Button variant="ghost" onClick={() => setIndex(index - 1)} disabled={pending}>
+          <Button variant="ghost" onClick={() => (setIndex(index - 1), toTop())} disabled={pending}>
             <ArrowLeft className="size-4" /> Zurück
           </Button>
         ) : (
