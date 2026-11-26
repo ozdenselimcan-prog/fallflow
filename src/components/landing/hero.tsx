@@ -23,13 +23,13 @@ function seeded(seed: number) {
   };
 }
 
-/** 30 Gitterzellen auf einer 1520 × 800 px großen Fläche (38 × 20 Zellen à 40 px), mittig über dem Gitter. */
-const SHADES = ["rgba(24,24,27,0.12)", "rgba(24,24,27,0.18)", "rgba(24,24,27,0.28)"];
+/** 18 Gitterzellen auf einer 1520 × 800 px großen Fläche (38 × 20 Zellen à 40 px), mittig über dem Gitter. */
+const SHADES = ["rgba(24,24,27,0.05)", "rgba(24,24,27,0.08)", "rgba(24,24,27,0.12)"];
 const cells = (() => {
   const rnd = seeded(20261019);
   const used = new Set<string>();
   const out: { left: number; top: number; bg: string; delay: number; duration: number }[] = [];
-  while (out.length < 30) {
+  while (out.length < 18) {
     const col = Math.floor(rnd() * 38);
     const row = Math.floor(rnd() * 20);
     // Hinter Überschrift, Text und Buttons frei lassen (Spalte 19 liegt in der Mitte).
@@ -67,7 +67,7 @@ export function Hero() {
   return (
     <section id="produkt" className="hero-grid-bg relative overflow-hidden">
       <HeroBackdrop />
-      <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
+      <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center gap-12 px-4 py-14 text-center sm:px-6 lg:py-20">
       <div className="flex flex-col items-center">
         <span className="hero-reveal mb-5 inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[13px] font-medium text-zinc-600 shadow-sm">
           Für Handwerker und kleine Betriebe
@@ -79,7 +79,7 @@ export function Hero() {
           </span>
         </h1>
         <p className="hero-reveal mt-6 max-w-2xl text-base leading-relaxed text-zinc-500 [animation-delay:160ms] sm:text-lg">
-          Jeder Kunde bekommt in wenigen Minuten eine Antwort – per E-Mail oder WhatsApp, auch abends und am Wochenende. Sie bekommen den fertig vorbereiteten Auftrag. Und einrichten müssen Sie nichts: Das machen wir für Sie.
+          Jeder Kunde bekommt in 2–3 Minuten eine Antwort – per E-Mail oder WhatsApp, auch abends und am Wochenende. Sie bekommen den fertig vorbereiteten Auftrag. Und einrichten müssen Sie nichts: Das machen wir für Sie.
         </p>
         <div className="hero-reveal mt-8 flex w-full max-w-sm flex-col gap-3 [animation-delay:240ms] sm:max-w-none sm:flex-row sm:justify-center">
           <Link href="/einrichtung" className={buttonStyles({ size: "lg" })}>

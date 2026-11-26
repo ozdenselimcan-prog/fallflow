@@ -131,6 +131,38 @@ export function SimpleStepsSection() {
   );
 }
 
+const answers: { q: string; a: string; note: string }[] = [
+  { q: "Machen Sie auch Dachrinnen?", a: "Ja, Dachrinnen montieren wir gern. Schicken Sie uns dazu kurz die Adresse und ein Foto.", note: "aus Ihren Leistungen" },
+  { q: "Kommen Sie auch nach Dachau?", a: "Ja, Dachau liegt in unserem Einsatzgebiet.", note: "aus Ihrem Einsatzgebiet" },
+  { q: "Was kostet die Dachrinnenreinigung?", a: "Die Dachrinnenreinigung kostet bei uns ab 120 € für ein Einfamilienhaus.", note: "nur wörtlich aus Ihrer Preisliste" },
+  { q: "Wann kommen Sie denn?", a: "Ihr Termin steht: Donnerstag, 10.12. um 10:00 Uhr.", note: "aus dem Kalender" },
+  { q: "Können wir den Termin verschieben?", a: "Kein Problem – wählen Sie hier einfach einen neuen Termin aus.", note: "mit Ihren freien Zeiten" },
+  { q: "Machen Sie auch Fensterputzen?", a: "Das gehört leider nicht zu unseren Leistungen. Wir übernehmen unter anderem Dachreparaturen und Dachrinnen.", note: "freundliche Absage" },
+];
+
+/** Startseite: welche Kundenfragen FallFlow selbst beantwortet – und welche bewusst beim Betrieb bleiben. */
+export function AnswersSection() {
+  return (
+    <Section title="Das beantwortet FallFlow für Sie." intro="Nicht nur neue Anfragen: Auch die vielen kleinen Fragen zwischendurch beantwortet FallFlow selbst – mit Ihren Angaben, nie mit erfundenen.">
+      <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {answers.map((x) => (
+          <li key={x.q}>
+            <Card className="flex h-full flex-col gap-3 p-5">
+              <p className="self-start rounded-2xl rounded-tl-sm bg-muted px-4 py-2.5 text-sm">„{x.q}“</p>
+              <p className="self-end rounded-2xl rounded-tr-sm bg-accent px-4 py-2.5 text-sm text-white">{x.a}</p>
+              <p className="mt-auto text-right text-xs text-muted-foreground">{x.note}</p>
+            </Card>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        <strong className="text-foreground">Bei Ihnen landen:</strong> Notfälle und Reklamationen (sofort aufs Handy), Preisfragen ohne Eintrag in Ihrer Preisliste und Fachfragen.
+        Der Kunde bekommt sofort eine Eingangsbestätigung, Sie antworten persönlich.
+      </p>
+    </Section>
+  );
+}
+
 const control = [
   "Die KI erfindet keine Preise – Fragen zu Preisen und Sonderfällen gehen an Sie.",
   "Sie entscheiden: FallFlow antwortet selbst – oder bereitet nur vor und schlägt Ihnen eine Antwort vor, die Sie prüfen und abschicken.",

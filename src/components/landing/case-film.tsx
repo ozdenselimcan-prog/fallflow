@@ -54,7 +54,8 @@ export function CaseFilm({ scenario = DEFAULT_FILM }: { scenario?: FilmScenario 
   const MAIL_TEXT = sc.mailParts.map((p) => p.text).join("");
   /** Startposition jedes Textstücks im Gesamttext (für den Schreibmaschinen-Effekt mit Markierungen). */
   const MAIL_OFFSETS = sc.mailParts.map((_, i) => sc.mailParts.slice(0, i).reduce((n, p) => n + p.text.length, 0));
-  const [t, setT] = useState(0);
+  // Nicht bei 0 beginnen: Da ist der Posteingang noch leer – gleich mit der eintreffenden Kundenmail starten.
+  const [t, setT] = useState(1800);
   const [playing, setPlaying] = useState(true);
   const [inView, setInView] = useState(false);
   const [reduced, setReduced] = useState(false);

@@ -5,7 +5,7 @@ import { Navbar } from "@/components/landing/navbar";
 import type { Metadata } from "next";
 import { faqs } from "@/lib/config/faq";
 import { faqLd, ldJson, organizationLd, softwareLd } from "@/lib/seo";
-import { ControlSection, FaqSection, FinalCta, MailFlowSection, PersonalSection, PricingSection, SimpleStepsSection } from "@/components/landing/sections";
+import { AnswersSection, ControlSection, FaqSection, FinalCta, MailFlowSection, PersonalSection, PricingSection, SimpleStepsSection } from "@/components/landing/sections";
 
 export const metadata: Metadata = {
   title: { absolute: "FallFlow – Kundenanfragen automatisch beantworten für Handwerker" },
@@ -30,6 +30,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <MailFlowSection />
+        <AnswersSection />
         <SimpleStepsSection />
         <ControlSection />
         <PersonalSection />
